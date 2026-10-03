@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -24,7 +24,7 @@ const DURATIONS = [15, 30, 45, 60, 90, 120] as const;
 /** Sign-up step 3 of 3 (PRD onboarding: "Review pre-filled services → edit price/duration"). */
 export default function WelcomeScreen() {
   return (
-    <RoleGate role="owner">
+    <RoleGate role="owner" allowOnboarding>
       <ReviewServices />
     </RoleGate>
   );
@@ -38,10 +38,11 @@ function ReviewServices() {
   const [edits, setEdits] = useState<Record<number, Edit>>({});
   const [error, setError] = useState<string | null>(null);
 
-  // Reached once; going to `/` later should land on Today.
-  useEffect(clearOnboardingPending, []);
-
-  const done = () => router.replace('/today');
+  // Cleared only when the owner finishes or skips: until then every owner screen sends them back here.
+  const done = () => {
+    clearOnboardingPending();
+    router.replace('/today');
+  };
 
   if (!services.data) {
     return (

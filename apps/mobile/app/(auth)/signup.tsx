@@ -68,8 +68,8 @@ export default function SignupScreen() {
       return;
     }
     signup.mutate(values, {
-      // `/` routes the new owner to step 3 (`/welcome`).
-      onSuccess: () => router.replace('/'),
+      // No navigation here: once the new session appears the (auth) layout redirects to `/`,
+      // which sends the owner to step 3 (`/welcome`). Navigating here as well raced with that.
       onError: (err) => {
         if (err instanceof ApiError && err.code === 'slug_taken') setError('slug', { message: err.message });
         if (err instanceof ApiError && err.code === 'email_taken') {
