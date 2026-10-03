@@ -50,7 +50,7 @@
 ---
 
 ## Phase 3 — Booking engine + calendar (Week 3)
-- [ ] Migration: `customers`, `bookings` (incl. location_address, custom_fields jsonb) + exclusion constraint against double booking
+- [x] Migration: `customers`, `bookings` (incl. location_address, custom_fields jsonb) + exclusion constraint against double booking *(Schema in `packages/db/src/schema/bookings.ts`; migration 0005 tables + 0006 custom `bookings_no_overlap` EXCLUDE (blocked range, pending/confirmed/checked_in → SQLSTATE `23P01`) + `updated_at` triggers. 12 tests in `apps/api/test/booking-schema.test.ts` incl. buffers, cancel frees slot, concurrent attempts, cross-tenant FKs)*
 - [ ] `services/availability.ts`: slots for (service, duration option, resource or any, date) respecting working hours, time off, bookings, buffers, advance notice, max days ahead
 - [ ] `services/pricing.ts`: duration blocks, peak/off-peak, deposit or full prepayment
 - [ ] Vitest: overlaps, breaks, holidays, travel buffer, end-of-day, Malaysia timezone, concurrent booking attempt

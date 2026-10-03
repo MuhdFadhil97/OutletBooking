@@ -36,6 +36,20 @@
       "when": 1790994206373,
       "tag": "0004_phase2_updated_at_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791016674452,
+      "tag": "0005_phase3_customers_bookings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791016685461,
+      "tag": "0006_phase3_booking_constraints",
+      "breakpoints": true
     }
   ]
 }
