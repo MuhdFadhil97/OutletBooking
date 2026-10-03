@@ -3,6 +3,7 @@ import type {
   Booking,
   BookingCreateInput,
   BookingRescheduleInput,
+  BookingSearchFilter,
   BookingStatus,
   BookingUpdate,
 } from '@outletbooking/shared';
@@ -17,6 +18,10 @@ const qs = (params: Record<string, string | number | boolean | undefined>) =>
 /** Bookings overlapping local dates [from, to) ("yyyy-MM-dd", to exclusive). */
 export const listBookings = (p: { from: string; to: string; resourceId?: number; includeInactive?: boolean }) =>
   apiFetch<Booking[]>(`/bookings?${qs(p)}`);
+
+/** Bookings tab: search + filter, upcoming first then past. */
+export const searchBookings = (p: { q?: string; filter: BookingSearchFilter; limit?: number }) =>
+  apiFetch<Booking[]>(`/bookings/search?${qs({ ...p, q: p.q || undefined })}`);
 
 export const getBooking = (id: number) => apiFetch<Booking>(`/bookings/${id}`);
 

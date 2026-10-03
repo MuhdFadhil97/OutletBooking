@@ -2,6 +2,7 @@ import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Booking, BookingStatus } from '@outletbooking/shared';
 import type { TagTone } from '@/components/ui/Tag';
+import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
 
 /** Local "yyyy-MM-dd" date helpers (calendar dates, no timezone math). */
@@ -72,4 +73,20 @@ export const wazeUrl = (address: string) => `https://waze.com/ul?q=${encodeURICo
 export function formatPhone(e164: string): string {
   const m = /^\+60(1\d)(\d{3,4})(\d{4})$/.exec(e164);
   return m ? `+60 ${m[1]}-${m[2]} ${m[3]}` : e164;
+}
+
+/** Bookings list (O9) payment line: "RM 180 due", "Deposit pending", "Paid", "Deposit kept". */
+export function paymentSummary(b: Booking): string | null {
+  const l = t.bookingsList;
+  if (b.priceSen === 0) return t.booking.free;
+  const depositOnly = b.amountDueSen > 0 && b.amountDueSen < b.priceSen;
+  if (b.status === 'cancelled' || b.status === 'no_show') {
+    return b.paymentStatus === 'paid' ? (depositOnly ? l.depositKept : t.booking.paid) : null;
+  }
+  if (b.paymentStatus === 'paid') {
+    const balance = b.priceSen - b.amountDueSen;
+    return balance > 0 ? l.due(formatRM(balance)) : t.booking.paid;
+  }
+  if (b.paymentStatus === 'unpaid' && b.amountDueSen > 0) return depositOnly ? l.depositPending : l.paymentPending;
+  return b.status === 'completed' ? null : l.due(formatRM(b.priceSen));
 }

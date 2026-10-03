@@ -1,6 +1,6 @@
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { and, asc, eq, gt, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, ilike, inArray, isNull, like, lt, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import {
   bookingFields,
   bookings,
@@ -18,6 +18,7 @@ import {
   type BookingCreate,
   type BookingListQuery,
   type BookingReschedule,
+  type BookingSearchQuery,
   type BookingSource,
   type BookingStatus,
   type BookingStatusChange,
@@ -138,6 +139,72 @@ export async function listBookings(
       ),
     )
     .orderBy(asc(bookings.startAt), asc(resources.sortOrder), asc(bookings.id));
+  return rows.map(toDto);
+}
+
+/** Treat % _ \ typed by the user as plain characters in LIKE patterns. */
+const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** O9 search: customer name, phone digits, or a searchable booking answer (spaces ignored, "WXY1234" = "WXY 1234"). */
+async function searchCondition(q: Q, businessId: number, term: string): Promise<SQL | undefined> {
+  const fields = await q
+    .selectDistinct({ key: bookingFields.fieldKey })
+    .from(bookingFields)
+    .where(and(eq(bookingFields.businessId, businessId), eq(bookingFields.isSearchable, true)));
+  const compact = `%${escapeLike(term.replace(/\s+/g, ''))}%`;
+  const conds: SQL[] = [ilike(customers.name, `%${escapeLike(term)}%`)];
+  // Phone-looking input only ("012-345 6789", "+60 12…") → match the stored +60123456789.
+  // Mixed input like a plate number "WXY1234" must not match phones containing 1234.
+  const digits = term.replace(/\D/g, '').replace(/^0/, '');
+  if (/^[\d\s+()-]+$/.test(term) && digits.length >= 3) conds.push(like(customers.phone, `%${digits}%`));
+  for (const { key } of fields) {
+    conds.push(sql`replace(${bookings.customFields} ->> ${key}, ' ', '') ilike ${compact}`);
+  }
+  return or(...conds);
+}
+
+const FINAL_STATUSES = ['completed', 'cancelled', 'no_show'] as const;
+
+export async function searchBookings(
+  q: Q,
+  businessId: number,
+  query: BookingSearchQuery,
+  scope: BookingScope = {},
+  now = new Date(),
+): Promise<Booking[]> {
+  const where: (SQL | undefined)[] = [eq(bookings.businessId, businessId), scopeFilter(scope)];
+  if (query.q) where.push(await searchCondition(q, businessId, query.q));
+
+  const upcoming = gte(bookings.endAt, now);
+  let order: SQL[];
+  switch (query.filter) {
+    case 'upcoming':
+      where.push(upcoming, notInArray(bookings.status, ['cancelled', 'no_show']));
+      order = [asc(bookings.startAt)];
+      break;
+    case 'unpaid':
+      where.push(eq(bookings.paymentStatus, 'unpaid'), notInArray(bookings.status, ['cancelled', 'no_show']));
+      order = [asc(bookings.startAt)];
+      break;
+    case 'past':
+      where.push(or(lt(bookings.endAt, now), inArray(bookings.status, [...FINAL_STATUSES])));
+      order = [desc(bookings.startAt)];
+      break;
+    default:
+      // Upcoming (soonest first), then past (most recent first).
+      // Raw SQL params are not mapped like column comparisons: pass the instant as text.
+      const at = sql`${now.toISOString()}::timestamptz`;
+      order = [
+        sql`${bookings.endAt} < ${at}`,
+        sql`case when ${bookings.endAt} >= ${at} then ${bookings.startAt} end asc`,
+        desc(bookings.startAt),
+      ];
+  }
+
+  const rows = await selectBookings(q)
+    .where(and(...where))
+    .orderBy(...order, desc(bookings.id))
+    .limit(query.limit);
   return rows.map(toDto);
 }
 

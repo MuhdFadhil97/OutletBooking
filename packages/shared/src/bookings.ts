@@ -117,6 +117,20 @@ export const bookingListQuery = z
   });
 export type BookingListQuery = z.infer<typeof bookingListQuery>;
 
+export const BOOKING_SEARCH_FILTERS = ['all', 'upcoming', 'unpaid', 'past'] as const;
+export type BookingSearchFilter = (typeof BOOKING_SEARCH_FILTERS)[number];
+
+/**
+ * Bookings tab (O9): search by customer name, phone or searchable booking answers (e.g. plate number).
+ * Sorted upcoming first (soonest), then past (most recent).
+ */
+export const bookingSearchQuery = z.object({
+  q: z.string().trim().max(100).optional(),
+  filter: z.enum(BOOKING_SEARCH_FILTERS).default('all'),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type BookingSearchQuery = z.infer<typeof bookingSearchQuery>;
+
 /** Owner calendar slot lookup: availability + the booking being rescheduled. */
 export const calendarAvailabilityQuery = z.object({
   serviceId: z.coerce.number().int().positive(),

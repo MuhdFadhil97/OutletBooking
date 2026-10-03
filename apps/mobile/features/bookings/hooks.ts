@@ -1,5 +1,5 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Booking, BookingCreateInput, BookingRescheduleInput, BookingStatus } from '@outletbooking/shared';
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Booking, BookingCreateInput, BookingRescheduleInput, BookingSearchFilter, BookingStatus } from '@outletbooking/shared';
 import { getWorkingHours } from '@/features/setup/api';
 import { setupKeys } from '@/features/setup/hooks';
 import * as api from './api';
@@ -8,12 +8,23 @@ export const bookingKeys = {
   all: ['bookings'] as const,
   range: (from: string, to: string) => ['bookings', 'range', from, to] as const,
   detail: (id: number) => ['bookings', 'detail', id] as const,
+  search: (q: string, filter: string) => ['bookings', 'search', q, filter] as const,
   availability: (p: object) => ['bookings', 'availability', p] as const,
 };
 
 /** Calendar data for local dates [from, to). Refreshes when the screen comes back into focus. */
 export const useBookingsRange = (from: string, to: string) =>
   useQuery({ queryKey: bookingKeys.range(from, to), queryFn: () => api.listBookings({ from, to }) });
+
+export const SEARCH_LIMIT = 50;
+
+/** Keeps showing the previous results while a new search loads (no flicker while typing). */
+export const useBookingSearch = (q: string, filter: BookingSearchFilter) =>
+  useQuery({
+    queryKey: bookingKeys.search(q, filter),
+    queryFn: () => api.searchBookings({ q, filter, limit: SEARCH_LIMIT }),
+    placeholderData: keepPreviousData,
+  });
 
 export const useBooking = (id: number) =>
   useQuery({ queryKey: bookingKeys.detail(id), queryFn: () => api.getBooking(id), enabled: id > 0 });
@@ -39,6 +50,7 @@ function useOnBookingChanged() {
   return (b: Booking) => {
     qc.setQueryData(bookingKeys.detail(b.id), b);
     void qc.invalidateQueries({ queryKey: ['bookings', 'range'] });
+    void qc.invalidateQueries({ queryKey: ['bookings', 'search'] });
     void qc.invalidateQueries({ queryKey: ['bookings', 'availability'] });
   };
 }

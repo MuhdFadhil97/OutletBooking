@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { businesses, businessMembers, customers, resources } from '@outletbooking/db';
+import { bookingFields, businesses, businessMembers, customers, resources } from '@outletbooking/db';
 import type { Availability, Booking, Resource, Service } from '@outletbooking/shared';
 import { createTestContext, signupInput } from './helpers';
 
@@ -287,5 +287,77 @@ describe('tenant isolation', () => {
     const b = await json<Booking>(await create(ownerA, { resourceId: court1, startAt: at('09:00', '2026-11-06'), businessId: bizB!.id }), 201);
     const [r] = await ctx.db.select({ businessId: resources.businessId }).from(resources).where(eq(resources.id, b.resource.id));
     expect(r!.businessId).not.toBe(bizB!.id);
+  });
+});
+
+describe('search (Bookings tab)', () => {
+  const search = async (cookie: string, qs: string) => json<Booking[]>(await ctx.get(`/bookings/search?${qs}`, cookie));
+  let past: Booking;
+  let plate: Booking;
+  let cancelledFuture: Booking;
+
+  beforeAll(async () => {
+    const [biz] = await ctx.db.select({ id: businesses.id }).from(businesses).where(eq(businesses.slug, 'cal-a'));
+    await ctx.db.insert(bookingFields).values({ businessId: biz!.id, fieldKey: 'plate_number', label: 'Plate number', fieldType: 'text', isSearchable: true });
+    past = await json<Booking>(await create(ownerA, { resourceId: court1, startAt: '2025-09-01T09:00:00+08:00', customer: { name: 'Siti Aminah', phone: '+60198765432' } }), 201);
+    plate = await json<Booking>(
+      await create(ownerA, { resourceId: court2, startAt: at('09:00', '2026-11-10'), customer: { name: 'Hafiz Rahman', phone: '+60132221188' }, customFields: { plate_number: 'WXY 1234' } }),
+      201,
+    );
+    cancelledFuture = await json<Booking>(await create(ownerA, { resourceId: court2, startAt: at('11:00', '2026-11-10'), customer: { name: 'Hafizah Omar', phone: '+60171112222' } }), 201);
+    await json(await ctx.send('POST', `/bookings/${cancelledFuture.id}/status`, ownerA, { status: 'cancelled' }));
+  });
+
+  it('finds bookings by part of the customer name, case-insensitive', async () => {
+    const rows = await search(ownerA, 'q=HAFI');
+    expect(rows.map((r) => r.customer.name).sort()).toEqual(['Hafiz Rahman', 'Hafizah Omar']);
+  });
+
+  it('finds by phone typed in local format', async () => {
+    const rows = await search(ownerA, `q=${encodeURIComponent('013-222 1188')}`);
+    expect(rows.map((r) => r.id)).toEqual([plate.id]);
+  });
+
+  it('finds by a searchable answer, ignoring spaces (plate number)', async () => {
+    expect((await search(ownerA, 'q=wxy1234')).map((r) => r.id)).toEqual([plate.id]);
+  });
+
+  it('treats % and _ as plain text', async () => {
+    expect(await search(ownerA, `q=${encodeURIComponent('%')}`)).toEqual([]);
+  });
+
+  it('filters upcoming / past / unpaid', async () => {
+    const upcoming = await search(ownerA, 'filter=upcoming');
+    expect(upcoming.some((r) => r.id === past.id || r.id === cancelledFuture.id)).toBe(false);
+    expect(upcoming.map((r) => r.startAt)).toEqual([...upcoming.map((r) => r.startAt)].sort());
+
+    const pastRows = await search(ownerA, 'filter=past');
+    expect(pastRows.some((r) => r.id === past.id)).toBe(true);
+    expect(pastRows.some((r) => r.id === cancelledFuture.id)).toBe(true);
+    expect(pastRows.some((r) => r.id === plate.id)).toBe(false);
+
+    const unpaid = await search(ownerA, 'filter=unpaid');
+    expect(unpaid.length).toBeGreaterThan(0);
+    expect(unpaid.every((r) => r.paymentStatus === 'unpaid' && r.status !== 'cancelled')).toBe(true);
+  });
+
+  it('"all" lists upcoming soonest first, then past most recent first', async () => {
+    const rows = await search(ownerA, 'filter=all&limit=100');
+    const lastUpcoming = rows.findIndex((r) => r.id === past.id);
+    expect(lastUpcoming).toBeGreaterThan(0);
+    const up = rows.slice(0, lastUpcoming).filter((r) => new Date(r.endAt) >= new Date());
+    expect(up.map((r) => r.startAt)).toEqual([...up.map((r) => r.startAt)].sort());
+  });
+
+  it('respects staff scope and tenant isolation', async () => {
+    const staffRows = await search(staffA, 'filter=all&limit=100');
+    expect(staffRows.length).toBeGreaterThan(0);
+    expect(staffRows.every((r) => r.resource.id === court1)).toBe(true);
+    expect(await search(ownerB, 'q=hafi')).toEqual([]);
+  });
+
+  it('validates the query', async () => {
+    expect((await ctx.get('/bookings/search?filter=soon', ownerA)).status).toBe(400);
+    expect((await ctx.get('/bookings/search?limit=500', ownerA)).status).toBe(400);
   });
 });

@@ -3,6 +3,7 @@ import {
   bookingCreateSchema,
   bookingListQuery,
   bookingRescheduleSchema,
+  bookingSearchQuery,
   bookingStatusSchema,
   bookingUpdateSchema,
   calendarAvailabilityQuery,
@@ -17,6 +18,7 @@ import {
   getBooking,
   listBookings,
   rescheduleBooking,
+  searchBookings,
   updateBooking,
 } from '../services/bookings';
 import { resourceScope } from '../services/resources';
@@ -32,6 +34,11 @@ export const bookingRoutes = new Hono<AppEnv>()
   .get('/', validate('query', bookingListQuery), async (c) =>
     c.json(
       await listBookings(c.var.db, c.var.tenant.businessId, c.req.valid('query'), resourceScope(c.var.tenant, c.var.userId)),
+    ),
+  )
+  .get('/search', validate('query', bookingSearchQuery), async (c) =>
+    c.json(
+      await searchBookings(c.var.db, c.var.tenant.businessId, c.req.valid('query'), resourceScope(c.var.tenant, c.var.userId)),
     ),
   )
   // Calendar slot picker: no advance-notice / max-days limits for the owner.

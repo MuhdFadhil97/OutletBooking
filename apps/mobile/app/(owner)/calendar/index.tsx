@@ -12,6 +12,7 @@ import { DayView } from '@/features/bookings/components/DayView';
 import { WeekView } from '@/features/bookings/components/WeekView';
 import { formatDayTitle, formatWeekTitle, shiftDate, todayIn, weekStart } from '@/features/bookings/format';
 import { useBookingsRange, useResourcesHours } from '@/features/bookings/hooks';
+import { openBooking } from '@/features/bookings/nav';
 import { useBusiness, useResources } from '@/features/setup/hooks';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
@@ -51,7 +52,7 @@ export default function CalendarScreen() {
     }, [bookings.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  const openBooking = (b: Booking) => router.push({ pathname: '/calendar/[id]', params: { id: String(b.id) } });
+  const open = (b: Booking) => openBooking('calendar', b.id);
   const newBooking = (params: Record<string, string> = {}) =>
     router.push({ pathname: '/calendar/new', params: { date, ...params } });
 
@@ -87,7 +88,7 @@ export default function CalendarScreen() {
         hours={hours}
         bookings={bookings.data}
         nowMin={nowMin}
-        onPressBooking={openBooking}
+        onPressBooking={open}
         onPressEmpty={(resourceId, minute) =>
           newBooking({
             resourceId: String(resourceId),
@@ -107,7 +108,7 @@ export default function CalendarScreen() {
           setDate(d);
           setMode('day');
         }}
-        onPressBooking={openBooking}
+        onPressBooking={open}
       />
     );
   }
