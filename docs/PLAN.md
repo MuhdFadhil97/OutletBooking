@@ -62,7 +62,7 @@
 ---
 
 ## Phase 4 — Public booking page + notifications (Week 4)
-- [ ] Public API: `GET /public/:slug`, `GET /public/:slug/slots`, `POST /public/:slug/bookings` (rate-limited, validated)  *(`GET /public/:slug` done early with a preview `book/[slug]` page (business + services, contact buttons) so the shared link works; in dev the link points to Metro on the laptop: `http://<LAN-IP>:8081/book/<slug>`)*
+- [x] Public API: `GET /public/:slug`, `GET /public/:slug/slots`, `POST /public/:slug/bookings` (rate-limited, validated) *(`apps/api/src/services/public.ts`. `GET /public/:slug` also returns resource label, booking window, bookable resources and booking questions. Slots use the customer booking window; hidden/archived services 404; `booking_enabled = false` → 403. Create: start must be an offered slot ("any" = least busy), required questions + address (at-customer services) enforced, customer matched by phone but never renamed from the public page, paid services → `pending` + `expires_at` (pending_expiry_min), others → `confirmed`; response is `PublicBookingConfirmation` with the random token, no ids of other rows. Abuse: 60 req/min per IP, 10 bookings / 10 min per IP, 5 active web bookings per phone per day. 11 new tests in `public.test.ts`)*
 - [ ] Route `book/[slug]` (Expo web): service → duration → resource/any → date → slot → custom fields → name + phone → confirm
 - [ ] Confirmation page: add to calendar, WhatsApp the business, cancel link
 - [ ] QR code screen in owner app

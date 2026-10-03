@@ -238,12 +238,27 @@ function timingFor(svc: Awaited<ReturnType<typeof loadService>>, durationMin: nu
   return { durationMin, bufferMin: svc.bufferMin, travelBufferMin: svc.travelBufferMin };
 }
 
-/** Answers must match the business's active booking questions (for this service or all services). */
-async function assertCustomFields(q: Q, businessId: number, serviceId: number, values: Record<string, string | number>) {
+/**
+ * Answers must match the business's active booking questions (for this service or all services).
+ * Customers (public page) must also answer the required ones; owners may leave them blank.
+ */
+export async function assertCustomFields(
+  q: Q,
+  businessId: number,
+  serviceId: number,
+  values: Record<string, string | number>,
+  opts: { enforceRequired?: boolean } = {},
+) {
   const keys = Object.keys(values);
-  if (!keys.length) return;
+  if (!keys.length && !opts.enforceRequired) return;
   const defs = await q
-    .select({ key: bookingFields.fieldKey, type: bookingFields.fieldType, options: bookingFields.options })
+    .select({
+      key: bookingFields.fieldKey,
+      label: bookingFields.label,
+      type: bookingFields.fieldType,
+      options: bookingFields.options,
+      isRequired: bookingFields.isRequired,
+    })
     .from(bookingFields)
     .where(
       and(
@@ -264,6 +279,12 @@ async function assertCustomFields(q: Q, businessId: number, serviceId: number, v
       throw new AppError(400, 'invalid_custom_fields', `Invalid answer for "${key}"`, { field: key });
     }
   }
+  if (opts.enforceRequired) {
+    const missing = defs.find((d) => d.isRequired && (values[d.key] === undefined || values[d.key] === ''));
+    if (missing) {
+      throw new AppError(400, 'missing_custom_fields', `Please answer "${missing.label}"`, { field: missing.key });
+    }
+  }
 }
 
 /** Free resource with the least booked time that day (FR-06.5), or 409. */
@@ -281,7 +302,7 @@ async function pickResource(q: Q, businessId: number, serviceId: number, start: 
   return free[0]!.id;
 }
 
-async function resourceBranch(q: Q, businessId: number, resourceId: number) {
+export async function resourceBranch(q: Q, businessId: number, resourceId: number) {
   const [r] = await q
     .select({ branchId: resources.branchId })
     .from(resources)
@@ -290,13 +311,37 @@ async function resourceBranch(q: Q, businessId: number, resourceId: number) {
 }
 
 /** The exclusion constraint is the final guard against double booking; turn it into a friendly 409. */
-async function guardOverlap<T>(fn: () => Promise<T>): Promise<T> {
+export async function guardOverlap<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
     if (pgErrorInfo(err).code === '23P01') throw unbookable('slot_taken');
     throw err;
   }
+}
+
+/**
+ * Customer identity per business = phone (BR-06). Re-activates an archived customer.
+ * `overwrite` (owner/staff) updates the stored name/email; the public page never does, so a
+ * stranger who knows a phone number cannot rename someone else's customer record.
+ */
+export async function upsertCustomer(
+  q: Q,
+  businessId: number,
+  c: { name: string; phone: string; email?: string | null },
+  opts: { overwrite: boolean },
+): Promise<{ id: number }> {
+  const [row] = await q
+    .insert(customers)
+    .values({ businessId, name: c.name, phone: c.phone, email: c.email ?? null })
+    .onConflictDoUpdate({
+      target: [customers.businessId, customers.phone],
+      set: opts.overwrite
+        ? { name: sql`excluded.name`, email: sql`coalesce(excluded.email, ${customers.email})`, deletedAt: null }
+        : { deletedAt: null },
+    })
+    .returning({ id: customers.id });
+  return row!;
 }
 
 /** Owner calendar / walk-in booking. Created as confirmed; payment due (if any) is collected separately. */
@@ -327,19 +372,7 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
       durationMin: timing.durationMin,
     });
 
-    // Customer identity per business = phone (BR-06). Re-activates an archived customer.
-    const [customer] = await tx
-      .insert(customers)
-      .values({ businessId, name: input.customer.name, phone: input.customer.phone, email: input.customer.email ?? null })
-      .onConflictDoUpdate({
-        target: [customers.businessId, customers.phone],
-        set: {
-          name: sql`excluded.name`,
-          email: sql`coalesce(excluded.email, ${customers.email})`,
-          deletedAt: null,
-        },
-      })
-      .returning({ id: customers.id });
+    const customer = await upsertCustomer(tx, businessId, input.customer, { overwrite: true });
 
     const endAt = addMinutes(input.startAt, timing.durationMin);
     const blocked = blockedRange(input.startAt, endAt, timing);
@@ -353,7 +386,7 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
           branchId,
           resourceId: resourceId!,
           serviceId: input.serviceId,
-          customerId: customer!.id,
+          customerId: customer.id,
           startAt: input.startAt,
           endAt,
           blockedStartAt: blocked.start,

@@ -67,6 +67,19 @@ export const bookingCreateSchema = z.object({
   /** Owner override: book outside working hours / during time off (double booking is still impossible). */
   allowOutsideHours: z.boolean().default(false),
 });
+/** Public booking page (no login): same fields minus owner-only ones (source, outside-hours override, internal notes). */
+export const publicBookingCreateSchema = bookingCreateSchema.pick({
+  serviceId: true,
+  resourceId: true,
+  startAt: true,
+  durationMin: true,
+  customer: true,
+  locationAddress: true,
+  customFields: true,
+  customerNotes: true,
+});
+export type PublicBookingCreateInput = z.input<typeof publicBookingCreateSchema>;
+export type PublicBookingCreate = z.infer<typeof publicBookingCreateSchema>;
 export type BookingCreateInput = z.input<typeof bookingCreateSchema>;
 export type BookingCreate = z.infer<typeof bookingCreateSchema>;
 
