@@ -22,7 +22,7 @@ import { TextField } from '@/components/ui/TextField';
 import { TimeSelect } from '@/components/ui/TimeSelect';
 import { todayIn } from '@/features/bookings/format';
 import { useBooking, useCalendarAvailability, useCreateBooking, useRescheduleBooking } from '@/features/bookings/hooks';
-import { openBooking, type BookingsTab } from '@/features/bookings/nav';
+import { openBooking, type BookingFormParams, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useResources, useServices } from '@/features/setup/hooks';
 import { formatDuration, formatTime } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -32,13 +32,15 @@ const s = t.booking;
 type Pick = { kind: 'slot'; slot: AvailableSlot } | { kind: 'custom' } | null;
 
 /**
- * New booking from the calendar (FAB or tapping an empty spot), or reschedule (`bookingId`).
- * Times come from the free slots; "Pick another time" allows any start, optionally outside hours.
+ * New booking (calendar FAB, tapped empty spot, Today quick action), walk-in (`walkIn=1`, FR-11.1)
+ * or reschedule (`bookingId`). Times come from the free slots; a custom time allows any start,
+ * optionally outside hours.
  */
 export function BookingFormScreen({ tab }: { tab: BookingsTab }) {
-  const params = useLocalSearchParams<{ date?: string; resourceId?: string; time?: string; bookingId?: string }>();
+  const params = useLocalSearchParams<BookingFormParams>();
   const bookingId = params.bookingId ? Number(params.bookingId) : 0;
   const editing = bookingId > 0;
+  const title = editing ? s.rescheduleTitle : params.walkIn === '1' ? s.walkInTitle : s.newTitle;
 
   const business = useBusiness();
   const services = useServices();
@@ -50,7 +52,7 @@ export function BookingFormScreen({ tab }: { tab: BookingsTab }) {
   if (!ready) {
     const error = business.error ?? services.error ?? resources.error ?? fields.error ?? existing.error;
     return (
-      <StackScreen title={editing ? s.rescheduleTitle : s.newTitle}>
+      <StackScreen title={title}>
         {error ? <ErrorState error={error} onRetry={() => void services.refetch()} /> : <LoadingState />}
       </StackScreen>
     );
@@ -58,15 +60,11 @@ export function BookingFormScreen({ tab }: { tab: BookingsTab }) {
   return <BookingForm params={params} tab={tab} />;
 }
 
-function BookingForm({
-  params,
-  tab,
-}: {
-  params: { date?: string; resourceId?: string; time?: string; bookingId?: string };
-  tab: BookingsTab;
-}) {
+function BookingForm({ params, tab }: { params: BookingFormParams; tab: BookingsTab }) {
   const bookingId = params.bookingId ? Number(params.bookingId) : 0;
   const editing = bookingId > 0;
+  // Walk-in: customer is here now → today, start now (rounded down to 5 min), any free resource.
+  const walkInMode = !editing && params.walkIn === '1';
   const business = useBusiness().data!;
   const allServices = useServices().data!;
   const allResources = useResources().data!;
@@ -85,16 +83,16 @@ function BookingForm({
   const [resourceId, setResourceId] = useState<number | null>(
     existing?.resource.id ?? (params.resourceId ? Number(params.resourceId) : null),
   );
-  const [date, setDate] = useState(startLocal?.slice(0, 10) ?? params.date ?? todayIn(tz));
-  const [pick, setPick] = useState<Pick>(null);
-  const [customTime, setCustomTime] = useState(startLocal?.slice(11, 16) ?? params.time ?? '09:00');
+  const [date, setDate] = useState(startLocal?.slice(0, 10) ?? (walkInMode ? undefined : params.date) ?? todayIn(tz));
+  const [pick, setPick] = useState<Pick>(walkInMode ? { kind: 'custom' } : null);
+  const [customTime, setCustomTime] = useState(startLocal?.slice(11, 16) ?? params.time ?? (walkInMode ? nowRounded(tz) : '09:00'));
   const [outsideHours, setOutsideHours] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
-  const [walkIn, setWalkIn] = useState(false);
+  const [walkIn, setWalkIn] = useState(walkInMode);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -119,7 +117,8 @@ function BookingForm({
         }
       : null,
   );
-  const slots = availability.data?.slots ?? [];
+  // A walk-in can only start from now on.
+  const slots = (availability.data?.slots ?? []).filter((x) => !walkInMode || new Date(x.startAt).getTime() >= Date.now());
 
   // A tapped calendar spot (or the booking being moved) preselects its time once slots arrive.
   const wantedTime = useRef(params.time ?? startLocal?.slice(11, 16) ?? null);
@@ -204,8 +203,8 @@ function BookingForm({
 
   return (
     <StackScreen
-      title={editing ? s.rescheduleTitle : s.newTitle}
-      subtitle={existing ? `${existing.customer.name} · ${existing.service.name}` : undefined}
+      title={editing ? s.rescheduleTitle : walkInMode ? s.walkInTitle : s.newTitle}
+      subtitle={existing ? `${existing.customer.name} · ${existing.service.name}` : walkInMode ? s.walkInSubtitle : undefined}
       footer={
         <Button title={editing ? s.reschedule : s.create} loading={mutation.isPending} disabled={!pick} onPress={submit} />
       }
@@ -252,17 +251,19 @@ function BookingForm({
 
       {offered.length ? (
         <Card className="gap-3 p-3.5">
-          <View className="gap-1.5">
-            <Text className="text-[13px] font-bold text-label">{s.date}</Text>
-            <DateSelect
-              label={s.date}
-              value={date}
-              onChange={(d) => {
-                setDate(d);
-                resetPick();
-              }}
-            />
-          </View>
+          {walkInMode ? null : (
+            <View className="gap-1.5">
+              <Text className="text-[13px] font-bold text-label">{s.date}</Text>
+              <DateSelect
+                label={s.date}
+                value={date}
+                onChange={(d) => {
+                  setDate(d);
+                  resetPick();
+                }}
+              />
+            </View>
+          )}
 
           <View className="gap-2">
             <Text className="text-[13px] font-bold text-label">{s.time}</Text>
@@ -288,8 +289,8 @@ function BookingForm({
           </View>
 
           <SwitchRow
-            label={s.otherTime}
-            hint={s.otherTimeHint}
+            label={walkInMode ? s.startNow : s.otherTime}
+            hint={walkInMode ? s.startNowHint : s.otherTimeHint}
             value={pick?.kind === 'custom'}
             onChange={(on) => setPick(on ? { kind: 'custom' } : null)}
           />
@@ -374,4 +375,10 @@ function FieldInput({ field, value, onChange }: { field: BookingField; value: st
       maxLength={500}
     />
   );
+}
+
+/** Current local time rounded down to 5 minutes, "HH:MM". */
+function nowRounded(tz: string): string {
+  const [h, m] = formatInTimeZone(new Date(), tz, 'HH:mm').split(':').map(Number);
+  return `${String(h).padStart(2, '0')}:${String(Math.floor(m! / 5) * 5).padStart(2, '0')}`;
 }

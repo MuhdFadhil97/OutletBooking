@@ -16,6 +16,13 @@ export const bookingKeys = {
 export const useBookingsRange = (from: string, to: string) =>
   useQuery({ queryKey: bookingKeys.range(from, to), queryFn: () => api.listBookings({ from, to }) });
 
+/** Today dashboard: one day incl. cancelled / no-show (for the no-show count). */
+export const useDayBookingsAll = (date: string, nextDate: string) =>
+  useQuery({
+    queryKey: [...bookingKeys.range(date, nextDate), 'all'],
+    queryFn: () => api.listBookings({ from: date, to: nextDate, includeInactive: true }),
+  });
+
 export const SEARCH_LIMIT = 50;
 
 /** Keeps showing the previous results while a new search loads (no flicker while typing). */
