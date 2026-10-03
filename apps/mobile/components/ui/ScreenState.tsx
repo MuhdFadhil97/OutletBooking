@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { ApiError } from '@/lib/api';
+import { API_URL } from '@/lib/config';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
 import { Button } from './Button';
@@ -16,7 +17,11 @@ export function LoadingState({ label = t.common.loading }: { label?: string }) {
 }
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.code === 'network_error' ? t.common.networkError : error.message;
+  if (error instanceof ApiError) {
+    if (error.code !== 'network_error') return error.message;
+    // In development, show which API address failed (wrong LAN IP, hotspot changed, API not running).
+    return __DEV__ ? `${t.common.networkError} (${API_URL})` : t.common.networkError;
+  }
   return t.common.genericError;
 }
 
