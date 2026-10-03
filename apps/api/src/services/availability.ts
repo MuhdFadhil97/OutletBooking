@@ -179,6 +179,27 @@ export interface AvailabilityOptions {
   excludeBookingId?: number;
 }
 
+/** Active, not archived resources linked to the service, in display order. */
+export async function offeredResourceIds(q: Q, businessId: number, serviceId: number): Promise<number[]> {
+  const rows = await q
+    .select({ id: resources.id })
+    .from(resourceServices)
+    .innerJoin(
+      resources,
+      and(eq(resources.businessId, resourceServices.businessId), eq(resources.id, resourceServices.resourceId)),
+    )
+    .where(
+      and(
+        eq(resourceServices.businessId, businessId),
+        eq(resourceServices.serviceId, serviceId),
+        eq(resources.isActive, true),
+        isNull(resources.deletedAt),
+      ),
+    )
+    .orderBy(asc(resources.sortOrder), asc(resources.id));
+  return rows.map((r) => r.id);
+}
+
 /** Loads the business's schedule data and returns the free slots for one service on one local date. */
 export async function getAvailability(
   q: Q,
@@ -213,24 +234,7 @@ export async function getAvailability(
     throw new AppError(400, 'invalid_duration', 'This duration is not offered for the service');
   }
 
-  // Active resources that offer this service, in display order.
-  const offered = await q
-    .select({ id: resources.id })
-    .from(resourceServices)
-    .innerJoin(
-      resources,
-      and(eq(resources.businessId, resourceServices.businessId), eq(resources.id, resourceServices.resourceId)),
-    )
-    .where(
-      and(
-        eq(resourceServices.businessId, businessId),
-        eq(resourceServices.serviceId, query.serviceId),
-        eq(resources.isActive, true),
-        isNull(resources.deletedAt),
-      ),
-    )
-    .orderBy(asc(resources.sortOrder), asc(resources.id));
-  let resourceIds = offered.map((r) => r.id);
+  let resourceIds = await offeredResourceIds(q, businessId, query.serviceId);
   if (query.resourceId !== undefined) {
     if (!resourceIds.includes(query.resourceId)) throw notFound('Resource');
     resourceIds = [query.resourceId];
@@ -239,8 +243,36 @@ export async function getAvailability(
   const result: Availability = { date: query.date, timezone: biz.timezone, durationMin, slots: [] };
   if (!resourceIds.length) return result;
 
-  // Wide enough to catch neighbouring-day bookings whose buffers spill into this day.
   const day = localDayRange(query.date, biz.timezone);
+  const schedules = await loadSchedules(q, businessId, resourceIds, day, opts.excludeBookingId);
+  const slots = computeSlots({
+    date: query.date,
+    now: opts.now ?? new Date(),
+    rules: biz,
+    timing: { durationMin, bufferMin: service.bufferMin, travelBufferMin: service.travelBufferMin },
+    ignoreBookingWindow: opts.ignoreBookingWindow,
+    resources: schedules,
+  });
+
+  result.slots = slots.map((s) => ({
+    startAt: s.start.toISOString(),
+    endAt: s.end.toISOString(),
+    resourceIds: s.resourceIds,
+  }));
+  return result;
+}
+
+/**
+ * Working hours, time off and active bookings of these resources around one local day.
+ * The range is widened by a day each side to catch neighbouring bookings whose buffers spill over.
+ */
+export async function loadSchedules(
+  q: Q,
+  businessId: number,
+  resourceIds: number[],
+  day: Interval,
+  excludeBookingId?: number,
+): Promise<ResourceSchedule[]> {
   const from = addDays(day.start, -1);
   const to = addDays(day.end, 1);
 
@@ -275,29 +307,79 @@ export async function getAvailability(
           inArray(bookings.status, [...ACTIVE_BOOKING_STATUSES]),
           lt(bookings.blockedStartAt, to),
           gt(bookings.blockedEndAt, from),
-          opts.excludeBookingId !== undefined ? ne(bookings.id, opts.excludeBookingId) : undefined,
+          excludeBookingId !== undefined ? ne(bookings.id, excludeBookingId) : undefined,
         ),
       ),
   ]);
 
-  const slots = computeSlots({
-    date: query.date,
-    now: opts.now ?? new Date(),
-    rules: biz,
-    timing: { durationMin, bufferMin: service.bufferMin, travelBufferMin: service.travelBufferMin },
-    ignoreBookingWindow: opts.ignoreBookingWindow,
-    resources: resourceIds.map((id) => ({
-      id,
-      hours: hours.filter((h) => h.resourceId === id),
-      timeOff: offs.filter((t) => t.resourceId === null || t.resourceId === id),
-      busy: busy.filter((b) => b.resourceId === id),
-    })),
-  });
-
-  result.slots = slots.map((s) => ({
-    startAt: s.start.toISOString(),
-    endAt: s.end.toISOString(),
-    resourceIds: s.resourceIds,
+  return resourceIds.map((id) => ({
+    id,
+    hours: hours.filter((h) => h.resourceId === id),
+    timeOff: offs.filter((t) => t.resourceId === null || t.resourceId === id),
+    busy: busy.filter((b) => b.resourceId === id),
   }));
-  return result;
+}
+
+export type UnbookableReason = 'outside_hours' | 'time_off' | 'slot_taken';
+
+/**
+ * Can this exact time be booked on this resource? Unlike computeSlots it does not need the
+ * slot grid (owners may book 10:15). `allowOutsideHours` skips working hours and time off;
+ * clashing bookings are always reported (and the database would reject them anyway).
+ */
+export function checkSchedule(
+  res: ResourceSchedule,
+  start: Date,
+  timing: ServiceTiming,
+  timezone: string,
+  allowOutsideHours = false,
+): UnbookableReason | null {
+  const shown = { start, end: addMinutes(start, timing.durationMin) };
+  if (!allowOutsideHours) {
+    const weekday = Number(formatInTimeZone(start, timezone, 'i')) % 7;
+    const from = toMinutes(formatInTimeZone(start, timezone, 'HH:mm'));
+    const to = from + timing.durationMin;
+    const fits = res.hours.some(
+      (h) => h.weekday === weekday && toMinutes(h.startTime) <= from && to <= toMinutes(h.endTime),
+    );
+    if (!fits) return 'outside_hours';
+    if (res.timeOff.some((t) => overlaps(t, shown))) return 'time_off';
+  }
+  const blocked = blockedRange(shown.start, shown.end, timing);
+  if (res.busy.some((b) => overlaps(b, blocked))) return 'slot_taken';
+  return null;
+}
+
+const UNBOOKABLE_MESSAGES: Record<UnbookableReason, string> = {
+  outside_hours: 'This time is outside working hours',
+  time_off: 'This time is blocked by time off or a closure',
+  slot_taken: 'This time was just taken. Please pick another slot.',
+};
+
+export const unbookable = (reason: UnbookableReason) =>
+  new AppError(409, reason, UNBOOKABLE_MESSAGES[reason]);
+
+/** Loads one resource's schedule around `start` and throws 409 if the time cannot be booked. */
+export async function assertBookable(
+  q: Q,
+  businessId: number,
+  input: {
+    resourceId: number;
+    start: Date;
+    timing: ServiceTiming;
+    timezone: string;
+    allowOutsideHours?: boolean;
+    excludeBookingId?: number;
+  },
+): Promise<void> {
+  const date = formatInTimeZone(input.start, input.timezone, 'yyyy-MM-dd');
+  const [schedule] = await loadSchedules(
+    q,
+    businessId,
+    [input.resourceId],
+    localDayRange(date, input.timezone),
+    input.excludeBookingId,
+  );
+  const reason = checkSchedule(schedule!, input.start, input.timing, input.timezone, input.allowOutsideHours);
+  if (reason) throw unbookable(reason);
 }

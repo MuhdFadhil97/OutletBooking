@@ -1,0 +1,441 @@
+import { addMinutes } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { and, asc, eq, gt, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import {
+  bookingFields,
+  bookings,
+  businesses,
+  customers,
+  resources,
+  services,
+  type Db,
+  type Tx,
+} from '@outletbooking/db';
+import {
+  canTransition,
+  STAFF_STATUS_CHANGES,
+  type Booking,
+  type BookingCreate,
+  type BookingListQuery,
+  type BookingReschedule,
+  type BookingSource,
+  type BookingStatus,
+  type BookingStatusChange,
+  type BookingUpdate,
+  type MemberRole,
+  type PaymentStatus,
+} from '@outletbooking/shared';
+import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
+import {
+  ACTIVE_BOOKING_STATUSES,
+  allowedDurations,
+  assertBookable,
+  blockedRange,
+  checkSchedule,
+  loadSchedules,
+  localDayRange,
+  offeredResourceIds,
+  unbookable,
+  type ServiceTiming,
+} from './availability';
+import { getPriceQuote } from './pricing';
+
+type Q = Db | Tx;
+
+/** Staff without "view all" only see bookings on resources linked to their login. */
+export interface BookingScope {
+  linkedUserId?: number;
+}
+
+const columns = {
+  id: bookings.id,
+  status: bookings.status,
+  source: bookings.source,
+  startAt: bookings.startAt,
+  endAt: bookings.endAt,
+  durationMin: bookings.durationMin,
+  resourceId: resources.id,
+  resourceName: resources.name,
+  serviceId: services.id,
+  serviceName: services.name,
+  customerId: customers.id,
+  customerName: customers.name,
+  customerPhone: customers.phone,
+  customerEmail: customers.email,
+  priceSen: bookings.priceSen,
+  amountDueSen: bookings.amountDueSen,
+  paymentStatus: bookings.paymentStatus,
+  locationAddress: bookings.locationAddress,
+  customFields: bookings.customFields,
+  customerNotes: bookings.customerNotes,
+  internalNotes: bookings.internalNotes,
+  resultNotes: bookings.resultNotes,
+  cancelReason: bookings.cancelReason,
+  createdAt: bookings.createdAt,
+};
+
+function selectBookings(q: Q) {
+  return q
+    .select(columns)
+    .from(bookings)
+    .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
+    .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
+    .innerJoin(customers, and(eq(customers.businessId, bookings.businessId), eq(customers.id, bookings.customerId)));
+}
+
+type Row = Awaited<ReturnType<ReturnType<typeof selectBookings>['execute']>>[number];
+
+const toDto = (r: Row): Booking => ({
+  id: r.id,
+  status: r.status as BookingStatus,
+  source: r.source as BookingSource,
+  startAt: r.startAt.toISOString(),
+  endAt: r.endAt.toISOString(),
+  durationMin: r.durationMin,
+  resource: { id: r.resourceId, name: r.resourceName },
+  service: { id: r.serviceId, name: r.serviceName },
+  customer: { id: r.customerId, name: r.customerName, phone: r.customerPhone, email: r.customerEmail },
+  priceSen: r.priceSen,
+  amountDueSen: r.amountDueSen,
+  paymentStatus: r.paymentStatus as PaymentStatus,
+  locationAddress: r.locationAddress,
+  customFields: r.customFields as Record<string, string | number>,
+  customerNotes: r.customerNotes,
+  internalNotes: r.internalNotes,
+  resultNotes: r.resultNotes,
+  cancelReason: r.cancelReason,
+  createdAt: r.createdAt.toISOString(),
+});
+
+const scopeFilter = (scope: BookingScope): SQL | undefined =>
+  scope.linkedUserId !== undefined ? eq(resources.userId, scope.linkedUserId) : undefined;
+
+async function businessTimezone(q: Q, businessId: number): Promise<string> {
+  const [biz] = await q.select({ timezone: businesses.timezone }).from(businesses).where(eq(businesses.id, businessId));
+  if (!biz) throw notFound('Business');
+  return biz.timezone;
+}
+
+/** Calendar: bookings overlapping the local dates [from, to). Cancelled / no-show only on request. */
+export async function listBookings(
+  q: Q,
+  businessId: number,
+  query: BookingListQuery,
+  scope: BookingScope = {},
+): Promise<Booking[]> {
+  const tz = await businessTimezone(q, businessId);
+  const from = localDayRange(query.from, tz).start;
+  const to = localDayRange(query.to, tz).start;
+  const rows = await selectBookings(q)
+    .where(
+      and(
+        eq(bookings.businessId, businessId),
+        lt(bookings.startAt, to),
+        gt(bookings.endAt, from),
+        query.resourceId !== undefined ? eq(bookings.resourceId, query.resourceId) : undefined,
+        query.includeInactive ? undefined : inArray(bookings.status, ['pending', 'confirmed', 'checked_in', 'completed']),
+        scopeFilter(scope),
+      ),
+    )
+    .orderBy(asc(bookings.startAt), asc(resources.sortOrder), asc(bookings.id));
+  return rows.map(toDto);
+}
+
+export async function getBooking(q: Q, businessId: number, id: number, scope: BookingScope = {}): Promise<Booking> {
+  const [row] = await selectBookings(q).where(
+    and(eq(bookings.businessId, businessId), eq(bookings.id, id), scopeFilter(scope)),
+  );
+  if (!row) throw notFound('Booking');
+  return toDto(row);
+}
+
+/** Service timing + allowed durations, or 404 for archived / other businesses' services. */
+async function loadService(q: Q, businessId: number, serviceId: number) {
+  const [svc] = await q
+    .select({
+      durationMin: services.durationMin,
+      durationOptions: services.durationOptions,
+      bufferMin: services.bufferMin,
+      travelBufferMin: services.travelBufferMin,
+    })
+    .from(services)
+    .where(and(eq(services.businessId, businessId), eq(services.id, serviceId), isNull(services.deletedAt)));
+  if (!svc) throw notFound('Service');
+  return svc;
+}
+
+function timingFor(svc: Awaited<ReturnType<typeof loadService>>, durationMin: number): ServiceTiming {
+  if (!allowedDurations(svc).includes(durationMin)) {
+    throw new AppError(400, 'invalid_duration', 'This duration is not offered for the service');
+  }
+  return { durationMin, bufferMin: svc.bufferMin, travelBufferMin: svc.travelBufferMin };
+}
+
+/** Answers must match the business's active booking questions (for this service or all services). */
+async function assertCustomFields(q: Q, businessId: number, serviceId: number, values: Record<string, string | number>) {
+  const keys = Object.keys(values);
+  if (!keys.length) return;
+  const defs = await q
+    .select({ key: bookingFields.fieldKey, type: bookingFields.fieldType, options: bookingFields.options })
+    .from(bookingFields)
+    .where(
+      and(
+        eq(bookingFields.businessId, businessId),
+        eq(bookingFields.isActive, true),
+        or(isNull(bookingFields.serviceId), eq(bookingFields.serviceId, serviceId)),
+      ),
+    );
+  const byKey = new Map(defs.map((d) => [d.key, d]));
+  for (const key of keys) {
+    const def = byKey.get(key);
+    const value = values[key]!;
+    const bad =
+      !def ||
+      (def.type === 'number' ? typeof value !== 'number' : typeof value !== 'string') ||
+      (def.type === 'select' && !(def.options ?? []).includes(String(value)));
+    if (bad) {
+      throw new AppError(400, 'invalid_custom_fields', `Invalid answer for "${key}"`, { field: key });
+    }
+  }
+}
+
+/** Free resource with the least booked time that day (FR-06.5), or 409. */
+async function pickResource(q: Q, businessId: number, serviceId: number, start: Date, timing: ServiceTiming, tz: string, allowOutsideHours: boolean) {
+  const ids = await offeredResourceIds(q, businessId, serviceId);
+  if (!ids.length) throw unbookable('slot_taken');
+  const day = localDayRange(formatInTimeZone(start, tz, 'yyyy-MM-dd'), tz);
+  const schedules = await loadSchedules(q, businessId, ids, day);
+  const load = (busy: { start: Date; end: Date }[]) =>
+    busy.reduce((sum, b) => sum + Math.max(0, Math.min(+b.end, +day.end) - Math.max(+b.start, +day.start)), 0);
+  const free = schedules
+    .filter((s) => checkSchedule(s, start, timing, tz, allowOutsideHours) === null)
+    .sort((a, b) => load(a.busy) - load(b.busy));
+  if (!free.length) throw unbookable('slot_taken');
+  return free[0]!.id;
+}
+
+async function resourceBranch(q: Q, businessId: number, resourceId: number) {
+  const [r] = await q
+    .select({ branchId: resources.branchId })
+    .from(resources)
+    .where(and(eq(resources.businessId, businessId), eq(resources.id, resourceId)));
+  return r?.branchId ?? null;
+}
+
+/** The exclusion constraint is the final guard against double booking; turn it into a friendly 409. */
+async function guardOverlap<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (pgErrorInfo(err).code === '23P01') throw unbookable('slot_taken');
+    throw err;
+  }
+}
+
+/** Owner calendar / walk-in booking. Created as confirmed; payment due (if any) is collected separately. */
+export async function createBooking(db: Db, businessId: number, userId: number, input: BookingCreate): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const tz = await businessTimezone(tx, businessId);
+    const svc = await loadService(tx, businessId, input.serviceId);
+    const timing = timingFor(svc, input.durationMin ?? svc.durationMin);
+
+    let resourceId = input.resourceId;
+    if (resourceId !== undefined) {
+      if (!(await offeredResourceIds(tx, businessId, input.serviceId)).includes(resourceId)) throw notFound('Resource');
+      await assertBookable(tx, businessId, {
+        resourceId,
+        start: input.startAt,
+        timing,
+        timezone: tz,
+        allowOutsideHours: input.allowOutsideHours,
+      });
+    } else {
+      resourceId = await pickResource(tx, businessId, input.serviceId, input.startAt, timing, tz, input.allowOutsideHours);
+    }
+
+    if (input.customFields) await assertCustomFields(tx, businessId, input.serviceId, input.customFields);
+    const quote = await getPriceQuote(tx, businessId, {
+      serviceId: input.serviceId,
+      startAt: input.startAt,
+      durationMin: timing.durationMin,
+    });
+
+    // Customer identity per business = phone (BR-06). Re-activates an archived customer.
+    const [customer] = await tx
+      .insert(customers)
+      .values({ businessId, name: input.customer.name, phone: input.customer.phone, email: input.customer.email ?? null })
+      .onConflictDoUpdate({
+        target: [customers.businessId, customers.phone],
+        set: {
+          name: sql`excluded.name`,
+          email: sql`coalesce(excluded.email, ${customers.email})`,
+          deletedAt: null,
+        },
+      })
+      .returning({ id: customers.id });
+
+    const endAt = addMinutes(input.startAt, timing.durationMin);
+    const blocked = blockedRange(input.startAt, endAt, timing);
+    const now = new Date();
+    const branchId = await resourceBranch(tx, businessId, resourceId);
+    const [row] = await guardOverlap(() =>
+      tx
+        .insert(bookings)
+        .values({
+          businessId,
+          branchId,
+          resourceId: resourceId!,
+          serviceId: input.serviceId,
+          customerId: customer!.id,
+          startAt: input.startAt,
+          endAt,
+          blockedStartAt: blocked.start,
+          blockedEndAt: blocked.end,
+          durationMin: timing.durationMin,
+          status: 'confirmed',
+          confirmedAt: now,
+          source: input.source,
+          priceSen: quote.priceSen,
+          amountDueSen: quote.amountDueSen,
+          paymentStatus: quote.paymentStatus,
+          locationAddress: input.locationAddress ?? null,
+          customFields: input.customFields ?? {},
+          customerNotes: input.customerNotes ?? null,
+          internalNotes: input.internalNotes ?? null,
+          createdByUserId: userId,
+        })
+        .returning({ id: bookings.id }),
+    );
+    return getBooking(tx, businessId, row!.id);
+  });
+}
+
+async function lockBooking(tx: Tx, businessId: number, id: number) {
+  const [row] = await tx
+    .select({
+      id: bookings.id,
+      status: bookings.status,
+      serviceId: bookings.serviceId,
+      resourceId: bookings.resourceId,
+      durationMin: bookings.durationMin,
+      paymentStatus: bookings.paymentStatus,
+      resourceUserId: resources.userId,
+    })
+    .from(bookings)
+    .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
+    .where(and(eq(bookings.businessId, businessId), eq(bookings.id, id)))
+    .for('update', { of: bookings });
+  if (!row) throw notFound('Booking');
+  return row;
+}
+
+export async function updateBooking(db: Db, businessId: number, id: number, input: BookingUpdate): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const current = await lockBooking(tx, businessId, id);
+    if (input.customFields) await assertCustomFields(tx, businessId, current.serviceId, input.customFields);
+    if (Object.keys(input).length) {
+      await tx.update(bookings).set(input).where(eq(bookings.id, id));
+    }
+    return getBooking(tx, businessId, id);
+  });
+}
+
+/** FR-07.3: move to another time and/or resource. Re-priced unless already paid. */
+export async function rescheduleBooking(
+  db: Db,
+  businessId: number,
+  id: number,
+  input: BookingReschedule,
+): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const current = await lockBooking(tx, businessId, id);
+    if (!(ACTIVE_BOOKING_STATUSES as readonly string[]).includes(current.status) || current.status === 'checked_in') {
+      throw new AppError(409, 'not_reschedulable', 'Only pending or confirmed bookings can be rescheduled');
+    }
+    const tz = await businessTimezone(tx, businessId);
+    const svc = await loadService(tx, businessId, current.serviceId);
+    const timing = timingFor(svc, input.durationMin ?? current.durationMin);
+    const resourceId = input.resourceId ?? current.resourceId;
+    if (resourceId !== current.resourceId && !(await offeredResourceIds(tx, businessId, current.serviceId)).includes(resourceId)) {
+      throw notFound('Resource');
+    }
+    await assertBookable(tx, businessId, {
+      resourceId,
+      start: input.startAt,
+      timing,
+      timezone: tz,
+      allowOutsideHours: input.allowOutsideHours,
+      excludeBookingId: id,
+    });
+
+    const endAt = addMinutes(input.startAt, timing.durationMin);
+    const blocked = blockedRange(input.startAt, endAt, timing);
+    const paid = current.paymentStatus === 'paid' || current.paymentStatus === 'refunded';
+    const branchId = await resourceBranch(tx, businessId, resourceId);
+    const quote = paid
+      ? null
+      : await getPriceQuote(tx, businessId, { serviceId: current.serviceId, startAt: input.startAt, durationMin: timing.durationMin });
+
+    await guardOverlap(() =>
+      tx
+        .update(bookings)
+        .set({
+          resourceId,
+          branchId,
+          startAt: input.startAt,
+          endAt,
+          blockedStartAt: blocked.start,
+          blockedEndAt: blocked.end,
+          durationMin: timing.durationMin,
+          ...(quote
+            ? { priceSen: quote.priceSen, amountDueSen: quote.amountDueSen, paymentStatus: quote.paymentStatus }
+            : {}),
+        })
+        .where(eq(bookings.id, id)),
+    );
+    return getBooking(tx, businessId, id);
+  });
+}
+
+export interface StatusActor {
+  role: MemberRole;
+  scope: BookingScope;
+}
+
+const STATUS_TIMESTAMP: Partial<Record<BookingStatus, 'confirmedAt' | 'checkedInAt' | 'completedAt' | 'cancelledAt'>> = {
+  confirmed: 'confirmedAt',
+  checked_in: 'checkedInAt',
+  completed: 'completedAt',
+  cancelled: 'cancelledAt',
+};
+
+/** Status flow (see BOOKING_TRANSITIONS). Staff: check in / complete / no-show on their own bookings. */
+export async function changeBookingStatus(
+  db: Db,
+  businessId: number,
+  id: number,
+  input: BookingStatusChange,
+  actor: StatusActor,
+): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const current = await lockBooking(tx, businessId, id);
+    if (actor.scope.linkedUserId !== undefined && current.resourceUserId !== actor.scope.linkedUserId) {
+      throw notFound('Booking');
+    }
+    if (actor.role !== 'owner' && !STAFF_STATUS_CHANGES.includes(input.status)) throw forbidden();
+    const from = current.status as BookingStatus;
+    if (!canTransition(from, input.status)) {
+      throw new AppError(409, 'invalid_status_change', `A ${from.replace('_', ' ')} booking cannot become ${input.status.replace('_', ' ')}`);
+    }
+    const stamp = STATUS_TIMESTAMP[input.status];
+    await tx
+      .update(bookings)
+      .set({
+        status: input.status,
+        ...(stamp ? { [stamp]: new Date() } : {}),
+        ...(input.status === 'cancelled' ? { cancelReason: input.reason ?? null } : {}),
+      })
+      .where(eq(bookings.id, id));
+    return getBooking(tx, businessId, id, actor.scope);
+  });
+}

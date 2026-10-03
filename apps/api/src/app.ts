@@ -6,6 +6,7 @@ import type { Auth } from './auth';
 import type { Env } from './env';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { bookingFieldRoutes } from './routes/booking-fields';
+import { bookingRoutes } from './routes/bookings';
 import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
@@ -61,6 +62,7 @@ export function createApp({ db, auth, env }: AppDeps) {
   app.route('/booking-fields', bookingFieldRoutes);
   app.route('/staff', staffRoutes);
   app.route('/invitations', invitationRoutes);
+  app.route('/bookings', bookingRoutes);
   app.route('/public', publicRoutes);
 
   app.onError(errorHandler);
