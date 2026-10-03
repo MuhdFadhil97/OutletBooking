@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Courts and working hours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.res{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.sw{width:42px;height:24px;border-radius:12px;background:#0F7B55;position:relative;flex-shrink:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:9px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}
+.sw.off::after{right:auto;left:3px}
+.wh{display:flex;align-items:center;gap:10px;font-size:14px;padding:8px 0}
+.wh .d{width:40px;font-weight:800}
+.wh .t{flex-grow:1}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="Owner-Service.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1"><div style="font-size: 16px; font-weight: 800">Courts</div><div class="muted" style="font-size: 12px">Label set by your template · rename in Settings</div></div>
+    <a class="icb" href="#" aria-label="Add court" style="background: #0F7B55; border-color: #0F7B55; color: #FFFFFF"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+  </div>
+
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden">
+    <div class="card">
+      <div class="res" style="background: #F0F7F3; border-radius: 14px 14px 0 0"><div style="flex-grow: 1"><div style="font-weight: 800; font-size: 15px">Court 1</div><div class="muted" style="font-size: 12px">Badminton, Pickleball</div></div><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></div>
+      <div style="padding: 4px 14px 12px; display: flex; flex-direction: column">
+        <div class="lbl" style="padding: 6px 0">Working hours</div>
+        <div class="wh"><span class="d">Mon</span><span class="t">8:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Tue</span><span class="t">8:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Wed</span><span class="t">8:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Thu</span><span class="t">8:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Fri</span><span class="t">8:00 AM – 12:30 PM, 2:30 PM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Sat</span><span class="t">7:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <div class="wh"><span class="d">Sun</span><span class="t">7:00 AM – 12:00 AM</span><span class="sw"></span></div>
+        <a href="#" style="font-size: 13px; font-weight: 700; padding-top: 6px">Copy these hours to other courts</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between"><span class="lbl" style="font-size: 14px">Time off &amp; closures</span><a href="#" style="font-size: 13px; font-weight: 700">+ Add</a></div>
+      <div style="display: flex; justify-content: space-between; font-size: 14px"><span>Court 1 · resurfacing</span><span class="muted">20–21 Oct</span></div>
+      <div style="display: flex; justify-content: space-between; font-size: 14px"><span>All courts · public holiday</span><span class="muted">[date]</span></div>
+    </div>
+
+    <div class="card">
+      <div class="res"><div style="flex-grow: 1"><div style="font-weight: 800; font-size: 15px">Court 2</div><div class="muted" style="font-size: 12px">Badminton · 8 AM – 12 AM</div></div><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <div class="res"><div style="flex-grow: 1"><div style="font-weight: 800; font-size: 15px">Court 3</div><div class="muted" style="font-size: 12px">Badminton · 8 AM – 12 AM</div></div><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

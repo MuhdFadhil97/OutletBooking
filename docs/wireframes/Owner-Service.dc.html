@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit service</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.inp{height:44px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 12px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.rule{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:10px 0}
+.radio{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600}
+.dot{width:20px;height:20px;border-radius:10px;border:2px solid #9AA59F;box-sizing:border-box;flex-shrink:0}
+.dot.on{border:6px solid #0F7B55}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="Owner-Today.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1; font-size: 16px; font-weight: 800">Edit service</div>
+    <a href="#" style="font-size: 14px; font-weight: 700">Preview</a>
+  </div>
+
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+    <div class="fld"><label class="lbl" for="sn">Service name</label><input class="inp" id="sn" value="Badminton court"></div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div class="fld"><label class="lbl" for="bl">Booking block</label><input class="inp" id="bl" value="60 min"></div>
+      <div class="fld"><label class="lbl" for="pr">Price per block</label><input class="inp" id="pr" value="RM 20.00"></div>
+    </div>
+
+    <div class="fld">
+      <div class="lbl">Customer can choose</div>
+      <div style="display: flex; gap: 8px"><button class="chip on">1 hour</button><button class="chip on">2 hours</button><button class="chip on">3 hours</button><button class="chip">4 hours</button></div>
+    </div>
+
+    <div class="card" style="padding: 4px 14px">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0 4px"><span class="lbl" style="font-size: 14px">Peak pricing</span><a href="#" style="font-size: 13px; font-weight: 700">+ Add rule</a></div>
+      <div class="rule"><span>Mon–Fri · 6 PM – 12 AM</span><span style="font-weight: 800">RM 30/hr</span></div>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <div class="rule"><span>Sat–Sun · all day</span><span style="font-weight: 800">RM 30/hr</span></div>
+    </div>
+
+    <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 12px">
+      <span class="lbl" style="font-size: 14px">Payment to confirm</span>
+      <div class="radio"><span class="dot on"></span>Full payment upfront</div>
+      <div class="radio"><span class="dot"></span>Deposit only <span class="muted" style="font-weight: 500">· set amount</span></div>
+      <div class="radio"><span class="dot"></span>Pay at venue</div>
+    </div>
+
+    <div class="fld">
+      <div class="lbl">Courts that offer this</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap"><button class="chip on">Court 1</button><button class="chip on">Court 2</button><button class="chip on">Court 3</button><button class="chip on">Court 4</button></div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2">
+    <a class="btn" href="Owner-Resources.dc.html">Save service</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

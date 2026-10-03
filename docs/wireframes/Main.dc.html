@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Choose a service</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.muted{color:#56625B}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #0F7B55; color: #FFFFFF; padding: 24px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 52px; height: 52px; border-radius: 14px; background: #FFFFFF; color: #0F7B55; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px">SA</div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 20px; font-weight: 800">Smash Arena PJ</div>
+        <div style="font-size: 13px; opacity: 0.9">Badminton · Futsal · Pickleball</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 16px; font-size: 13px">
+      <div style="display: flex; align-items: center; gap: 6px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>Petaling Jaya</div>
+      <div style="display: flex; align-items: center; gap: 6px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Open 8:00 AM – 12:00 AM</div>
+    </div>
+  </div>
+
+  <div style="padding: 18px 20px 8px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600" class="muted"><span>Step 1 of 4</span><span>Choose a service</span></div>
+    <div style="height: 6px; border-radius: 3px; background: #E1E6E2"><div style="width: 25%; height: 6px; border-radius: 3px; background: #0F7B55"></div></div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 12px 20px; display: flex; flex-direction: column; gap: 12px">
+    <h1 style="margin: 0 0 4px; font-size: 22px; font-weight: 800">What would you like to book?</h1>
+
+    <div class="card" style="padding: 16px; display: flex; gap: 14px; align-items: center; border: 2px solid #0F7B55">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: #DDF3E8; color: #0F7B55; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="5"></circle><path d="M12.5 12.5L20 20"></path></svg></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 16px; font-weight: 700">Badminton court</div>
+        <div style="font-size: 13px" class="muted">1–3 hours · from RM 20/hr</div>
+      </div>
+      <div style="width: 26px; height: 26px; border-radius: 13px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 16px; height: 16px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div>
+    </div>
+
+    <div class="card" style="padding: 16px; display: flex; gap: 14px; align-items: center">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: #EEF1EF; color: #33403A; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4l3 5-3 3-3-3zM4.5 10l4.5-1M19.5 10l-4.5-1M8 18l1-6M16 18l-1-6"></path></svg></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 16px; font-weight: 700">Futsal pitch</div>
+        <div style="font-size: 13px" class="muted">1–2 hours · from RM 120/hr</div>
+      </div>
+      <div style="width: 26px; height: 26px; border-radius: 13px; border: 2px solid #CBD3CE"></div>
+    </div>
+
+    <div class="card" style="padding: 16px; display: flex; gap: 14px; align-items: center">
+      <div style="width: 48px; height: 48px; border-radius: 12px; background: #EEF1EF; color: #33403A; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="10" height="12" rx="5"></rect><path d="M10 15v6"></path><circle cx="18" cy="18" r="2"></circle></svg></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 16px; font-weight: 700">Pickleball court</div>
+        <div style="font-size: 13px" class="muted">1–2 hours · from RM 25/hr</div>
+      </div>
+      <div style="width: 26px; height: 26px; border-radius: 13px; border: 2px solid #CBD3CE"></div>
+    </div>
+
+    <div style="font-size: 13px; line-height: 1.5; padding: 12px 14px; border-radius: 12px; background: #EEF1EF" class="muted">Peak hours (weekdays after 6 PM and weekends) are charged at peak rate. Full payment is required to confirm.</div>
+  </div>
+
+  <div style="padding: 12px 20px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2; display: flex; flex-direction: column; gap: 10px">
+    <a class="btn" href="Customer-Court.dc.html">Continue</a>
+    <div style="text-align: center; font-size: 12px" class="muted">Powered by OutletBooking</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reports</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.muted{color:#56625B}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.kpi{padding:12px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:20px;font-weight:800}
+.kpi span{font-size:12px;color:#56625B;font-weight:600}
+.kpi i{font-style:normal;font-size:12px;font-weight:700;color:#0B5E40}
+.bar{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;justify-content:flex-end;font-size:11px;font-weight:700;color:#56625B}
+.bar div{width:100%;border-radius:6px 6px 0 0;background:#0F7B55}
+.ts{display:flex;align-items:center;gap:10px;font-size:14px;padding:6px 0}
+.trk{height:8px;border-radius:4px;background:#E9ECEA;flex-grow:1}
+.trk div{height:8px;border-radius:4px;background:#0F7B55}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex-grow: 1; padding: 18px 16px 12px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+    <div style="font-size: 20px; font-weight: 800">Reports</div>
+    <div style="display: flex; gap: 8px"><button class="chip">Today</button><button class="chip on">This week</button><button class="chip">This month</button></div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div class="card kpi"><b>RM 6,480</b><span>Revenue</span><i>+12% vs last week</i></div>
+      <div class="card kpi"><b>112</b><span>Bookings</span><i>+8 vs last week</i></div>
+      <div class="card kpi"><b>2.7%</b><span>No-show rate</span><i>3 no-shows</i></div>
+      <div class="card kpi"><b>64%</b><span>Court utilisation</span><i>Peak hours 91%</i></div>
+    </div>
+
+    <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 14px; font-weight: 800">Bookings per day</div>
+      <div style="display: flex; gap: 10px; height: 120px; align-items: flex-end">
+        <div class="bar"><div style="height: 46px"></div>Mon</div>
+        <div class="bar"><div style="height: 40px"></div>Tue</div>
+        <div class="bar"><div style="height: 52px"></div>Wed</div>
+        <div class="bar"><div style="height: 58px"></div>Thu</div>
+        <div class="bar"><div style="height: 70px"></div>Fri</div>
+        <div class="bar"><div style="height: 96px"></div>Sat</div>
+        <div class="bar"><div style="height: 84px; background: #9FD5BB"></div>Sun</div>
+      </div>
+      <div style="font-size: 12px" class="muted">Sunday shows confirmed bookings so far.</div>
+    </div>
+
+    <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column">
+      <div style="font-size: 14px; font-weight: 800; padding-bottom: 4px">Top services</div>
+      <div class="ts"><span style="width: 92px">Badminton</span><div class="trk"><div style="width: 78%"></div></div><span style="font-weight: 700; width: 36px; text-align: right">87</span></div>
+      <div class="ts"><span style="width: 92px">Futsal</span><div class="trk"><div style="width: 15%"></div></div><span style="font-weight: 700; width: 36px; text-align: right">17</span></div>
+      <div class="ts"><span style="width: 92px">Pickleball</span><div class="trk"><div style="width: 7%"></div></div><span style="font-weight: 700; width: 36px; text-align: right">8</span></div>
+    </div>
+  </div>
+
+  <nav class="tabbar">
+    <a class="tab" href="Owner-Today.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>Today</a>
+    <a class="tab" href="Owner-Calendar.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</a>
+    <a class="tab" href="Owner-Bookings.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Bookings</a>
+    <a class="tab" href="Owner-Service.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Setup</a>
+    <a class="tab on" href="Owner-Reports.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M11 20V5M17 20v-8M3 20h18"></path></svg>Reports</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

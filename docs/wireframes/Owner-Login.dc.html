@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Log in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit;cursor:pointer}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.inp{height:50px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #0F7B55; color: #FFFFFF; padding: 72px 24px 36px; display: flex; flex-direction: column; gap: 14px; border-radius: 0 0 28px 28px">
+    <div style="width: 56px; height: 56px; border-radius: 16px; background: #FFFFFF; color: #0F7B55; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 30px; height: 30px; stroke-width: 2"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4M8.5 15l2.2 2.2 4.8-4.7"></path></svg></div>
+    <div style="font-size: 26px; font-weight: 800">OutletBooking</div>
+    <div style="font-size: 15px; opacity: 0.92">Bookings, payments and your team in one app.</div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 28px 24px 16px; display: flex; flex-direction: column; gap: 16px">
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">Welcome back</h1>
+    <div class="fld"><label class="lbl" for="em">Email</label><input class="inp" id="em" type="email" value="owner@smasharena.my"></div>
+    <div class="fld">
+      <label class="lbl" for="pw">Password</label>
+      <div style="position: relative">
+        <input class="inp" id="pw" type="password" value="password123" style="padding-right: 52px">
+        <button aria-label="Show password" style="position: absolute; right: 4px; top: 3px; width: 44px; height: 44px; border: 0; background: transparent; color: #56625B; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px">
+      <label style="display: flex; align-items: center; gap: 8px"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 0; accent-color: #0F7B55">Keep me logged in</label>
+      <a href="#" style="font-weight: 700">Forgot password?</a>
+    </div>
+    <a class="btn" href="Owner-Today.dc.html">Log in</a>
+    <div style="font-size: 13px; line-height: 1.5; padding: 12px 14px; border-radius: 12px; background: #EEF1EF" class="muted">Staff: log in with the email your business owner invited. You'll see your own schedule.</div>
+  </div>
+
+  <div style="padding: 12px 24px 28px; display: flex; flex-direction: column; gap: 10px; align-items: center">
+    <span style="font-size: 14px" class="muted">New to OutletBooking?</span>
+    <a class="btn2" href="Owner-Signup.dc.html" style="width: 100%">Start 7-day free trial</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

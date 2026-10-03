@@ -1,0 +1,21 @@
+{
+  "name": "outletbooking",
+  "private": true,
+  "packageManager": "pnpm@11.23.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:generate": "pnpm --filter @outletbooking/db generate",
+    "db:migrate": "pnpm --filter @outletbooking/db migrate",
+    "db:seed": "pnpm --filter @outletbooking/db seed",
+    "dev": "pnpm --filter api dev",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3"
+  }
+}

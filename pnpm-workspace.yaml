@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Expo / Metro work best with a flat node_modules in a monorepo
+nodeLinker: hoisted
+
+# Dependencies allowed to run install scripts
+allowBuilds:
+  esbuild: true

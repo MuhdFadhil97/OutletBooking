@@ -1,0 +1,33 @@
+import type { BusinessTemplate } from './templates';
+
+export type MemberRole = 'owner' | 'staff';
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'expired' | 'cancelled';
+
+export interface MeResponse {
+  user: { id: number; name: string; email: string; phone: string | null };
+  business: {
+    slug: string;
+    name: string;
+    template: BusinessTemplate;
+    resourceLabel: string;
+    timezone: string;
+  };
+  role: MemberRole;
+  subscription: {
+    plan: 'trial' | 'starter' | 'business';
+    status: SubscriptionStatus;
+    trialEndsAt: string; // ISO
+    trialDaysLeft: number; // 0 when ended
+    isTrialActive: boolean;
+  };
+}
+
+export interface SlugAvailabilityResponse {
+  slug: string;
+  available: boolean;
+  reason?: 'invalid' | 'taken';
+}
+
+export interface ApiError {
+  error: { code: string; message: string; details?: unknown };
+}

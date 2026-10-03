@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Request a property viewing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.agent{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #CBD3CE;border-radius:12px;background:#FFFFFF;font-family:inherit;color:#16211C;text-align:left;width:100%}
+.agent.on{border:2px solid #0F7B55;background:#F0F7F3}
+.av{width:36px;height:36px;border-radius:18px;background:#E0ECFB;color:#1D4F91;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.slot{height:40px;border-radius:10px;border:1px solid #CBD3CE;background:#FFFFFF;font-family:inherit;font-size:13px;font-weight:700;color:#16211C}
+.slot.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="#" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1">
+      <div style="font-size: 16px; font-weight: 800">Book a viewing</div>
+      <div style="font-size: 12px" class="muted">Laman Realty · Step 2 of 3</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px">
+    <div class="card" style="padding: 12px; display: flex; gap: 12px">
+      <div style="width: 84px; height: 72px; border-radius: 10px; background: #E9ECEA; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0" class="muted">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <div style="font-size: 15px; font-weight: 800">3-bed condo, Puchong</div>
+        <div style="font-size: 12px" class="muted">Listing ref [LR-0231]</div>
+        <div style="display: flex; align-items: center; gap: 4px; font-size: 12px" class="muted"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>[Property address]</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div class="lbl">Agent</div>
+      <button class="agent on"><div class="av" style="background: #DDF3E8; color: #0B5E40"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 7M21 20c0-2.6-1.6-4.8-4-5.6"></path></svg></div><div style="flex-grow: 1"><div style="font-weight: 700; font-size: 14px">Any available agent</div><div class="muted" style="font-size: 12px">Earliest time</div></div></button>
+      <button class="agent"><div class="av">AI</div><div style="flex-grow: 1"><div style="font-weight: 700; font-size: 14px">Aina Ismail</div><div class="muted" style="font-size: 12px">Puchong &amp; Kinrara</div></div></button>
+      <button class="agent"><div class="av">KL</div><div style="flex-grow: 1"><div style="font-weight: 700; font-size: 14px">Kevin Lim</div><div class="muted" style="font-size: 12px">Puchong &amp; Subang</div></div></button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between"><span class="lbl">Sun, 11 Oct</span><a href="#" style="font-size: 13px; font-weight: 700">Change date</a></div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <button class="slot">10:00</button><button class="slot on">11:00</button><button class="slot">2:00</button><button class="slot">3:30</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div class="lbl">I am a</div>
+      <div style="display: flex; gap: 8px"><button class="chip on">Buyer</button><button class="chip">Tenant</button></div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-size: 13px" class="muted">No payment needed. The agent confirms by WhatsApp.</div>
+    <a class="btn" href="#">Continue</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

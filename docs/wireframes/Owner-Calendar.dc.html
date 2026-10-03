@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.muted{color:#56625B}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;padding:0 14px;height:32px;border-radius:8px}
+.seg button.on{background:#FFFFFF;color:#16211C}
+.col{position:relative;border-left:1px solid #E1E6E2;height:432px}
+.ev{position:absolute;left:3px;right:3px;border-radius:8px;padding:6px;box-sizing:border-box;font-size:11px;line-height:1.3;overflow:hidden;display:flex;flex-direction:column;gap:2px}
+.ev b{font-size:12px}
+.e-ok{background:#DDF3E8;border:1px solid #9FD5BB;color:#0B5E40}
+.e-pend{background:#FDEBD3;border:1px solid #F2C58E;color:#7A4105}
+.e-walk{background:#E0ECFB;border:1px solid #A9C6EE;color:#1D4F91}
+.hr{height:72px;font-size:11px;font-weight:700;color:#56625B;box-sizing:border-box;padding-top:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="font-size: 20px; font-weight: 800">Calendar</div>
+      <div class="seg"><button class="on">Day</button><button>Week</button></div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <a class="icb" href="#" aria-label="Previous day"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+      <div style="text-align: center"><div style="font-size: 15px; font-weight: 800">Saturday, 10 Oct</div><div style="font-size: 12px" class="muted">18 bookings · 4 courts</div></div>
+      <a class="icb" href="#" aria-label="Next day"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 10px 12px 0 8px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; position: relative">
+    <div style="display: grid; grid-template-columns: 40px repeat(4, minmax(0, 1fr)); font-size: 12px; font-weight: 800; text-align: center">
+      <div></div><div>Court 1</div><div>Court 2</div><div>Court 3</div><div>Court 4</div>
+    </div>
+    <div style="display: grid; grid-template-columns: 40px repeat(4, minmax(0, 1fr))">
+      <div><div class="hr">6 PM</div><div class="hr">7 PM</div><div class="hr">8 PM</div><div class="hr">9 PM</div><div class="hr">10 PM</div><div class="hr">11 PM</div></div>
+      <div class="col">
+        <a class="ev e-ok" href="#" style="top: 2px; height: 140px; text-decoration: none"><b>Ali Hassan</b>6–8 PM · Paid</a>
+        <a class="ev e-pend" href="#" style="top: 146px; height: 140px; text-decoration: none"><b>Team Mega</b>8–10 PM · Unpaid</a>
+      </div>
+      <div class="col">
+        <a class="ev e-ok" href="#" style="top: 74px; height: 68px; text-decoration: none"><b>Lee Wei</b>7–8 PM</a>
+        <a class="ev e-ok" href="#" style="top: 146px; height: 140px; text-decoration: none"><b>Ahmad Danial</b>8–10 PM · Paid</a>
+      </div>
+      <div class="col">
+        <a class="ev e-ok" href="#" style="top: 2px; height: 68px; text-decoration: none"><b>Siti Aminah</b>6–7 PM</a>
+        <a class="ev e-walk" href="#" style="top: 146px; height: 68px; text-decoration: none"><b>Walk-in</b>8–9 PM</a>
+      </div>
+      <div class="col">
+        <a class="ev e-ok" href="#" style="top: 146px; height: 212px; text-decoration: none"><b>Kelab Rakan</b>8–11 PM · Paid</a>
+      </div>
+    </div>
+    <div style="position: absolute; left: 48px; right: 12px; top: 176px; height: 2px; background: #C2410C"></div>
+    <a href="#" aria-label="New booking" style="position: absolute; right: 16px; bottom: 16px; width: 56px; height: 56px; border-radius: 28px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(15, 123, 85, 0.3)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 26px; height: 26px"><path d="M12 5v14M5 12h14"></path></svg></a>
+  </div>
+
+  <nav class="tabbar">
+    <a class="tab" href="Owner-Today.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>Today</a>
+    <a class="tab on" href="Owner-Calendar.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</a>
+    <a class="tab" href="Owner-Bookings.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Bookings</a>
+    <a class="tab" href="Owner-Service.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Setup</a>
+    <a class="tab" href="Owner-Reports.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M11 20V5M17 20v-8M3 20h18"></path></svg>Reports</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

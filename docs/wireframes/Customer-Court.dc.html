@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pick court and time</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.day{width:44px;height:58px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;color:#16211C;font-size:11px;font-weight:600}
+.day b{font-size:16px}
+.day.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.cell{height:40px;border-radius:8px;border:1px solid #CBD3CE;background:#FFFFFF;font-family:inherit;font-size:11px;font-weight:700;color:#33403A;display:flex;align-items:center;justify-content:center}
+.cell.bk{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F}
+.cell.sel{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.tm{font-size:12px;font-weight:700;color:#56625B;display:flex;align-items:center}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="Main.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1">
+      <div style="font-size: 16px; font-weight: 800">Badminton court</div>
+      <div style="font-size: 12px" class="muted">Smash Arena PJ · Step 2 of 4</div>
+    </div>
+  </div>
+  <div style="height: 4px; background: #E1E6E2"><div style="width: 50%; height: 4px; background: #0F7B55"></div></div>
+
+  <div style="flex-grow: 1; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div class="lbl">October 2026</div>
+      <div style="display: flex; gap: 6px; justify-content: space-between">
+        <button class="day">Fri<b>9</b></button>
+        <button class="day on">Sat<b>10</b></button>
+        <button class="day">Sun<b>11</b></button>
+        <button class="day">Mon<b>12</b></button>
+        <button class="day">Tue<b>13</b></button>
+        <button class="day">Wed<b>14</b></button>
+        <button class="day">Thu<b>15</b></button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div class="lbl">How long?</div>
+      <div style="display: flex; gap: 8px">
+        <button class="chip">1 hour</button>
+        <button class="chip on">2 hours</button>
+        <button class="chip">3 hours</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 12px; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: grid; grid-template-columns: 48px repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 12px; font-weight: 800; text-align: center">
+        <div></div><div>Court 1</div><div>Court 2</div><div>Court 3</div><div>Court 4</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 48px repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div class="tm">6 PM</div><div class="cell bk">Booked</div><button class="cell">RM30</button><div class="cell bk">Booked</div><button class="cell">RM30</button>
+        <div class="tm">7 PM</div><div class="cell bk">Booked</div><div class="cell bk">Booked</div><button class="cell">RM30</button><button class="cell">RM30</button>
+        <div class="tm">8 PM</div><button class="cell">RM30</button><button class="cell sel">Selected</button><div class="cell bk">Booked</div><div class="cell bk">Booked</div>
+        <div class="tm">9 PM</div><button class="cell">RM30</button><button class="cell sel">Selected</button><button class="cell">RM30</button><div class="cell bk">Booked</div>
+        <div class="tm">10 PM</div><button class="cell">RM30</button><button class="cell">RM30</button><button class="cell">RM30</button><div class="cell bk">Booked</div>
+        <div class="tm">11 PM</div><button class="cell">RM30</button><button class="cell">RM30</button><button class="cell">RM30</button><button class="cell">RM30</button>
+      </div>
+    </div>
+    <div style="font-size: 12px" class="muted">Weekend rate RM 30/hr applies all day. Tap a start time; 2 hours are held for you.</div>
+  </div>
+
+  <div style="padding: 12px 16px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="font-size: 15px; font-weight: 800">Court 2 · Sat 10 Oct</div>
+        <div style="font-size: 13px" class="muted">8:00 PM – 10:00 PM · 2 hours</div>
+      </div>
+      <div style="font-size: 20px; font-weight: 800">RM 60</div>
+    </div>
+    <a class="btn" href="Customer-Details.dc.html">Continue</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

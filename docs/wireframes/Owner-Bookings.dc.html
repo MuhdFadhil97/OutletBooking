@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bookings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;white-space:nowrap}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.muted{color:#56625B}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.grp{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#56625B;padding:4px 2px 0}
+.bk{display:flex;gap:12px;padding:12px 14px;text-decoration:none;color:#16211C}
+.bk:hover{background:#F6F8F7;color:#16211C}
+.hl{background:#FFF2A8;border-radius:3px;padding:0 1px}
+.amt{font-size:13px;font-weight:700;text-align:right}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 12px">
+    <div style="font-size: 20px; font-weight: 800">Bookings</div>
+    <div style="display: flex; align-items: center; gap: 8px; height: 48px; border: 2px solid #0F7B55; border-radius: 12px; padding: 0 12px; background: #FFFFFF">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #56625B"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+      <label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search customer name</label>
+      <input id="q" value="hafi" placeholder="Search customer name" style="flex-grow: 1; border: 0; font-size: 15px; font-family: inherit; font-weight: 600; color: #16211C; min-width: 0; height: 40px">
+      <button aria-label="Clear search" style="width: 32px; height: 32px; border-radius: 16px; border: 0; background: #E9ECEA; color: #46524B; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 16px; height: 16px"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div style="display: flex; gap: 8px; overflow: hidden">
+      <button class="chip on">All</button><button class="chip">Upcoming</button><button class="chip">Unpaid</button><button class="chip">Past</button>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; overflow: hidden">
+    <div style="font-size: 13px" class="muted">4 bookings for 2 customers matching “hafi”</div>
+
+    <div class="grp">Upcoming</div>
+    <div class="card" style="overflow: hidden">
+      <a class="bk" href="Owner-Booking.dc.html">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+          <div style="font-weight: 800; font-size: 15px"><span class="hl">Hafi</span>z Rahman</div>
+          <div class="muted" style="font-size: 13px">Pre-purchase inspection · WXY 1234</div>
+          <div style="font-size: 13px; font-weight: 600">Mon, 12 Oct · 10:00 AM · Mobile</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px"><span class="tag t-ok">Confirmed</span><span class="amt">RM 230<br><span class="muted" style="font-weight: 600; font-size: 12px">RM 180 due</span></span></div>
+      </a>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <a class="bk" href="#">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+          <div style="font-weight: 800; font-size: 15px"><span class="hl">Hafi</span>zah Omar</div>
+          <div class="muted" style="font-size: 13px">Full inspection · BMK 8821</div>
+          <div style="font-size: 13px; font-weight: 600">Tue, 13 Oct · 2:00 PM · Bay 1</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px"><span class="tag t-pend">Unpaid</span><span class="amt">RM 250<br><span class="muted" style="font-weight: 600; font-size: 12px">Deposit pending</span></span></div>
+      </a>
+    </div>
+
+    <div class="grp">Past</div>
+    <div class="card" style="overflow: hidden">
+      <a class="bk" href="#">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+          <div style="font-weight: 800; font-size: 15px"><span class="hl">Hafi</span>z Rahman</div>
+          <div class="muted" style="font-size: 13px">Pre-purchase inspection · VCE 4410</div>
+          <div style="font-size: 13px; font-weight: 600">Sat, 8 Aug · 11:00 AM · Bay 2</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px"><span class="tag t-gray">Completed</span><span class="amt">RM 180<br><span class="muted" style="font-weight: 600; font-size: 12px">Paid</span></span></div>
+      </a>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <a class="bk" href="#">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+          <div style="font-weight: 800; font-size: 15px"><span class="hl">Hafi</span>zah Omar</div>
+          <div class="muted" style="font-size: 13px">Pre-purchase inspection · BMK 8821</div>
+          <div style="font-size: 13px; font-weight: 600">Wed, 15 Jul · 9:00 AM · Bay 1</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px"><span class="tag t-gray">No-show</span><span class="amt">RM 50<br><span class="muted" style="font-weight: 600; font-size: 12px">Deposit kept</span></span></div>
+      </a>
+    </div>
+  </div>
+
+  <nav class="tabbar">
+    <a class="tab" href="Owner-Today.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>Today</a>
+    <a class="tab" href="Owner-Calendar.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</a>
+    <a class="tab on" href="Owner-Bookings.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Bookings</a>
+    <a class="tab" href="Owner-Service.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Setup</a>
+    <a class="tab" href="Owner-Reports.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M11 20V5M17 20v-8M3 20h18"></path></svg>Reports</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

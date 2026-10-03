@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vehicle inspection details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.opt{flex:1;border:1px solid #CBD3CE;border-radius:12px;background:#FFFFFF;padding:10px 12px;display:flex;flex-direction:column;gap:2px;font-family:inherit;text-align:left;color:#16211C}
+.opt.on{border:2px solid #0F7B55;background:#F0F7F3}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="#" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1">
+      <div style="font-size: 16px; font-weight: 800">Pre-purchase inspection</div>
+      <div style="font-size: 12px" class="muted">SemakAuto Puchong · Step 3 of 4</div>
+    </div>
+  </div>
+  <div style="height: 4px; background: #E1E6E2"><div style="width: 75%; height: 4px; background: #0F7B55"></div></div>
+
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div class="card" style="padding: 12px 14px; display: flex; justify-content: space-between; font-size: 14px">
+      <span style="font-weight: 700">Mon, 12 Oct · 10:00 AM</span><span class="muted">90 min · RM 180</span>
+    </div>
+
+    <div class="fld">
+      <div class="lbl">Where should we inspect?</div>
+      <div style="display: flex; gap: 8px">
+        <button class="opt"><span style="font-weight: 700; font-size: 14px">At our centre</span><span class="muted" style="font-size: 12px">Puchong</span></button>
+        <button class="opt on"><span style="font-weight: 700; font-size: 14px">At your location</span><span class="muted" style="font-size: 12px">+ RM 50 mobile fee</span></button>
+      </div>
+    </div>
+    <div class="fld">
+      <label class="lbl" for="ad">Inspection address</label>
+      <input class="inp" id="ad" value="[Seller's address, e.g. showroom or home]">
+    </div>
+
+    <div style="height: 1px; background: #E1E6E2; margin: 2px 0"></div>
+    <div class="lbl" style="font-size: 14px">Vehicle</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div class="fld"><label class="lbl" for="pn">Plate number</label><input class="inp" id="pn" value="WXY 1234"></div>
+      <div class="fld"><label class="lbl" for="yr">Year</label><input class="inp" id="yr" value="2019"></div>
+    </div>
+    <div class="fld"><label class="lbl" for="mm">Make &amp; model</label><input class="inp" id="mm" value="Honda City 1.5 V"></div>
+
+    <div style="height: 1px; background: #E1E6E2; margin: 2px 0"></div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div class="fld"><label class="lbl" for="cn">Your name</label><input class="inp" id="cn" value="Hafiz Rahman"></div>
+      <div class="fld"><label class="lbl" for="cp">Mobile</label><input class="inp" id="cp" value="+60 13-222 1188"></div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; font-size: 13px"><span class="muted">Deposit now · balance RM 180 after inspection</span><span style="font-weight: 800">RM 50</span></div>
+    <a class="btn" href="#">Pay deposit RM 50.00</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
