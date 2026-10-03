@@ -10,6 +10,7 @@ import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { publicRoutes } from './routes/public';
 import { resourceRoutes } from './routes/resources';
 import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
@@ -60,6 +61,7 @@ export function createApp({ db, auth, env }: AppDeps) {
   app.route('/booking-fields', bookingFieldRoutes);
   app.route('/staff', staffRoutes);
   app.route('/invitations', invitationRoutes);
+  app.route('/public', publicRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

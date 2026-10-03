@@ -61,7 +61,7 @@
 ---
 
 ## Phase 4 — Public booking page + notifications (Week 4)
-- [ ] Public API: `GET /public/:slug`, `GET /public/:slug/slots`, `POST /public/:slug/bookings` (rate-limited, validated)
+- [ ] Public API: `GET /public/:slug`, `GET /public/:slug/slots`, `POST /public/:slug/bookings` (rate-limited, validated)  *(`GET /public/:slug` done early with a preview `book/[slug]` page (business + services, contact buttons) so the shared link works; in dev the link points to Metro on the laptop: `http://<LAN-IP>:8081/book/<slug>`)*
 - [ ] Route `book/[slug]` (Expo web): service → duration → resource/any → date → slot → custom fields → name + phone → confirm
 - [ ] Confirmation page: add to calendar, WhatsApp the business, cancel link
 - [ ] QR code screen in owner app

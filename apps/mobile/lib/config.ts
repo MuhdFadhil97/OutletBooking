@@ -21,8 +21,19 @@ function devWebApiUrl(base: string): string {
 /** API base URL without trailing slash. */
 export const API_URL = devWebApiUrl(configured);
 
-/** Public booking page base. Domain is not registered yet; keep configurable. */
-export const PUBLIC_BOOKING_BASE = (process.env.EXPO_PUBLIC_BOOKING_URL ?? 'https://outletbooking.my').replace(/\/+$/, '');
+/**
+ * Where the shared booking link points. The booking page is the Expo web build of `app/book/[slug]`.
+ * In dev it is served by Metro on the laptop (same host as the API, port 8081), so a phone on the
+ * same Wi-Fi can open it. The production domain is not live yet; set EXPO_PUBLIC_BOOKING_URL when it is.
+ */
+function defaultBookingBase(): string {
+  if (!__DEV__) return 'https://outletbooking.my';
+  const dev = new URL(configured);
+  dev.port = '8081';
+  return dev.origin;
+}
+
+export const PUBLIC_BOOKING_BASE = (process.env.EXPO_PUBLIC_BOOKING_URL ?? defaultBookingBase()).replace(/\/+$/, '');
 
 export const bookingUrl = (slug: string) => `${PUBLIC_BOOKING_BASE}/book/${slug}`;
 export const bookingUrlLabel = (slug: string) => `${PUBLIC_BOOKING_BASE.replace(/^https?:\/\//, '')}/book/${slug}`;
