@@ -1,5 +1,5 @@
 import { hashPassword } from 'better-auth/crypto';
-import { accounts, businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
+import { accounts, applyTemplate, businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
 import { TEMPLATE_INFO, type SignupInput } from '@outletbooking/shared';
 import { AppError, pgErrorInfo } from '../errors';
 import { isReservedSlug } from './slugs';
@@ -15,7 +15,7 @@ export interface SignupResult {
 
 /**
  * Creates user + credential account + business + owner membership + 7-day trial
- * in ONE transaction. Any failure (e.g. slug or email taken) rolls everything back.
+ * + template sample services / booking fields in ONE transaction. Any failure (e.g. slug or email taken) rolls everything back.
  *
  * We insert the Better Auth rows ourselves (same password hasher) because Better
  * Auth's own sign-up cannot join our transaction. The client signs in afterwards.
@@ -57,6 +57,8 @@ export async function signupOwner(db: Db, input: SignupInput, now: Date = new Da
         })
         .returning({ id: businesses.id, slug: businesses.slug });
       if (!business) throw new Error('business insert returned no row');
+
+      await applyTemplate(tx, business.id, input.template);
 
       await tx
         .insert(businessMembers)

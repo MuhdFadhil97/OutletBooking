@@ -36,8 +36,8 @@
 ---
 
 ## Phase 2 — Business setup (Week 2)
-- [ ] Migration: `branches`, `resources` (resource_type incl. property), `services` (duration_min, duration_options, price_sen, deposit_sen, prepay_full, buffer_min, travel_buffer_min, location_type), `service_price_rules`, `resource_services`, `working_hours`, `time_off`, `booking_fields`
-- [ ] Business templates seeded for Real estate, Vehicle inspection, Sports (labels, sample services, custom fields) + generic templates
+- [x] Migration: `branches`, `resources` (resource_type incl. property), `services` (duration_min, duration_options, price_sen, deposit_sen, prepay_full, buffer_min, travel_buffer_min, location_type), `service_price_rules`, `resource_services`, `working_hours`, `time_off`, `booking_fields` *(Migrations 0003 tables + 0004 `updated_at` triggers (custom); also `staff_invitations` for the invite task. Schema in `packages/db/src/schema/setup.ts`; DB constraint tests in `apps/api/test/setup-schema.test.ts`)*
+- [x] Business templates seeded for Real estate, Vehicle inspection, Sports (labels, sample services, custom fields) + generic templates *(Data in `packages/shared/src/templates.ts`; `applyTemplate()` in `packages/db/src/templates.ts` runs inside the sign-up transaction and on first seed. Sample prices are placeholders the owner edits. Viewing/inspection address uses `bookings.location_address` via `location_type`, not a booking field)*
 - [ ] API routes (CRUD, tenant-scoped) for profile, services, resources, working hours, time off, booking fields
 - [ ] Owner screens for each of the above; custom booking fields editor
 - [ ] Invite staff by email → `business_members` + linked resource

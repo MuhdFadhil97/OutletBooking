@@ -6,7 +6,8 @@ import { hashPassword } from 'better-auth/crypto';
 import { and, eq } from 'drizzle-orm';
 import { createDb } from './client';
 import { assertLocalDatabase, loadApiEnv, requireDatabaseUrl } from './env';
-import { accounts, businesses, businessMembers, subscriptions, users } from './schema';
+import { accounts, businesses, businessMembers, services, subscriptions, users } from './schema';
+import { applyTemplate } from './templates';
 
 const DEMO = {
   owner: { name: 'Muhammad Fadhil', email: 'muhdfadhil.zainal@gmail.com', password: '123', phone: '+60123456789' },
@@ -63,6 +64,10 @@ try {
       .onConflictDoNothing();
 
     await tx.insert(subscriptions).values({ businessId: business.id }).onConflictDoNothing();
+
+    // Template sample data only on first seed, so owner edits are not duplicated.
+    const [anyService] = await tx.select({ id: services.id }).from(services).where(eq(services.businessId, business.id)).limit(1);
+    if (!anyService) await applyTemplate(tx, business.id, DEMO.business.template);
 
     console.log(`Seeded "${DEMO.business.name}" (/book/${DEMO.business.slug}); owner login ${DEMO.owner.email}`);
   });

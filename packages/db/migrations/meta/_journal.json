@@ -22,6 +22,20 @@
       "when": 1790952699929,
       "tag": "0002_updated_at_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790994191591,
+      "tag": "0003_phase2_business_setup",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790994206373,
+      "tag": "0004_phase2_updated_at_triggers",
+      "breakpoints": true
     }
   ]
 }

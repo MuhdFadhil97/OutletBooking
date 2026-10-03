@@ -248,6 +248,7 @@ CREATE TABLE service_price_rules (
   FOREIGN KEY (business_id, service_id) REFERENCES services(business_id, id) ON DELETE CASCADE
 );
 CREATE INDEX service_price_rules_service_id_idx ON service_price_rules(service_id);
+CREATE INDEX service_price_rules_business_id_idx ON service_price_rules(business_id);
 
 CREATE TABLE resource_services (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -261,6 +262,7 @@ CREATE TABLE resource_services (
   FOREIGN KEY (business_id, service_id)  REFERENCES services(business_id, id)  ON DELETE CASCADE
 );
 CREATE INDEX resource_services_service_id_idx ON resource_services(service_id);
+CREATE INDEX resource_services_business_id_idx ON resource_services(business_id);
 
 CREATE TABLE working_hours (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -275,6 +277,7 @@ CREATE TABLE working_hours (
   FOREIGN KEY (business_id, resource_id) REFERENCES resources(business_id, id) ON DELETE CASCADE
 );
 CREATE INDEX working_hours_resource_weekday_idx ON working_hours(resource_id, weekday);
+CREATE INDEX working_hours_business_id_idx ON working_hours(business_id);
 
 CREATE TABLE time_off (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -309,6 +312,7 @@ CREATE TABLE booking_fields (
 );
 CREATE UNIQUE INDEX booking_fields_key_uidx
   ON booking_fields(business_id, COALESCE(service_id, 0), field_key);
+CREATE INDEX booking_fields_business_id_idx ON booking_fields(business_id);
 
 -- =====================================================================
 -- 4. CUSTOMERS & BOOKINGS
