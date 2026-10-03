@@ -69,6 +69,37 @@ const paths = {
     </>
   ),
   grid: <Path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
+  'chevron-right': <Path d="m9 6 6 6-6 6" />,
+  'chevron-left': <Path d="m15 6-6 6 6 6" />,
+  'chevron-up': <Path d="m6 15 6-6 6 6" />,
+  'chevron-down': <Path d="m6 9 6 6 6-6" />,
+  trash: <Path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-13M9 7V4h6v3" />,
+  copy: (
+    <>
+      <Rect x={9} y={9} width={12} height={12} rx={2} />
+      <Path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </>
+  ),
+  users: (
+    <>
+      <Circle cx={9} cy={8} r={3.5} />
+      <Path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6" />
+    </>
+  ),
+  form: <Path d="M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 8h8M8 12h8M8 16h5" />,
+  tag: (
+    <>
+      <Path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" />
+      <Circle cx={8} cy={8} r={1.5} />
+    </>
+  ),
+  pause: <Path d="M8 5v14M16 5v14" />,
+  mail: (
+    <>
+      <Rect x={3} y={5} width={18} height={14} rx={2} />
+      <Path d="m3 7 9 6 9-6" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;

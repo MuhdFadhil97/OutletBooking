@@ -5,10 +5,16 @@ import type { Db } from '@outletbooking/db';
 import type { Auth } from './auth';
 import type { Env } from './env';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { bookingFieldRoutes } from './routes/booking-fields';
 import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
+import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { resourceRoutes } from './routes/resources';
+import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
+import { staffRoutes } from './routes/staff';
+import { timeOffRoutes } from './routes/time-off';
 import type { AppEnv } from './types';
 
 export interface AppDeps {
@@ -48,6 +54,12 @@ export function createApp({ db, auth, env }: AppDeps) {
   app.route('/signup', signupRoutes);
   app.route('/me', meRoutes);
   app.route('/businesses', businessRoutes);
+  app.route('/services', serviceRoutes);
+  app.route('/resources', resourceRoutes);
+  app.route('/time-off', timeOffRoutes);
+  app.route('/booking-fields', bookingFieldRoutes);
+  app.route('/staff', staffRoutes);
+  app.route('/invitations', invitationRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

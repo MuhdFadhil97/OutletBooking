@@ -1,5 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { businesses, type Db } from '@outletbooking/db';
+import type { BusinessProfile, BusinessProfileUpdate } from '@outletbooking/shared';
 import { notFound } from '../errors';
 
 const publicColumns = {
@@ -23,7 +24,7 @@ const publicColumns = {
 };
 
 /** The caller's own business. businessId always comes from the tenant middleware. */
-export async function getBusiness(db: Db, businessId: number) {
+export async function getBusiness(db: Db, businessId: number): Promise<BusinessProfile> {
   const [row] = await db
     .select(publicColumns)
     .from(businesses)
@@ -40,6 +41,18 @@ export async function getBusinessBySlug(db: Db, businessId: number, slug: string
     .from(businesses)
     .where(and(eq(businesses.id, businessId), eq(businesses.slug, slug), isNull(businesses.deletedAt)))
     .limit(1);
+  if (!row) throw notFound('Business');
+  return row;
+}
+
+/** Owner edits profile + booking settings. Slug, template and timezone are not editable here. */
+export async function updateBusiness(db: Db, businessId: number, input: BusinessProfileUpdate): Promise<BusinessProfile> {
+  if (!Object.keys(input).length) return getBusiness(db, businessId);
+  const [row] = await db
+    .update(businesses)
+    .set(input)
+    .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
+    .returning(publicColumns);
   if (!row) throw notFound('Business');
   return row;
 }

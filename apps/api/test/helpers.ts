@@ -1,5 +1,6 @@
 import { sql as dsql } from 'drizzle-orm';
-import { createDb } from '@outletbooking/db';
+import { hashPassword } from 'better-auth/crypto';
+import { accounts, createDb, users } from '@outletbooking/db';
 import type { SignupInput } from '@outletbooking/shared';
 import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
@@ -48,6 +49,22 @@ export function createTestContext() {
     },
     get(path: string, cookie?: string, headers: Record<string, string> = {}) {
       return app.request(path, { headers: { ...(cookie ? { cookie } : {}), origin: WEB_ORIGIN, ...headers } });
+    },
+    /** Any method, JSON body, as a logged-in user. */
+    send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, cookie: string, body?: unknown) {
+      return app.request(path, {
+        method,
+        headers: { 'content-type': 'application/json', origin: WEB_ORIGIN, cookie },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    },
+    /** Creates a login + credential account (no membership). */
+    async createUser(name: string, email: string, password = 'password123'): Promise<number> {
+      const [u] = await db.insert(users).values({ name, email }).returning({ id: users.id });
+      await db
+        .insert(accounts)
+        .values({ userId: u!.id, accountId: String(u!.id), providerId: 'credential', password: await hashPassword(password) });
+      return u!.id;
     },
   };
 }
