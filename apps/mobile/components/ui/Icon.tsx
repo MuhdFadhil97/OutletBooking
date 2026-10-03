@@ -100,6 +100,14 @@ const paths = {
       <Path d="m3 7 9 6 9-6" />
     </>
   ),
+  phone: <Path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />,
+  chat: <Path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z" />,
+  pin: (
+    <>
+      <Path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
+      <Circle cx={12} cy={10} r={2.5} />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;
