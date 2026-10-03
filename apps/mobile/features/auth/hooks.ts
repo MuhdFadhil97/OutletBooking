@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { slugSchema, type LoginInput, type SignupInput } from '@outletbooking/shared';
 import { checkSlug, login, logout, signup } from './api';
+import { markOnboardingPending } from './onboarding';
 
 export function useLogin() {
   const qc = useQueryClient();
@@ -11,12 +12,14 @@ export function useLogin() {
   });
 }
 
-/** Creates the business, then signs in so the session is stored securely. */
+/** Creates the business, then signs in so the session is stored securely. Step 3 follows (`/welcome`). */
 export function useSignup() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SignupInput) => {
       await signup(input);
+      // Before login: the new session triggers the redirect to `/`, which must already see this.
+      markOnboardingPending();
       await login({ email: input.email, password: input.password, rememberMe: true });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),

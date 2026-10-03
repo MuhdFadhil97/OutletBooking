@@ -59,6 +59,16 @@ export function useSaveService(id: number | null) {
   });
 }
 
+/** Saves several service edits at once (sign-up step 3: review prices / durations). */
+export function useUpdateServices() {
+  const invalidate = useInvalidateCatalog();
+  return useMutation({
+    mutationFn: (edits: { id: number; body: ServiceUpdate }[]) =>
+      Promise.all(edits.map((e) => api.updateService(e.id, e.body))),
+    onSuccess: invalidate,
+  });
+}
+
 export function useArchiveService() {
   const invalidate = useInvalidateCatalog();
   return useMutation({ mutationFn: api.archiveService, onSuccess: invalidate });

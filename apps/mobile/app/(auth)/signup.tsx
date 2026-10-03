@@ -36,7 +36,7 @@ const TEMPLATE_CHOICES: { value: BusinessTemplate; icon: IconName }[] = [
 const STEP1_FIELDS = ['name', 'email', 'phone', 'password'] as const;
 const linkPrefix = `${PUBLIC_BOOKING_BASE.replace(/^https?:\/\//, '')}/book/`;
 
-/** O1 · Sign-up (step 1 account, step 2 business + template; step 3 "review services" comes in Phase 2) */
+/** O1 · Sign-up: step 1 account, step 2 business + template. Step 3 (review services) is `/welcome`. */
 export default function SignupScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [slugEdited, setSlugEdited] = useState(false);
@@ -68,6 +68,7 @@ export default function SignupScreen() {
       return;
     }
     signup.mutate(values, {
+      // `/` routes the new owner to step 3 (`/welcome`).
       onSuccess: () => router.replace('/'),
       onError: (err) => {
         if (err instanceof ApiError && err.code === 'slug_taken') setError('slug', { message: err.message });
@@ -103,7 +104,7 @@ export default function SignupScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerClassName="flex-grow gap-5 px-5 pb-8 pt-6" keyboardShouldPersistTaps="handled">
-          <Brand right={t.signup.step(step)} />
+          <Brand step={{ current: step, total: 3, label: t.signup.step(step) }} />
 
           {step === 1 ? (
             <View className="gap-4">

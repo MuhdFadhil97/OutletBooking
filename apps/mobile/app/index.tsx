@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui/ScreenState';
 import { useLogout } from '@/features/auth/hooks';
+import { isOnboardingPending } from '@/features/auth/onboarding';
 import { useMe } from '@/features/me/hooks';
 import { ApiError } from '@/lib/api';
 
@@ -20,5 +21,6 @@ export default function Index() {
     return <ErrorState error={error} onRetry={() => void refetch()} />;
   }
   if (!me) return <LoadingState />;
+  if (me.role === 'owner' && isOnboardingPending()) return <Redirect href="/welcome" />; // sign-up step 3
   return <Redirect href={me.role === 'owner' ? '/today' : '/staff/today'} />;
 }
