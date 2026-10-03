@@ -5,3 +5,4 @@ export * from './setup';
 export * from './staff';
 export * from './public';
 export * from './availability';
+export * from './pricing';
