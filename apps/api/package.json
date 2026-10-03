@@ -17,6 +17,8 @@
     "@outletbooking/db": "workspace:*",
     "@outletbooking/shared": "workspace:*",
     "better-auth": "^1.7.7",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.13.12",
     "zod": "^4.6.5"
