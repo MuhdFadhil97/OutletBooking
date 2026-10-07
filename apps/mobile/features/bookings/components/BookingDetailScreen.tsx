@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import type { Booking, BookingStatus } from '@outletbooking/shared';
@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/ui/ScreenState';
-import { Sheet } from '@/components/ui/Sheet';
 import { Tag } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
-import { TextField } from '@/components/ui/TextField';
 import { formatPhone, formatWhen, mapsUrl, statusTone, wazeUrl, whatsappUrl } from '@/features/bookings/format';
 import { useBooking, useSetBookingStatus } from '@/features/bookings/hooks';
-import { openBookingForm, type BookingsTab } from '@/features/bookings/nav';
+import { openBookingForm, openCancelBooking, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
 import { confirm } from '@/lib/confirm';
 import { formatRM } from '@/lib/format';
@@ -31,7 +29,6 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const services = useServices();
   const fields = useBookingFields();
   const setStatus = useSetBookingStatus(id);
-  const [cancelling, setCancelling] = useState(false);
 
   if (!booking.data || !business.data) {
     const error = booking.error ?? business.error;
@@ -51,7 +48,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const answers = Object.entries(b.customFields).filter(([, v]) => v !== '');
 
   const change = (status: BookingStatus, reason?: string | null) =>
-    setStatus.mutate({ status, reason }, { onSuccess: () => setCancelling(false) });
+    setStatus.mutate({ status, reason });
   const onNoShow = async () => {
     if (await confirm(s.noShowTitle, s.noShowBody, s.noShow)) change('no_show');
   };
@@ -122,15 +119,8 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
         busy={setStatus.isPending}
         onChange={change}
         onNoShow={() => void onNoShow()}
-        onCancel={() => setCancelling(true)}
+        onCancel={() => openCancelBooking(tab, b.id)}
         onReschedule={reschedule}
-      />
-
-      <CancelSheet
-        visible={cancelling}
-        busy={setStatus.isPending}
-        onClose={() => setCancelling(false)}
-        onConfirm={(reason) => change('cancelled', reason)}
       />
     </StackScreen>
   );
@@ -196,27 +186,6 @@ function Actions({
         </View>
       ) : null}
     </View>
-  );
-}
-
-function CancelSheet({
-  visible,
-  busy,
-  onClose,
-  onConfirm,
-}: {
-  visible: boolean;
-  busy: boolean;
-  onClose: () => void;
-  onConfirm: (reason: string | null) => void;
-}) {
-  const [reason, setReason] = useState('');
-  return (
-    <Sheet visible={visible} title={s.cancelTitle} onClose={onClose}>
-      <TextField compact label={s.cancelReason} hint={s.cancelReasonHint} value={reason} onChangeText={setReason} maxLength={300} />
-      <Button title={s.cancelConfirm} loading={busy} onPress={() => onConfirm(reason.trim() || null)} />
-      <Button title={s.keep} variant="secondary" onPress={onClose} />
-    </Sheet>
   );
 }
 

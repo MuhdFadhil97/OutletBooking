@@ -128,6 +128,23 @@ export const bookingStatusSchema = z.object({
 });
 export type BookingStatusChange = z.infer<typeof bookingStatusSchema>;
 
+/** D4: refunds are paid outside the app (bank transfer / DuitNow / cash) and only recorded. */
+export const REFUND_METHODS = ['bank_transfer', 'duitnow', 'cash'] as const;
+export type RefundMethod = (typeof REFUND_METHODS)[number];
+
+/** D4 · Cancel booking (owner): reason, plus an optional refund of what the customer paid. */
+export const bookingCancelSchema = z.object({
+  reason: text(300).optional(),
+  refund: z
+    .object({
+      amountSen: z.number().int().positive().max(100_000_000),
+      method: z.enum(REFUND_METHODS),
+    })
+    .optional(),
+});
+export type BookingCancelInput = z.input<typeof bookingCancelSchema>;
+export type BookingCancel = z.infer<typeof bookingCancelSchema>;
+
 const MAX_RANGE_DAYS = 42;
 
 /** Calendar list: bookings overlapping [from, to) local dates (to is exclusive). */
@@ -182,11 +199,18 @@ export interface Booking {
   durationMin: number;
   resource: { id: number; name: string };
   service: { id: number; name: string };
-  /** phone is null once the customer has been anonymised (PDPA erase). */
-  customer: { id: number; name: string; phone: string | null; email: string | null };
+  /** Short reference to quote on the phone / WhatsApp, e.g. "2P9C". */
+  ref: string;
+  /**
+   * phone is null once the customer has been anonymised (PDPA erase).
+   * bookingCount: this customer's bookings at the business, cancelled ones not counted ("2nd visit").
+   */
+  customer: { id: number; name: string; phone: string | null; email: string | null; bookingCount: number };
   priceSen: number;
   amountDueSen: number;
   paymentStatus: PaymentStatus;
+  /** Recorded refunds (paid outside the app). */
+  refundedSen: number;
   locationAddress: string | null;
   customFields: Record<string, string | number>;
   customerNotes: string | null;

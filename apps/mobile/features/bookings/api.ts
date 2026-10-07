@@ -1,7 +1,9 @@
 import type {
   Availability,
   Booking,
+  BookingCancelInput,
   BookingCreateInput,
+  BookingEvent,
   BookingRescheduleInput,
   BookingSearchFilter,
   BookingStatus,
@@ -24,6 +26,9 @@ export const searchBookings = (p: { q?: string; filter: BookingSearchFilter; lim
   apiFetch<Booking[]>(`/bookings/search?${qs({ ...p, q: p.q || undefined })}`);
 
 export const getBooking = (id: number) => apiFetch<Booking>(`/bookings/${id}`);
+export const getBookingEvents = (id: number) => apiFetch<BookingEvent[]>(`/bookings/${id}/events`);
+export const cancelBooking = (id: number, body: BookingCancelInput) =>
+  apiFetch<Booking>(`/bookings/${id}/cancel`, { method: 'POST', json: body });
 
 export const getCalendarAvailability = (p: {
   serviceId: number;

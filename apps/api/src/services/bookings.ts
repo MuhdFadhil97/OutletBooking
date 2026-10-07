@@ -6,6 +6,7 @@ import {
   bookings,
   businesses,
   customers,
+  refunds,
   resources,
   services,
   type Db,
@@ -15,6 +16,7 @@ import {
   canTransition,
   STAFF_STATUS_CHANGES,
   type Booking,
+  type BookingCancel,
   type BookingCreate,
   type BookingListQuery,
   type BookingReschedule,
@@ -85,6 +87,15 @@ const columns = {
   customerName: customers.name,
   customerPhone: customers.phone,
   customerEmail: customers.email,
+  customerBookingCount: sql<number>`(
+    select count(*)::int from bookings b2
+    where b2.business_id = ${bookings.businessId} and b2.customer_id = ${bookings.customerId} and b2.status <> 'cancelled'
+  )`,
+  refundedSen: sql<number>`(
+    select coalesce(sum(r.amount_sen), 0)::int from refunds r
+    where r.business_id = ${bookings.businessId} and r.booking_id = ${bookings.id}
+  )`,
+  publicToken: bookings.publicToken,
   priceSen: bookings.priceSen,
   amountDueSen: bookings.amountDueSen,
   paymentStatus: bookings.paymentStatus,
@@ -117,10 +128,18 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   durationMin: r.durationMin,
   resource: { id: r.resourceId, name: r.resourceName },
   service: { id: r.serviceId, name: r.serviceName },
-  customer: { id: r.customerId, name: r.customerName, phone: r.customerPhone, email: r.customerEmail },
+  ref: r.publicToken.slice(0, 4).toUpperCase(),
+  customer: {
+    id: r.customerId,
+    name: r.customerName,
+    phone: r.customerPhone,
+    email: r.customerEmail,
+    bookingCount: r.customerBookingCount,
+  },
   priceSen: r.priceSen,
   amountDueSen: r.amountDueSen,
   paymentStatus: r.paymentStatus as PaymentStatus,
+  refundedSen: r.refundedSen,
   locationAddress: r.locationAddress,
   customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,
@@ -460,6 +479,7 @@ async function lockBooking(tx: Tx, businessId: number, id: number) {
       startAt: bookings.startAt,
       durationMin: bookings.durationMin,
       paymentStatus: bookings.paymentStatus,
+      amountDueSen: bookings.amountDueSen,
       resourceUserId: resources.userId,
     })
     .from(bookings)
@@ -600,5 +620,71 @@ export async function changeBookingStatus(
       },
     });
     return getBooking(tx, businessId, id, actor.scope);
+  });
+}
+
+/**
+ * D4 · Cancel (owner), with an optional refund of what the customer paid online. One transaction:
+ * status + reason, the refund row (paid outside the app, recorded only), `cancelled` and `refunded`
+ * events. A refund of everything paid marks the booking `refunded`.
+ */
+export async function cancelBooking(
+  db: Db,
+  businessId: number,
+  id: number,
+  input: BookingCancel,
+  actorUserId: number,
+): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const current = await lockBooking(tx, businessId, id);
+    const from = current.status as BookingStatus;
+    if (!canTransition(from, 'cancelled')) {
+      throw new AppError(409, 'invalid_status_change', `A ${from.replace('_', ' ')} booking cannot be cancelled`);
+    }
+    const reason = input.reason ?? null;
+    await tx
+      .update(bookings)
+      .set({ status: 'cancelled', cancelledAt: new Date(), cancelReason: reason })
+      .where(eq(bookings.id, id));
+    await recordBookingEvent(tx, {
+      businessId,
+      bookingId: id,
+      type: 'cancelled',
+      actorUserId,
+      details: { from, ...(reason ? { reason } : {}) },
+    });
+
+    if (input.refund) {
+      if (current.paymentStatus !== 'paid') {
+        throw new AppError(409, 'nothing_to_refund', 'This booking has no payment to refund');
+      }
+      const [done] = await tx
+        .select({ sum: sql<number>`coalesce(sum(${refunds.amountSen}), 0)::int` })
+        .from(refunds)
+        .where(and(eq(refunds.businessId, businessId), eq(refunds.bookingId, id)));
+      const left = current.amountDueSen - (done?.sum ?? 0);
+      if (input.refund.amountSen > left) {
+        throw new AppError(400, 'refund_too_large', `You can refund up to ${(left / 100).toFixed(2)}`, { maxSen: left });
+      }
+      await tx.insert(refunds).values({
+        businessId,
+        bookingId: id,
+        amountSen: input.refund.amountSen,
+        method: input.refund.method,
+        reason,
+        recordedByUserId: actorUserId,
+      });
+      await recordBookingEvent(tx, {
+        businessId,
+        bookingId: id,
+        type: 'refunded',
+        actorUserId,
+        details: { amountSen: input.refund.amountSen, method: input.refund.method },
+      });
+      if (input.refund.amountSen === left) {
+        await tx.update(bookings).set({ paymentStatus: 'refunded' }).where(eq(bookings.id, id));
+      }
+    }
+    return getBooking(tx, businessId, id);
   });
 }

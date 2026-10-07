@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import {
+  bookingCancelSchema,
   bookingCreateSchema,
   bookingListQuery,
   bookingRescheduleSchema,
@@ -15,6 +16,7 @@ import { getAvailability } from '../services/availability';
 import { listBookingEvents } from '../services/booking-events';
 import {
   bookingScope,
+  cancelBooking,
   changeBookingStatus,
   createBooking,
   getBooking,
@@ -73,6 +75,10 @@ export const bookingRoutes = new Hono<AppEnv>()
       c.json(
         await rescheduleBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId),
       ),
+  )
+  // D4 · cancel with reason and optional refund (owner)
+  .post('/:id/cancel', requireRole('owner'), validate('param', idParam), validate('json', bookingCancelSchema), async (c) =>
+    c.json(await cancelBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId)),
   )
   .post('/:id/status', validate('param', idParam), validate('json', bookingStatusSchema), async (c) =>
     c.json(

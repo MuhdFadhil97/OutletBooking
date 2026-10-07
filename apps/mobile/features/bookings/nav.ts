@@ -23,6 +23,14 @@ export function openBooking(tab: BookingsTab, id: number, how: 'push' | 'replace
   else go({ pathname: '/bookings/[id]', params });
 }
 
+/** D4 · cancel & refund screen, in the same tab stack as the booking. */
+export function openCancelBooking(tab: BookingsTab, id: number) {
+  const params = { id: String(id) };
+  if (tab === 'today') router.push({ pathname: '/today/cancel/[id]', params });
+  else if (tab === 'calendar') router.push({ pathname: '/calendar/cancel/[id]', params });
+  else router.push({ pathname: '/bookings/cancel/[id]', params });
+}
+
 export function openBookingForm(tab: BookingsTab, params: BookingFormParams) {
   if (tab === 'today') router.push({ pathname: '/today/new', params });
   else if (tab === 'calendar') router.push({ pathname: '/calendar/new', params });
