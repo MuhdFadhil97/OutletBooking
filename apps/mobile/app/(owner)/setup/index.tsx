@@ -57,7 +57,7 @@ function extraRow(key: SetupExtraRow, sum: SetupSummary): Row {
       return {
         ...base,
         title: x.peak_hours.title,
-        subtitle: sum.services.peakRuleCount ? x.peak_hours.on(sum.services.peakRuleCount) : x.peak_hours.off,
+        subtitle: sum.services.peakServiceCount ? x.peak_hours.on(sum.services.peakServiceCount) : x.peak_hours.off,
         href: '/setup/services',
       };
     case 'booking_length': {

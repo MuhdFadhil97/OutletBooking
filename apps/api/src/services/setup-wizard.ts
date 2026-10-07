@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   bookingFields,
   businesses,
@@ -85,7 +85,7 @@ export async function getSetupSummary(db: Db, businessId: number): Promise<Setup
       .where(and(eq(workingHours.businessId, businessId), isNull(resources.deletedAt), eq(resources.isActive, true)))
       .orderBy(asc(workingHours.weekday), asc(workingHours.startTime)),
     db
-      .select({ n: count() })
+      .select({ n: countDistinct(servicePriceRules.serviceId) })
       .from(servicePriceRules)
       .innerJoin(services, and(eq(services.businessId, servicePriceRules.businessId), eq(services.id, servicePriceRules.serviceId)))
       .where(and(eq(servicePriceRules.businessId, businessId), isNull(services.deletedAt))),
@@ -135,7 +135,7 @@ export async function getSetupSummary(db: Db, businessId: number): Promise<Setup
       durationOptions: [...new Set(svcRows.flatMap((s) => s.durationOptions ?? []))].sort((a, b) => a - b),
       maxBufferMin: Math.max(0, ...svcRows.map((s) => s.bufferMin)),
       maxTravelBufferMin: Math.max(0, ...svcRows.map((s) => s.travelBufferMin)),
-      peakRuleCount: peak?.n ?? 0,
+      peakServiceCount: peak?.n ?? 0,
     },
     hours,
     hoursVary,

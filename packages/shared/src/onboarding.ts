@@ -111,7 +111,8 @@ export interface SetupSummary {
     durationOptions: number[];
     maxBufferMin: number;
     maxTravelBufferMin: number;
-    peakRuleCount: number;
+    /** Services that charge a peak price at some times. */
+    peakServiceCount: number;
   };
   /** Weekly hours when every resource shares them; `varies` when they differ; empty = none set. */
   hours: { weekday: number; startTime: string; endTime: string }[];

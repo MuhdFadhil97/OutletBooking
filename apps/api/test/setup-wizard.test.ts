@@ -102,7 +102,7 @@ describe('O1c · POST /businesses/current/onboarding', () => {
       resources: { count: 4, linkedToStaff: 0 },
       hoursVary: false,
       paymentRule: 'deposit',
-      services: { count: 3, durationOptions: [60, 120, 180], peakRuleCount: 21 },
+      services: { count: 3, durationOptions: [60, 120, 180], peakServiceCount: 3 },
     });
     expect(summary.hours).toContainEqual({ weekday: 1, startTime: '08:00', endTime: '24:00' });
     expect(summary.hours).toHaveLength(7);
