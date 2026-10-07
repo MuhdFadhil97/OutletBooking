@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BOOKING_FIELD_TYPES } from './templates';
-import { phoneE164 } from './schemas';
+import { phoneE164, slugSchema } from './schemas';
 
 /**
  * Business setup (Phase 2): profile, services, resources, working hours,
@@ -72,7 +72,29 @@ export const businessProfileSchema = z.object({
 export const businessSettingsSchema = z
   .record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,49}$/), z.union([z.string().max(1000), z.number().finite(), z.boolean(), z.null()]))
   .refine((s) => Object.keys(s).length <= 50, { message: 'Too many settings' });
-export const businessProfileUpdateSchema = businessProfileSchema.extend({ settings: businessSettingsSchema }).partial();
+export const businessProfileUpdateSchema = businessProfileSchema
+  .extend({ settings: businessSettingsSchema, slug: slugSchema })
+  .partial();
+
+/** E5 · Business profile form. */
+export const businessDetailsSchema = businessProfileSchema
+  .pick({ name: true, phone: true, whatsappPhone: true, email: true, address: true, description: true, resourceLabel: true })
+  .extend({ slug: slugSchema });
+export type BusinessDetailsInput = z.input<typeof businessDetailsSchema>;
+
+/** E6 · Booking rules form. */
+export const bookingRulesSchema = businessProfileSchema.pick({
+  slotIntervalMin: true,
+  minAdvanceMin: true,
+  maxDaysAhead: true,
+  cancelCutoffMin: true,
+  pendingExpiryMin: true,
+  bookingEnabled: true,
+  autoConfirmPaid: true,
+  customersCanCancel: true,
+  lateCancelKeepsDeposit: true,
+});
+export type BookingRulesInput = z.input<typeof bookingRulesSchema>;
 export type BusinessProfileInput = z.input<typeof businessProfileSchema>;
 export type BusinessProfileUpdate = z.infer<typeof businessProfileUpdateSchema>;
 

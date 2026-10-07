@@ -41,6 +41,7 @@ export default function SetupScreen() {
 
   const rows: { title: string; subtitle?: string; icon: IconName; href: Parameters<typeof router.push>[0] }[] = [
     { title: s.profile, subtitle: s.profileSub, icon: 'building', href: '/setup/profile' },
+    { title: t.setup.profile.rulesTitle, subtitle: t.setup.profile.rulesSub, icon: 'settings', href: '/setup/rules' },
     {
       title: s.services,
       subtitle: services.data ? s.servicesSub(services.data.length) : undefined,

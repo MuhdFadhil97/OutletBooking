@@ -165,3 +165,20 @@ describe('booking questions: hint and show to staff', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('E5 booking link (slug)', () => {
+  it('owner can change it; taken, reserved and invalid slugs are refused', async () => {
+    expect((await ctx.post('/signup', signupInput({ email: 'other@example.com', slug: 'rules-other' }))).status).toBe(201);
+    const moved = await json<BusinessProfile>(await patchBiz({ slug: 'rules-a-new' }));
+    expect(moved.slug).toBe('rules-a-new');
+    expect((await ctx.get('/public/rules-a-new')).status).toBe(200);
+    expect((await ctx.get('/public/rules-a')).status).toBe(404);
+
+    const taken = await patchBiz({ slug: 'rules-other' });
+    expect(taken.status).toBe(409);
+    expect(((await taken.json()) as { error: { code: string } }).error.code).toBe('slug_taken');
+    expect((await patchBiz({ slug: 'admin' })).status).toBe(409);
+    expect((await patchBiz({ slug: 'Bad Slug!' })).status).toBe(400);
+    await json(await patchBiz({ slug: 'rules-a' }));
+  });
+});
