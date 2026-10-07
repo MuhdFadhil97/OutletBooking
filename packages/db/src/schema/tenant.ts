@@ -1,4 +1,4 @@
-import { boolean, char, check, index, integer, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, char, check, index, integer, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
@@ -24,7 +24,19 @@ export const businesses = pgTable(
     maxDaysAhead: integer('max_days_ahead').notNull().default(30),
     cancelCutoffMin: integer('cancel_cutoff_min').notNull().default(120),
     pendingExpiryMin: integer('pending_expiry_min').notNull().default(15),
+    /** false = booking page paused (F3). */
     bookingEnabled: boolean('booking_enabled').notNull().default(true),
+    /** E6: paid web bookings confirm automatically. */
+    autoConfirmPaid: boolean('auto_confirm_paid').notNull().default(true),
+    /** E6 / F5: customers may cancel from their booking link (before cancel_cutoff_min). */
+    customersCanCancel: boolean('customers_can_cancel').notNull().default(true),
+    /** E6: a cancellation inside the cutoff keeps the deposit. */
+    lateCancelKeepsDeposit: boolean('late_cancel_keeps_deposit').notNull().default(true),
+    /** Template-specific settings: mobile fee/area, report options, travel areas… */
+    settings: jsonb('settings')
+      .$type<Record<string, string | number | boolean | null>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -54,7 +66,12 @@ export const businessMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: text('role').notNull(),
+    /** Staff may see all bookings, not only their linked resources. */
     canViewAll: boolean('can_view_all').notNull().default(false),
+    /** Record cash / DuitNow / card payments (D12, S2, H7). */
+    canTakePayments: boolean('can_take_payments').notNull().default(true),
+    /** Edit services, prices, hours (D12). */
+    canEditSetup: boolean('can_edit_setup').notNull().default(false),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

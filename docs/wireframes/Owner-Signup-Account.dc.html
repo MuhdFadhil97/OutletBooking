@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create your account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.inp{height:48px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-size: 18px; font-weight: 800; color: #0F7B55">OutletBooking</div>
+      <div style="font-size: 13px; font-weight: 600" class="muted">Step 1 of 3</div>
+    </div>
+    <div style="display: flex; gap: 6px"><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #E1E6E2"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #E1E6E2"></div></div>
+    <h1 style="margin: 6px 0 0; font-size: 22px; font-weight: 800">Create your account</h1>
+    <div style="font-size: 14px" class="muted">You'll log in with this as the business owner.</div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+    <div class="fld"><label class="lbl" for="fn">Full name</label><input class="inp" id="fn" value="Muhammad Fadhil"></div>
+    <div class="fld"><label class="lbl" for="em">Email</label><input class="inp" id="em" type="email" value="owner@smasharena.my"></div>
+    <div class="fld">
+      <label class="lbl" for="ph">Mobile number</label>
+      <div style="display: flex; gap: 8px">
+        <div class="inp" style="width: 76px; display: flex; align-items: center; justify-content: center; font-weight: 600">+60</div>
+        <input class="inp" id="ph" value="12-345 6789">
+      </div>
+    </div>
+    <div class="fld">
+      <label class="lbl" for="pw">Password</label>
+      <div style="position: relative">
+        <input class="inp" id="pw" type="password" value="password123" style="padding-right: 52px">
+        <button aria-label="Show password" style="position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; border: 0; background: transparent; color: #56625B; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+      </div>
+      <div style="font-size: 12px; color: #0B5E40; font-weight: 600">At least 8 characters</div>
+    </div>
+    <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45">
+      <input type="checkbox" checked style="width: 20px; height: 20px; margin: 0; accent-color: #0F7B55; flex-shrink: 0">
+      <span>I agree to the <a href="#" style="font-weight: 700">Terms</a> and <a href="#" style="font-weight: 700">Privacy Notice (PDPA)</a>.</span>
+    </label>
+    <div style="font-size: 13px; padding: 10px 12px; border-radius: 10px; background: #F0F7F3; color: #0B5E40; font-weight: 600">7-day free trial · no card needed</div>
+  </div>
+
+  <div style="padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 12px; align-items: center">
+    <a class="btn" href="Owner-Signup.dc.html" style="width: 100%">Continue</a>
+    <span style="font-size: 14px" class="muted">Already have an account? <a href="Owner-Login.dc.html" style="font-weight: 700">Log in</a></span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

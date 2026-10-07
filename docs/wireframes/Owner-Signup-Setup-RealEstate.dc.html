@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add your agents and viewing hours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:14px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.step{width:44px;height:44px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;color:#16211C;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.pill{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;background:#F0F7F3;color:#0B5E40;font-size:12px;font-weight:700}
+.chip{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:9px 0}
+.hd{display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px}
+.svc{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:14px}
+.chk{width:22px;height:22px;border-radius:6px;background:#0F7B55;color:#FFFFFF;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chk.off{background:#FFFFFF;border:2px solid #9AA59F;box-sizing:border-box}
+.hr{height:1px;background:#E1E6E2}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;height:38px;border-radius:8px}
+.seg button.on{background:#FFFFFF;color:#16211C}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.av{width:36px;height:36px;border-radius:18px;background:#E0ECFB;color:#1D4F91;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.inp{height:44px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 12px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+</style>
+</helmet>
+<div style="width: 390px; height: 960px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <a href="Owner-Signup.dc.html" aria-label="Back" style="width: 44px; height: 44px; margin-left: -10px; display: flex; align-items: center; justify-content: center; color: #16211C"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+      <div style="font-size: 13px; font-weight: 600" class="muted">Step 3 of 3</div>
+    </div>
+    <div style="display: flex; gap: 6px"><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div></div>
+    <h1 style="margin: 6px 0 0; font-size: 22px; font-weight: 800">Add your agents &amp; viewing hours</h1>
+    <div style="font-size: 13px; line-height: 1.45" class="muted">Filled in from the Real estate viewing template. You can change all of this later in Setup.</div>
+  </div>
+  <div style="flex-grow: 1; padding: 12px 20px 6px; display: flex; flex-direction: column; gap: 11px">
+    <div class="card" style="padding: 2px 14px">
+      <div class="hd"><span class="lbl">Your agents</span><a href="#" style="font-size: 13px; font-weight: 700">+ Add agent</a></div>
+      <div class="svc"><span class="av" style="background: #DDF3E8; color: #0B5E40">AI</span><span style="flex-grow: 1"><span style="display: block; font-weight: 700">Aina Ismail</span><span class="muted" style="font-size: 12px">You · Owner & agent</span></span></div>
+      <div class="hr"></div>
+      <div class="svc"><span class="av" style="background: #E0ECFB; color: #1D4F91">KL</span><span style="flex-grow: 1"><span style="display: block; font-weight: 700">Kevin Lim</span><span class="muted" style="font-size: 12px">+60 17-555 0192 · invite later</span></span></div>
+    </div>
+    <div class="card" style="padding: 2px 14px">
+      <div class="hd"><span class="lbl">Viewing types</span><a href="#" style="font-size: 13px; font-weight: 700">+ Add</a></div>
+      <div class="svc"><span class="chk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; stroke-width: 2.6"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex-grow: 1; font-weight: 700">Property viewing</span><span class="muted" style="font-size: 13px">30 min · free</span></div>
+      <div class="hr"></div>
+      <div class="svc"><span class="chk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; stroke-width: 2.6"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex-grow: 1; font-weight: 700">Virtual viewing</span><span class="muted" style="font-size: 13px">20 min · free</span></div>
+    </div>
+    <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+      <span class="lbl">Travel time between viewings</span>
+      <div style="display: flex; gap: 8px"><button class="chip">None</button><button class="chip">15 min</button><button class="chip on">30 min</button><button class="chip">45 min</button></div>
+      <div class="muted" style="font-size: 12px">Viewings happen at the property address. We keep this gap free so agents can drive between units.</div>
+    </div>
+    <div class="card" style="padding: 2px 14px">
+      <div class="hd"><span class="lbl">Opening hours</span><a href="#" style="font-size: 13px; font-weight: 700">Edit</a></div>
+      <div class="row"><span>Mon – Sat</span><span style="font-weight: 700">9:00 AM – 7:00 PM</span></div>
+      <div class="hr"></div>
+      <div class="row"><span>Sun</span><span style="font-weight: 700">10:00 AM – 5:00 PM</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span class="lbl" style="font-size: 13px">To confirm a viewing, customers</span>
+      <div class="seg"><button class="on">No payment</button><button>Booking fee</button></div>
+    </div>
+  </div>
+  <div style="padding: 10px 20px 22px; display: flex; flex-direction: column; gap: 8px; align-items: center">
+    <a class="btn" href="Owner-Today.dc.html" style="width: 100%">Finish &amp; open my booking page</a>
+    <a href="Owner-Today.dc.html" style="font-size: 14px; font-weight: 700; padding: 6px">Skip for now</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

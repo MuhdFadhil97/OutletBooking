@@ -72,9 +72,9 @@ describe('business profile', () => {
     expect(body).not.toHaveProperty('id');
   });
 
-  it('rejects invalid phone and ignores slug/template', async () => {
+  it('rejects invalid phone and ignores template (business type is fixed; the booking link is editable, see E5)', async () => {
     expect((await ctx.send('PATCH', '/businesses/current', ownerA, { whatsappPhone: '0123' })).status).toBe(400);
-    const res = await ctx.send('PATCH', '/businesses/current', ownerA, { slug: 'hijack', template: 'clinic' });
+    const res = await ctx.send('PATCH', '/businesses/current', ownerA, { template: 'clinic' });
     expect(await json<BusinessProfile>(res)).toMatchObject({ slug: 'setup-a', template: 'sports' });
   });
 

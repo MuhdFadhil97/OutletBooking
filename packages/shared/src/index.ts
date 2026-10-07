@@ -7,3 +7,6 @@ export * from './public';
 export * from './availability';
 export * from './pricing';
 export * from './bookings';
+export * from './account';
+export * from './onboarding';
+export * from './hours';

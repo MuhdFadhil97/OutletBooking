@@ -14,6 +14,7 @@ import type {
   AcceptInviteNewAccount,
   InvitationInfo,
   MemberUpdate,
+  StaffInvite,
   StaffInvitation,
   StaffListResponse,
   StaffMember,
@@ -37,6 +38,8 @@ export async function listStaff(db: Db, businessId: number, appPublicUrl: string
         role: businessMembers.role,
         isActive: businessMembers.isActive,
         canViewAll: businessMembers.canViewAll,
+        canTakePayments: businessMembers.canTakePayments,
+        canEditSetup: businessMembers.canEditSetup,
       })
       .from(businessMembers)
       .innerJoin(users, eq(users.id, businessMembers.userId))
@@ -52,6 +55,9 @@ export async function listStaff(db: Db, businessId: number, appPublicUrl: string
         id: staffInvitations.id,
         email: staffInvitations.email,
         resourceId: staffInvitations.resourceId,
+        canViewAll: staffInvitations.canViewAll,
+        canTakePayments: staffInvitations.canTakePayments,
+        canEditSetup: staffInvitations.canEditSetup,
         expiresAt: staffInvitations.expiresAt,
         token: staffInvitations.token,
       })
@@ -89,7 +95,7 @@ export async function inviteStaff(
   db: Db,
   businessId: number,
   invitedBy: number,
-  input: { email: string; resourceId: number | null },
+  input: StaffInvite,
   appPublicUrl: string,
 ): Promise<StaffInvitation> {
   return db.transaction(async (tx) => {
@@ -116,11 +122,22 @@ export async function inviteStaff(
       );
     const [row] = await tx
       .insert(staffInvitations)
-      .values({ businessId, email: input.email, resourceId: input.resourceId, invitedBy })
+      .values({
+        businessId,
+        email: input.email,
+        resourceId: input.resourceId,
+        canViewAll: input.canViewAll,
+        canTakePayments: input.canTakePayments,
+        canEditSetup: input.canEditSetup,
+        invitedBy,
+      })
       .returning({
         id: staffInvitations.id,
         email: staffInvitations.email,
         resourceId: staffInvitations.resourceId,
+        canViewAll: staffInvitations.canViewAll,
+        canTakePayments: staffInvitations.canTakePayments,
+        canEditSetup: staffInvitations.canEditSetup,
         expiresAt: staffInvitations.expiresAt,
         token: staffInvitations.token,
       });
@@ -154,7 +171,8 @@ export async function updateMember(
       .where(and(eq(businessMembers.businessId, businessId), eq(businessMembers.id, memberId)))
       .for('update');
     if (!member) throw notFound('Staff member');
-    if (member.role === 'owner' && (input.isActive === false || input.canViewAll === false)) {
+    const removesAccess = [input.isActive, input.canViewAll, input.canTakePayments, input.canEditSetup].includes(false);
+    if (member.role === 'owner' && removesAccess) {
       throw forbidden("The owner's access cannot be removed");
     }
 
@@ -201,6 +219,9 @@ async function findInvitation(q: Db | Tx, token: string, lock = false) {
       businessId: staffInvitations.businessId,
       email: staffInvitations.email,
       resourceId: staffInvitations.resourceId,
+      canViewAll: staffInvitations.canViewAll,
+      canTakePayments: staffInvitations.canTakePayments,
+      canEditSetup: staffInvitations.canEditSetup,
       expiresAt: staffInvitations.expiresAt,
       acceptedAt: staffInvitations.acceptedAt,
       businessName: businesses.name,
@@ -273,12 +294,18 @@ export async function acceptInvitation(
           .values({ userId, accountId: String(userId), providerId: 'credential', password: passwordHash });
       }
 
+      const access = {
+        canViewAll: inv.canViewAll,
+        canTakePayments: inv.canTakePayments,
+        canEditSetup: inv.canEditSetup,
+      };
       await tx
         .insert(businessMembers)
-        .values({ businessId: inv.businessId, userId, role: 'staff' })
+        .values({ businessId: inv.businessId, userId, role: 'staff', ...access })
         .onConflictDoUpdate({
           target: [businessMembers.businessId, businessMembers.userId],
-          set: { isActive: true },
+          // A returning staff member gets the access chosen on the new invitation.
+          set: { isActive: true, ...access },
           // Never downgrade an owner who happens to accept a staff invite to their own business.
           setWhere: ne(businessMembers.role, 'owner'),
         });

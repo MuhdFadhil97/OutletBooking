@@ -27,6 +27,7 @@ import type {
 import { AppError, notFound } from '../errors';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
+import { recordBookingEvent } from './booking-events';
 import { getPriceQuote } from './pricing';
 
 type Q = Db | Tx;
@@ -148,6 +149,7 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
       fieldType: bookingFields.fieldType,
       options: bookingFields.options,
       isRequired: bookingFields.isRequired,
+      hint: bookingFields.hint,
     })
     .from(bookingFields)
     .where(and(eq(bookingFields.businessId, id), eq(bookingFields.isActive, true)))
@@ -256,8 +258,15 @@ export async function createPublicBooking(
           customFields: input.customFields ?? {},
           customerNotes: input.customerNotes ?? null,
         })
-        .returning({ token: bookings.publicToken }),
+        .returning({ id: bookings.id, token: bookings.publicToken }),
     );
+    await recordBookingEvent(tx, {
+      businessId: biz.id,
+      bookingId: row!.id,
+      type: 'created',
+      actorUserId: null,
+      details: { source: 'web', status },
+    });
 
     const [resource] = await tx.select({ name: resources.name }).from(resources).where(eq(resources.id, resourceId));
     return {

@@ -17,6 +17,8 @@ export const resolveTenant = createMiddleware<AppEnv>(async (c, next) => {
       businessId: businessMembers.businessId,
       role: businessMembers.role,
       canViewAll: businessMembers.canViewAll,
+      canTakePayments: businessMembers.canTakePayments,
+      canEditSetup: businessMembers.canEditSetup,
     })
     .from(businessMembers)
     .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
@@ -28,14 +30,26 @@ export const resolveTenant = createMiddleware<AppEnv>(async (c, next) => {
 
   if (!member) throw new AppError(403, 'no_business', 'Your account is not linked to an active business');
 
+  const isOwner = member.role === 'owner';
   c.set('tenant', {
     businessId: member.businessId,
     memberId: member.memberId,
     role: member.role as MemberRole,
-    canViewAll: member.role === 'owner' || member.canViewAll,
+    canViewAll: isOwner || member.canViewAll,
+    canTakePayments: isOwner || member.canTakePayments,
+    canEditSetup: isOwner || member.canEditSetup,
   });
   await next();
 });
+
+export type Permission = 'canTakePayments' | 'canEditSetup';
+
+/** Owner, or staff granted this permission on D12 (run after resolveTenant). */
+export const requirePermission = (permission: Permission) =>
+  createMiddleware<AppEnv>(async (c, next) => {
+    if (!c.var.tenant[permission]) throw forbidden();
+    await next();
+  });
 
 /** Restrict a route to the given roles (run after resolveTenant). */
 export const requireRole = (...roles: MemberRole[]) =>

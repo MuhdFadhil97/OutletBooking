@@ -13,6 +13,8 @@ export interface MeResponse {
     timezone: string;
   };
   role: MemberRole;
+  /** Owners have all of them. The API enforces these; the app uses them to show / hide actions. */
+  permissions: { canViewAll: boolean; canTakePayments: boolean; canEditSetup: boolean };
   subscription: {
     plan: 'trial' | 'starter' | 'business';
     status: SubscriptionStatus;

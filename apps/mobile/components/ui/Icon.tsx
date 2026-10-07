@@ -24,6 +24,7 @@ const paths = {
     </>
   ),
   plus: <Path d="M12 5v14M5 12h14" />,
+  minus: <Path d="M5 12h14" />,
   walk: (
     <>
       <Circle cx={13} cy={4} r={2} />

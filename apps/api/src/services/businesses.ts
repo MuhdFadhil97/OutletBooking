@@ -1,7 +1,10 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { businesses, type Db } from '@outletbooking/db';
 import type { BusinessProfile, BusinessProfileUpdate } from '@outletbooking/shared';
-import { notFound } from '../errors';
+import { AppError, notFound, pgErrorInfo } from '../errors';
+import { isReservedSlug } from './slugs';
+
+const slugTaken = () => new AppError(409, 'slug_taken', 'This booking link is already taken');
 
 const publicColumns = {
   slug: businesses.slug,
@@ -21,6 +24,10 @@ const publicColumns = {
   cancelCutoffMin: businesses.cancelCutoffMin,
   pendingExpiryMin: businesses.pendingExpiryMin,
   bookingEnabled: businesses.bookingEnabled,
+  autoConfirmPaid: businesses.autoConfirmPaid,
+  customersCanCancel: businesses.customersCanCancel,
+  lateCancelKeepsDeposit: businesses.lateCancelKeepsDeposit,
+  settings: businesses.settings,
 };
 
 /** The caller's own business. businessId always comes from the tenant middleware. */
@@ -45,14 +52,26 @@ export async function getBusinessBySlug(db: Db, businessId: number, slug: string
   return row;
 }
 
-/** Owner edits profile + booking settings. Slug, template and timezone are not editable here. */
+/** Owner edits profile (E5, incl. booking link) + booking rules (E6). Template and timezone are not editable here. */
 export async function updateBusiness(db: Db, businessId: number, input: BusinessProfileUpdate): Promise<BusinessProfile> {
   if (!Object.keys(input).length) return getBusiness(db, businessId);
-  const [row] = await db
-    .update(businesses)
-    .set(input)
-    .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
-    .returning(publicColumns);
-  if (!row) throw notFound('Business');
-  return row;
+  const { settings, ...rest } = input;
+  if (rest.slug && isReservedSlug(rest.slug)) throw slugTaken();
+  try {
+    const [row] = await db
+      .update(businesses)
+      .set({
+        ...rest,
+        // Shallow merge so screens that own different keys don't overwrite each other.
+        ...(settings ? { settings: sql`${businesses.settings} || ${JSON.stringify(settings)}::jsonb` } : {}),
+      })
+      .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
+      .returning(publicColumns);
+    if (!row) throw notFound('Business');
+    return row;
+  } catch (err) {
+    const { code, constraint } = pgErrorInfo(err);
+    if (code === '23505' && constraint === 'businesses_slug_unique') throw slugTaken();
+    throw err;
+  }
 }

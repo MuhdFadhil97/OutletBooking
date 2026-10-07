@@ -50,6 +50,20 @@
       "when": 1791016685461,
       "tag": "0006_phase3_booking_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791348987916,
+      "tag": "0007_phase3_catchup",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791348989190,
+      "tag": "0008_phase3_catchup_triggers",
+      "breakpoints": true
     }
   ]
 }

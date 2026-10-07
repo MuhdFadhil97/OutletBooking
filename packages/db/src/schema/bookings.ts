@@ -3,9 +3,10 @@ import { sql } from 'drizzle-orm';
 import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
 import { businesses } from './tenant';
+import { BOOKING_EVENT_TYPES, type BookingEventType } from '@outletbooking/shared';
 import { branches, resources, services } from './setup';
 
-/** Per-business customer, unique by phone (E.164). */
+/** Per-business customer, unique by phone (E.164). PDPA erase anonymises the row (phone → NULL). */
 export const customers = pgTable(
   'customers',
   {
@@ -14,9 +15,12 @@ export const customers = pgTable(
       .notNull()
       .references(() => businesses.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    phone: text('phone').notNull(),
+    /** E.164; NULL after PDPA erase. */
+    phone: text('phone'),
     email: citext('email'),
     notes: text('notes'),
+    /** PDPA erase (D11): name → 'Deleted customer', phone/email/notes → NULL. */
+    anonymizedAt: timestamp('anonymized_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -24,7 +28,7 @@ export const customers = pgTable(
   (t) => [
     unique('customers_business_id_phone_key').on(t.businessId, t.phone),
     unique('customers_business_id_id_key').on(t.businessId, t.id),
-    check('customers_phone_check', sql`${t.phone} ~ '^\\+[1-9][0-9]{7,14}$'`),
+    check('customers_phone_check', sql`${t.phone} IS NULL OR ${t.phone} ~ '^\\+[1-9][0-9]{7,14}$'`),
   ],
 );
 
@@ -79,6 +83,8 @@ export const bookings = pgTable(
 
     /** Pending payment expiry. */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** D5 remind tomorrow's customers. */
+    reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
     checkedInAt: timestamp('checked_in_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
@@ -133,5 +139,72 @@ export const bookings = pgTable(
       'bookings_blocked_range_check',
       sql`${t.blockedStartAt} <= ${t.startAt} AND ${t.blockedEndAt} >= ${t.endAt}`,
     ),
+  ],
+);
+
+/** Booking timeline. Every status change writes a row in the same transaction. */
+export const bookingEvents = pgTable(
+  'booking_events',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    bookingId: integer('booking_id').notNull(),
+    eventType: text('event_type').$type<BookingEventType>().notNull(),
+    /** NULL = customer or system. */
+    actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    details: jsonb('details')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'booking_events_business_id_booking_id_fkey',
+      columns: [t.businessId, t.bookingId],
+      foreignColumns: [bookings.businessId, bookings.id],
+    }).onDelete('cascade'),
+    index('booking_events_booking_idx').on(t.bookingId, t.createdAt),
+    index('booking_events_business_id_idx').on(t.businessId),
+    check(
+      'booking_events_event_type_check',
+      sql.raw(`event_type IN (${BOOKING_EVENT_TYPES.map((e) => `'${e}'`).join(',')})`),
+    ),
+  ],
+);
+
+/**
+ * D4: refunds are paid outside the app (bank transfer / DuitNow / cash) and only recorded here.
+ * `payment_id` gets its FK to `payments` in the Phase 5 migration that creates that table.
+ */
+export const refunds = pgTable(
+  'refunds',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    bookingId: integer('booking_id').notNull(),
+    paymentId: integer('payment_id'),
+    amountSen: integer('amount_sen').notNull(),
+    method: text('method').notNull(),
+    reason: text('reason'),
+    recordedByUserId: integer('recorded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'refunds_business_id_booking_id_fkey',
+      columns: [t.businessId, t.bookingId],
+      foreignColumns: [bookings.businessId, bookings.id],
+    }).onDelete('restrict'),
+    index('refunds_booking_idx').on(t.bookingId),
+    index('refunds_business_id_idx').on(t.businessId),
+    check('refunds_amount_sen_check', sql`${t.amountSen} > 0`),
+    check('refunds_method_check', sql`${t.method} IN ('bank_transfer','duitnow','cash')`),
   ],
 );

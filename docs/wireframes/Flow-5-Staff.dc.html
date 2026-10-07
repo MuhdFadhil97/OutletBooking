@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow 5 · Staff app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 968px; height: 736px; background: #FFFFFF; font-family: 'Manrope', system-ui, sans-serif">
+<div style="position: absolute; left: 64px; top: 56px; font-size: 30px; line-height: 36px; font-weight: 800; color: #16211C">Flow 5 · Staff app</div>
+<div style="position: absolute; left: 64px; top: 98px; font-size: 15px; line-height: 20px; color: #56625B">Staff join by invite, then log in on the same screen as owners.</div>
+<div style="position: absolute; left: 64px; top: 132px; width: 840px; display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 6px; font-size: 13px; line-height: 18px; color: #46524B"><span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: #F0F7F3; border: 1px solid #9FD5BB"></span>Owner app</span><span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: #EEF4FD; border: 1px solid #A9C6EE"></span>Customer page (web)</span><span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: #FFF6EA; border: 1px solid #F2C58E"></span>Staff app</span><span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: #F0F3F1; border: 1px solid #B8C1BC"></span>Website &amp; admin (desktop)</span><span>Arrows show where a tap leads. Back buttons are not drawn.</span></div>
+<svg width="624" height="8" viewBox="0 0 624 8" preserveAspectRatio="none" style="position: absolute; left: 172px; top: 532px; width: 624px; height: 8px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 624 4"></path></svg>
+<svg width="8" height="56" viewBox="0 0 8 56" preserveAspectRatio="none" style="position: absolute; left: 480px; top: 480px; width: 8px; height: 56px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 56"></path></svg>
+<svg width="8" height="111" viewBox="0 0 8 111" preserveAspectRatio="none" style="position: absolute; left: 480px; top: 288px; width: 8px; height: 111px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-1" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8A958F" stroke="none" style="stroke: none; fill: #8A958F; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 107" marker-end="url(#dc-arrow-head-filled-1)"></path></svg>
+<svg width="95" height="8" viewBox="0 0 95 8" preserveAspectRatio="none" style="position: absolute; left: 280px; top: 436px; width: 95px; height: 8px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-2" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8A958F" stroke="none" style="stroke: none; fill: #8A958F; fill: context-stroke"/></marker></defs><path d="M 0 4 L 91 4" marker-end="url(#dc-arrow-head-filled-2)"></path></svg>
+<svg width="95" height="8" viewBox="0 0 95 8" preserveAspectRatio="none" style="position: absolute; left: 592px; top: 436px; width: 95px; height: 8px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-3" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8A958F" stroke="none" style="stroke: none; fill: #8A958F; fill: context-stroke"/></marker></defs><path d="M 0 4 L 91 4" marker-end="url(#dc-arrow-head-filled-3)"></path></svg>
+<svg width="8" height="55" viewBox="0 0 8 55" preserveAspectRatio="none" style="position: absolute; left: 168px; top: 536px; width: 8px; height: 55px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-4" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8A958F" stroke="none" style="stroke: none; fill: #8A958F; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 51" marker-end="url(#dc-arrow-head-filled-4)"></path></svg>
+<svg width="8" height="55" viewBox="0 0 8 55" preserveAspectRatio="none" style="position: absolute; left: 792px; top: 536px; width: 8px; height: 55px; overflow: visible; fill: none; stroke: #8A958F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-5" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#8A958F" stroke="none" style="stroke: none; fill: #8A958F; fill: context-stroke"/></marker></defs><path d="M 4 0 L 4 51" marker-end="url(#dc-arrow-head-filled-5)"></path></svg>
+<div style="position: absolute; left: 376px; top: 208px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #F0F7F3; border: 1px solid #9FD5BB; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>Log in</b><br><span style="font-size: 12px; color: #56625B">O0 · same as owner</span></span></div>
+<div style="position: absolute; left: 64px; top: 400px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFF6EA; border: 1px solid #F2C58E; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>Accept invite</b><br><span style="font-size: 12px; color: #56625B">G1</span></span></div>
+<div style="position: absolute; left: 376px; top: 400px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFF6EA; border: 1px solid #F2C58E; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>Today</b><br><span style="font-size: 12px; color: #56625B">S1 · viewings / jobs</span></span></div>
+<div style="position: absolute; left: 688px; top: 400px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFF6EA; border: 1px solid #F2C58E; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>Job in progress</b><br><span style="font-size: 12px; color: #56625B">S2 · result, payment</span></span></div>
+<div style="position: absolute; left: 64px; top: 592px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFF6EA; border: 1px solid #F2C58E; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>My schedule</b><br><span style="font-size: 12px; color: #56625B">G2 · tab</span></span></div>
+<div style="position: absolute; left: 688px; top: 592px; width: 216px; height: 80px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFF6EA; border: 1px solid #F2C58E; border-radius: 12px; font-size: 15px; line-height: 20px; color: #16211C"><span><b>My profile</b><br><span style="font-size: 12px; color: #56625B">G3 · tab</span></span></div>
+<div style="position: absolute; left: 496px; top: 336px; width: 104px; text-align: center; font-size: 13px; line-height: 16px; color: #46524B">staff log in</div>
+<div style="position: absolute; left: 308px; top: 412px; width: 40px; text-align: center; font-size: 13px; line-height: 16px; color: #46524B">join</div>
+<div style="position: absolute; left: 604px; top: 412px; width: 72px; text-align: center; font-size: 13px; line-height: 16px; color: #46524B">check in</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":968,"height":736}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

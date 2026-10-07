@@ -5,6 +5,7 @@ import type { SignupInput } from '@outletbooking/shared';
 import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
+import type { MailMessage } from '../src/services/mailer';
 import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
@@ -19,13 +20,17 @@ export function createTestContext() {
     TRUSTED_ORIGINS: `${WEB_ORIGIN},outletbooking://`,
   });
   const { db, sql } = createDb(url, { max: 5 });
-  const auth = createAuth(db, env);
+  /** Every email the API "sent" during the test. */
+  const outbox: MailMessage[] = [];
+  const auth = createAuth(db, env, { send: async (m) => void outbox.push(m) });
   const app = createApp({ db, auth, env });
 
   return {
     db,
     app,
+    outbox,
     async reset() {
+      outbox.length = 0;
       await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);
     },
     async close() {

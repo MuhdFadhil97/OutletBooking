@@ -1,18 +1,33 @@
 import { z } from 'zod';
 import { emailSchema, passwordSchema, phoneE164 } from './schemas';
 
+/** D12 permissions. Defaults: own bookings only, may take payments, may not change setup. */
+const permissionFlags = {
+  /** See every resource's bookings, not only their own. */
+  canViewAll: z.boolean(),
+  /** Record cash, DuitNow and card payments. */
+  canTakePayments: z.boolean(),
+  /** Services, prices and hours. */
+  canEditSetup: z.boolean(),
+};
+
 /** Owner invites a staff member by email, optionally linking the resource that is "them". */
 export const staffInviteSchema = z.object({
   email: emailSchema,
   resourceId: z.number().int().positive().nullable().default(null),
+  canViewAll: permissionFlags.canViewAll.default(false),
+  canTakePayments: permissionFlags.canTakePayments.default(true),
+  canEditSetup: permissionFlags.canEditSetup.default(false),
 });
 export type StaffInviteInput = z.input<typeof staffInviteSchema>;
+export type StaffInvite = z.infer<typeof staffInviteSchema>;
 
 /** Owner changes a staff member's access. */
 export const memberUpdateSchema = z.object({
   isActive: z.boolean().optional(),
-  /** See every resource's bookings, not only their own. */
-  canViewAll: z.boolean().optional(),
+  canViewAll: permissionFlags.canViewAll.optional(),
+  canTakePayments: permissionFlags.canTakePayments.optional(),
+  canEditSetup: permissionFlags.canEditSetup.optional(),
   /** Resources linked to this staff login (replaces the full list). */
   resourceIds: z.array(z.number().int().positive()).max(200).optional(),
 });
@@ -40,6 +55,8 @@ export interface StaffMember {
   role: 'owner' | 'staff';
   isActive: boolean;
   canViewAll: boolean;
+  canTakePayments: boolean;
+  canEditSetup: boolean;
   resources: { id: number; name: string }[];
 }
 
@@ -47,6 +64,9 @@ export interface StaffInvitation {
   id: number;
   email: string;
   resourceId: number | null;
+  canViewAll: boolean;
+  canTakePayments: boolean;
+  canEditSetup: boolean;
   expiresAt: string; // ISO
   inviteUrl: string;
 }

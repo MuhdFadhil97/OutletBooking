@@ -1,7 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { slugSchema, type LoginInput, type SignupInput } from '@outletbooking/shared';
-import { checkSlug, login, logout, signup } from './api';
+import {
+  slugSchema,
+  type ForgotPasswordInput,
+  type LoginInput,
+  type ResetPasswordInput,
+  type SignupInput,
+} from '@outletbooking/shared';
+import {
+  changePassword,
+  checkSlug,
+  forgotPassword,
+  getResetTokenInfo,
+  login,
+  logout,
+  resetPassword,
+  signup,
+} from './api';
 import { markOnboardingPending } from './onboarding';
 
 export function useLogin() {
@@ -32,6 +47,40 @@ export function useLogout() {
     mutationFn: logout,
     onSettled: () => qc.clear(),
   });
+}
+
+/** E1 · sends the reset email (same answer whether or not the email has an account). */
+export function useForgotPassword() {
+  return useMutation({ mutationFn: (input: ForgotPasswordInput) => forgotPassword(input) });
+}
+
+/** E2 · whose account the emailed link is for. Fails for used / expired links. */
+export function useResetTokenInfo(token: string | undefined) {
+  return useQuery({
+    queryKey: ['reset-token', token],
+    queryFn: () => getResetTokenInfo(token!),
+    enabled: !!token,
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
+/** E2 · "Save & log in": set the new password, then log in on this device with it. */
+export function useResetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ResetPasswordInput) => {
+      const { email } = await resetPassword(input);
+      qc.clear(); // drop anything cached for whoever was logged in before
+      await login({ email, password: input.newPassword, rememberMe: true });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+  });
+}
+
+/** H6 · change password; optionally log out every other device. */
+export function useChangePassword() {
+  return useMutation({ mutationFn: changePassword });
 }
 
 function useDebounced<T>(value: T, ms: number): T {

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment not completed</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:14px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit;cursor:pointer}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.btnd{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#B42318;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit}
+.btnd:hover{background:#912018;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;white-space:nowrap;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button,.seg a{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.seg .on{background:#FFFFFF;color:#16211C}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none;flex-shrink:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;padding:11px 14px}
+.hr{height:1px;background:#E1E6E2}
+.grp{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#56625B;padding:4px 2px 0}
+.av{width:40px;height:40px;border-radius:20px;background:#E0ECFB;color:#1D4F91;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.slot{height:42px;border-radius:10px;border:1px solid #CBD3CE;background:#FFFFFF;font-family:inherit;font-size:13px;font-weight:700;color:#16211C;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.slot.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.slot.off{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F;text-decoration:line-through}
+.day{width:44px;height:58px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;color:#16211C;font-size:11px;font-weight:600}
+.day b{font-size:16px}
+.day.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.day.full{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.dot{width:8px;height:8px;border-radius:4px;background:#0F7B55;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #0F7B55; color: #FFFFFF; padding: 20px 20px 18px; display: flex; align-items: center; gap: 12px; flex-shrink: 0">
+    <div style="width: 48px; height: 48px; border-radius: 14px; background: #FFFFFF; color: #0F7B55; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px">SA</div>
+    <div><div style="font-size: 19px; font-weight: 800">Smash Arena PJ</div><div style="font-size: 13px; opacity: 0.9">Badminton · Futsal · Pickleball</div></div>
+  </div>
+  <div style="flex-grow: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+    <span style="width: 64px; height: 64px; border-radius: 32px; background: #FDEBD3; color: #8A4A06; display: flex; align-items: center; justify-content: center; align-self: center; margin-top: 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 32px; height: 32px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg></span>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800; text-align: center">Payment not completed</h1>
+    <div class="muted" style="font-size: 14px; line-height: 1.5; text-align: center">Your bank didn't confirm the payment. You have not been booked yet.</div>
+    <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 8px; border: 2px solid #F2C58E">
+      <div style="display: flex; justify-content: space-between; align-items: center"><b style="font-size: 15px">Court 2 · Sat, 10 Oct</b><span class="tag t-pend"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>&nbsp;08:12 left</span></div>
+      <span class="muted" style="font-size: 13px">8:00 – 10:00 PM · RM 60.00 · held for you</span>
+    </div>
+    <a class="btn" href="Customer-Details.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Try again · RM 60.00</a>
+    <a class="btn2" href="Customer-Details.dc.html">Choose another bank</a>
+    <div class="card" style="padding: 12px 14px; font-size: 13px; line-height: 1.5; background: #EEF1EF; border-color: #E1E6E2">If the timer runs out, the court is released and you won't be booked. If money left your account, contact your bank with reference <b>TP-88213</b>, or <a href="#" style="font-weight: 700">WhatsApp Smash Arena</a>.</div>
+    <a href="Customer-Court.dc.html" style="font-size: 14px; font-weight: 700; text-align: center">Pick a different time</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

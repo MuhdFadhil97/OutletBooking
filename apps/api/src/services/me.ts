@@ -45,6 +45,11 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
     user: row.user,
     business: { ...row.business, template: row.business.template as BusinessTemplate },
     role: tenant.role,
+    permissions: {
+      canViewAll: tenant.canViewAll,
+      canTakePayments: tenant.canTakePayments,
+      canEditSetup: tenant.canEditSetup,
+    },
     subscription: {
       plan: (row.sub?.plan ?? 'trial') as MeResponse['subscription']['plan'],
       status,

@@ -4,6 +4,9 @@ import type {
   BookingFieldUpdate,
   BusinessProfile,
   BusinessProfileUpdate,
+  OnboardingSetupInput,
+  PaymentRule,
+  SetupSummary,
   Resource,
   ResourceCreate,
   ResourceUpdate,
@@ -26,6 +29,13 @@ export interface TimeOffBody {
 
 // Business profile
 export const getBusiness = () => apiFetch<BusinessProfile>('/businesses/current');
+
+// ST Setup tab summary, "Payment to confirm", O1c step 3 finish
+export const getSetupSummary = () => apiFetch<SetupSummary>('/businesses/current/setup');
+export const setPaymentRule = (rule: PaymentRule) =>
+  apiFetch<SetupSummary>('/businesses/current/payment-rule', { method: 'PUT', json: { rule } });
+export const finishOnboarding = (body: OnboardingSetupInput) =>
+  apiFetch<SetupSummary>('/businesses/current/onboarding', { method: 'POST', json: body });
 export const updateBusiness = (body: BusinessProfileUpdate) =>
   apiFetch<BusinessProfile>('/businesses/current', { method: 'PATCH', json: body });
 

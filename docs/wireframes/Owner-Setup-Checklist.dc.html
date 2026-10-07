@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checklist and report</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.grp{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#56625B;padding:6px 2px 0}
+.it{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;color:#16211C;min-height:44px}
+.it:hover{background:#F6F8F7;color:#16211C}
+.tile{width:38px;height:38px;border-radius:10px;background:#EEF1EF;color:#33403A;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tile.g{background:#DDF3E8;color:#0B5E40}
+.it b{display:block;font-size:15px;font-weight:700}
+.it span.v{display:block;font-size:12px;color:#56625B;margin-top:2px}
+.hr{height:1px;background:#E1E6E2;margin-left:64px}
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#DDF3E8;color:#0B5E40;font-size:12px;font-weight:700}
+.new{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:#E0ECFB;color:#1D4F91;font-size:11px;font-weight:800;margin-left:6px;vertical-align:middle}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none}
+.chip{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;white-space:nowrap}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:14px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+</style>
+</helmet>
+<div style="width: 390px; height: 1060px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+    <a class="icb" href="Owner-Setup-Inspection.dc.html" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+    <div style="flex-grow: 1"><div style="font-size: 16px; font-weight: 800">Checklist &amp; report</div><div class="muted" style="font-size: 12px">SemakAuto Puchong · 45 checks</div></div>
+    <a class="icb" href="#" aria-label="Add" style="background: #0F7B55; border-color: #0F7B55; color: #FFFFFF"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+  </div>
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div class="grp">Checklist sections</div>
+    <div class="card" style="overflow: hidden">
+        <a class="it" href="#"><span style="flex-grow: 1"><b>Exterior &amp; body</b></span><span class="muted" style="font-size: 13px; font-weight: 700">10 checks</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a><div class="hr" style="margin-left: 14px"></div><a class="it" href="#"><span style="flex-grow: 1"><b>Engine bay</b></span><span class="muted" style="font-size: 13px; font-weight: 700">12 checks</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a><div class="hr" style="margin-left: 14px"></div><a class="it" href="#"><span style="flex-grow: 1"><b>Interior &amp; electrics</b></span><span class="muted" style="font-size: 13px; font-weight: 700">8 checks</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a><div class="hr" style="margin-left: 14px"></div><a class="it" href="#"><span style="flex-grow: 1"><b>Underside &amp; suspension</b></span><span class="muted" style="font-size: 13px; font-weight: 700">9 checks</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a><div class="hr" style="margin-left: 14px"></div><a class="it" href="#"><span style="flex-grow: 1"><b>Road test</b></span><span class="muted" style="font-size: 13px; font-weight: 700">6 checks</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a>
+    </div>
+    <div class="grp">Result labels</div>
+    <div style="display: flex; gap: 8px"><span class="tag t-ok" style="height: 32px; padding: 0 14px">Pass</span><span class="tag t-pend" style="height: 32px; padding: 0 14px">Needs attention</span><span class="tag" style="height: 32px; padding: 0 14px; background: #FBE2DC; color: #8F2A0E">Fail</span></div>
+    <div class="grp">Report</div>
+    <div class="card" style="overflow: hidden">
+        <div class="it" style="cursor: default"><span style="flex-grow: 1"><b>Send report on WhatsApp</b><span class="v">PDF link sent when inspection is marked done</span></span><button class="sw" aria-label="Send report on WhatsApp on"></button></div><div class="hr" style="margin-left: 14px"></div><div class="it" style="cursor: default"><span style="flex-grow: 1"><b>Include photos</b><span class="v">Inspector photos added to each failed check</span></span><button class="sw" aria-label="Include photos on"></button></div><div class="hr" style="margin-left: 14px"></div><div class="it" style="cursor: default"><span style="flex-grow: 1"><b>Show inspector name</b><span class="v">Builds trust with buyers and sellers</span></span><button class="sw" aria-label="Show inspector name on"></button></div><div class="hr" style="margin-left: 14px"></div><div class="it" style="cursor: default"><span style="flex-grow: 1"><b>Ask for a Google review</b><span class="v">Sent 1 day after the report</span></span><button class="sw off" aria-label="Ask for a Google review off"></button></div>
+    </div>
+    <a class="btn2" href="#">Preview report (PDF)</a>
+  </div>
+  <nav class="tabbar">
+    <a class="tab" href="Owner-Today.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>Today</a>
+    <a class="tab" href="Owner-Calendar.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</a>
+    <a class="tab" href="Owner-Bookings.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Bookings</a>
+    <a class="tab on" href="Owner-Setup.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Setup</a>
+    <a class="tab" href="Owner-Reports.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M5 20V12M11 20V5M17 20v-8M3 20h18"></path></svg>Reports</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
