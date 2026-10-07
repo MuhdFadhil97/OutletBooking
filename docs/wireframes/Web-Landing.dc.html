@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OutletBooking website</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.fld{display:flex;flex-direction:column;gap:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.nav a.nl{color:#33403A;text-decoration:none;font-weight:600;font-size:15px}
+.nav a.nl:hover{color:#0F7B55}
+.side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#33403A;text-decoration:none;font-weight:600;font-size:14px}
+.side a:hover{background:#F0F3F1;color:#16211C}
+.side a.on{background:#DDF3E8;color:#0B5E40}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#56625B;padding:12px 14px;border-bottom:1px solid #E1E6E2;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#F6F8F7}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2">
+    <div class="wrap nav" style="height: 68px; display: flex; align-items: center; gap: 24px">
+      <span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span><span style="flex-grow: 1"></span>
+      <a class="nl" href="#niches">Businesses</a><a class="nl" href="#pricing">Pricing</a><a class="nl" href="Owner-Login.dc.html">Log in</a>
+      <a class="btn" href="Owner-Signup-Account.dc.html" style="height: 42px">Start free trial</a>
+    </div>
+  </header>
+  <section class="wrap" style="padding-top: 56px; padding-bottom: 56px; display: flex; gap: 48px; align-items: center; flex-wrap: wrap; justify-content: space-between">
+    <div style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 20px; max-width: 600px">
+      <span class="tag t-ok" style="align-self: flex-start">Made in Malaysia · FPX &amp; DuitNow</span>
+      <h1 style="margin: 0; font-size: 46px; line-height: 1.12; font-weight: 800">Let customers book and pay — without the WhatsApp back-and-forth</h1>
+      <p class="muted" style="margin: 0; font-size: 18px; line-height: 1.6">One link for courts, viewings, inspections or appointments. Customers pick a time and pay a deposit. You see everything on your phone.</p>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap"><a class="btn" href="Owner-Signup-Account.dc.html">Start 7-day free trial</a><a class="btn2" href="Main.dc.html">See a booking page</a></div>
+      <span class="muted" style="font-size: 13px">No card needed · set up in about 10 minutes</span>
+    </div>
+    <div style="width: 280px; height: 520px; border-radius: 36px; background: #16211C; padding: 12px; box-sizing: border-box; flex-shrink: 0"><div style="width: 100%; height: 100%; border-radius: 26px; background: #F6F7F5; overflow: hidden; display: flex; flex-direction: column"><div style="background: #0F7B55; color: #FFFFFF; padding: 18px 16px; font-weight: 800">Smash Arena PJ<div style="font-size: 12px; font-weight: 500; opacity: 0.9">Book a court</div></div><div style="padding: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #E9ECEA; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #0F7B55; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #E9ECEA; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #E9ECEA; display: block"></span><span style="height: 34px; border-radius: 8px; background: #E9ECEA; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span><span style="height: 34px; border-radius: 8px; background: #FFFFFF; display: block"></span></div><div style="margin: auto 14px 16px; height: 44px; border-radius: 10px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">Pay RM 60 · FPX</div></div></div>
+  </section>
+  <section id="niches" style="background: #FFFFFF; padding: 56px 0">
+    <div class="wrap" style="display: flex; flex-direction: column; gap: 24px">
+      <h2 style="margin: 0; font-size: 30px; font-weight: 800">Built for businesses that run on appointments</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg></span><b style="font-size: 16px">Sports courts</b><span class="muted" style="font-size: 14px; line-height: 1.5">Court-by-hour grid, peak pricing, full prepayment.</span></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg></span><b style="font-size: 16px">Real estate viewings</b><span class="muted" style="font-size: 14px; line-height: 1.5">Book by agent, travel time between viewings, listings.</span></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><b style="font-size: 16px">Vehicle inspection</b><span class="muted" style="font-size: 14px; line-height: 1.5">Plate number on every booking, mobile inspection, WhatsApp report.</span></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></span><b style="font-size: 16px">Workshops</b><span class="muted" style="font-size: 14px; line-height: 1.5">Bays, jobs with “from” prices, quotes before work.</span></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg></span><b style="font-size: 16px">Barbers &amp; salons</b><span class="muted" style="font-size: 14px; line-height: 1.5">Customers pick a stylist, walk-in queue.</span></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 8px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span><b style="font-size: 16px">Clinics, tuition &amp; more</b><span class="muted" style="font-size: 14px; line-height: 1.5">Rename what is booked — rooms, doctors, teachers.</span></div>
+      </div>
+    </div>
+  </section>
+  <section class="wrap" style="padding-top: 56px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 28px">
+    <h2 style="margin: 0; font-size: 30px; font-weight: 800">Live in three steps</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 18px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">1</span><b style="font-size: 17px">Pick your business type</b><span class="muted" style="font-size: 15px; line-height: 1.5">Services, hours and booking questions are filled in for you.</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 18px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">2</span><b style="font-size: 17px">Connect ToyyibPay</b><span class="muted" style="font-size: 15px; line-height: 1.5">Deposits and payments go straight to your own account.</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px"><span style="width: 36px; height: 36px; border-radius: 18px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">3</span><b style="font-size: 17px">Share your link</b><span class="muted" style="font-size: 15px; line-height: 1.5">Put it in WhatsApp Business, Instagram and on a QR poster at the counter.</span></div>
+    </div>
+  </section>
+  <section id="pricing" style="background: #FFFFFF; padding: 56px 0">
+    <div class="wrap" style="display: flex; flex-direction: column; gap: 24px">
+      <h2 style="margin: 0; font-size: 30px; font-weight: 800">Simple pricing</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; max-width: 760px">
+        <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 12px; "><b style="font-size: 18px">Starter</b><div><span style="font-size: 32px; font-weight: 800">RM 49</span><span class="muted"> / month</span></div><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Up to 3 bookable resources</span><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Unlimited bookings</span><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Online payment &amp; deposits</span><a class="btn2" href="Owner-Signup-Account.dc.html">Start 7-day free trial</a></div>
+        <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #0F7B55"><b style="font-size: 18px">Business</b><div><span style="font-size: 32px; font-weight: 800">RM 99</span><span class="muted"> / month</span></div><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Up to 10 bookable resources</span><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Staff app &amp; roles</span><span style="display: flex; gap: 8px; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #0F7B55"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Reports &amp; customer history</span><a class="btn" href="Owner-Signup-Account.dc.html">Start 7-day free trial</a></div>
+      </div>
+      <span class="muted" style="font-size: 14px">Extra resource RM 10 / month. MSME Digital Grant quotation available on request.</span>
+    </div>
+  </section>
+  <section class="wrap" style="padding-top: 56px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0 0 8px; font-size: 30px; font-weight: 800">Questions</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px">
+      <div class="card" style="padding: 18px"><b style="font-size: 16px">Do my customers need to download an app?</b><div class="muted" style="font-size: 14px; line-height: 1.6; margin-top: 6px">No. They book from a link or QR code in their phone browser.</div></div>
+      <div class="card" style="padding: 18px"><b style="font-size: 16px">Who receives the money?</b><div class="muted" style="font-size: 14px; line-height: 1.6; margin-top: 6px">You do. Payments go to your own ToyyibPay account and then your bank.</div></div>
+      <div class="card" style="padding: 18px"><b style="font-size: 16px">Can two people book the same slot?</b><div class="muted" style="font-size: 14px; line-height: 1.6; margin-top: 6px">No. The system blocks double bookings automatically.</div></div>
+      <div class="card" style="padding: 18px"><b style="font-size: 16px">What happens after the free trial?</b><div class="muted" style="font-size: 14px; line-height: 1.6; margin-top: 6px">Choose a plan to keep your booking page live. Your data is kept either way.</div></div>
+    </div>
+  </section>
+  <footer style="background: #16211C; color: #CBD3CE; padding: 32px 0">
+    <div class="wrap" style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-between; font-size: 14px">
+      <span>© 2026 FTech IT Consulting Sdn Bhd · OutletBooking</span>
+      <span style="display: flex; gap: 20px"><a href="#" style="color: #CBD3CE">Privacy notice (PDPA)</a><a href="#" style="color: #CBD3CE">Terms</a><a href="#" style="color: #CBD3CE">WhatsApp us</a></span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

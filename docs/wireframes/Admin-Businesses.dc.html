@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin · Businesses</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.fld{display:flex;flex-direction:column;gap:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.nav a.nl{color:#33403A;text-decoration:none;font-weight:600;font-size:15px}
+.nav a.nl:hover{color:#0F7B55}
+.side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#33403A;text-decoration:none;font-weight:600;font-size:14px}
+.side a:hover{background:#F0F3F1;color:#16211C}
+.side a.on{background:#DDF3E8;color:#0B5E40}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#56625B;padding:12px 14px;border-bottom:1px solid #E1E6E2;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#F6F8F7}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
+<div style="display: flex; min-height: 100vh">
+  <aside class="side" style="width: 220px; flex-shrink: 0; background: #FFFFFF; border-right: 1px solid #E1E6E2; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box">
+    <div style="padding: 0 8px 16px"><span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span><div class="muted" style="font-size: 12px; font-weight: 700; margin-top: 4px">Platform admin</div></div>
+    <a class="on" href="Admin-Businesses.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Businesses</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Trials ending</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Payments</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>Support</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Audit log</a>
+  </aside>
+  <main style="flex-grow: 1; min-width: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+      <div><h1 style="margin: 0; font-size: 26px; font-weight: 800">Businesses</h1><div class="muted" style="font-size: 14px">Sample data · all tenants on OutletBooking</div></div>
+      <div style="display: flex; align-items: center; gap: 8px; height: 44px; border: 1px solid #CBD3CE; border-radius: 12px; padding: 0 12px; background: #FFFFFF; width: 320px; max-width: 100%; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #56625B"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg><label for="aq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search businesses</label><input id="aq" placeholder="Search name, slug, owner phone" style="flex-grow: 1; border: 0; font-size: 14px; font-family: inherit; min-width: 0; height: 40px"></div>
+    </div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap"><div class="card" style="padding: 14px 16px; flex: 1 1 160px"><div style="font-size: 24px; font-weight: 800">23</div><div class="muted" style="font-size: 13px; font-weight: 600">Businesses</div></div><div class="card" style="padding: 14px 16px; flex: 1 1 160px"><div style="font-size: 24px; font-weight: 800">9</div><div class="muted" style="font-size: 13px; font-weight: 600">On free trial</div><div style="font-size: 12px; font-weight: 700; color: #0B5E40; margin-top: 2px">4 end this week</div></div><div class="card" style="padding: 14px 16px; flex: 1 1 160px"><div style="font-size: 24px; font-weight: 800">12</div><div class="muted" style="font-size: 13px; font-weight: 600">Paying</div></div><div class="card" style="padding: 14px 16px; flex: 1 1 160px"><div style="font-size: 24px; font-weight: 800">2</div><div class="muted" style="font-size: 13px; font-weight: 600">Trial ended</div></div><div class="card" style="padding: 14px 16px; flex: 1 1 160px"><div style="font-size: 24px; font-weight: 800">RM 1,188</div><div class="muted" style="font-size: 13px; font-weight: 600">Monthly revenue</div></div></div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="chip on" href="#">All</a><a class="chip" href="#">On trial</a><a class="chip" href="#">Paying</a><a class="chip" href="#">Trial ended</a><a class="chip" href="#">Pilot</a></div>
+    <div class="card" style="overflow-x: auto">
+      <table>
+        <thead><tr><th>Business</th><th>Type</th><th>Owner</th><th>Status</th><th>Trial / renews</th><th style="text-align: right">Bookings 30d</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><a href="Admin-Business.dc.html" style="font-weight: 800; color: #16211C; text-decoration: none">Smash Arena PJ</a><div class="muted" style="font-size: 12px">/smash-arena-pj</div></td><td>Sports courts</td><td>+60 12-345 6789</td><td><span class="tag t-pend">Trial · 5 days</span></td><td>Sat, 17 Oct</td><td style="text-align: right; font-weight: 700">412</td><td style="text-align: right"><a class="btn2" href="Admin-Business.dc.html" style="height: 36px; padding: 0 12px; font-size: 13px">Extend trial</a></td></tr>
+          <tr><td><a href="Admin-Business.dc.html" style="font-weight: 800; color: #16211C; text-decoration: none">SemakAuto Puchong</a><div class="muted" style="font-size: 12px">/semakauto-puchong</div></td><td>Vehicle inspection</td><td>+60 13-222 1188</td><td><span class="tag t-blue">Pilot</span></td><td>Extended to 30 Nov</td><td style="text-align: right; font-weight: 700">96</td><td style="text-align: right"><a class="btn2" href="Admin-Business.dc.html" style="height: 36px; padding: 0 12px; font-size: 13px">View</a></td></tr>
+          <tr><td><a href="Admin-Business.dc.html" style="font-weight: 800; color: #16211C; text-decoration: none">Laman Realty</a><div class="muted" style="font-size: 12px">/laman-realty</div></td><td>Real estate</td><td>+60 12-410 7788</td><td><span class="tag t-blue">Pilot</span></td><td>Extended to 30 Nov</td><td style="text-align: right; font-weight: 700">58</td><td style="text-align: right"><a class="btn2" href="Admin-Business.dc.html" style="height: 36px; padding: 0 12px; font-size: 13px">View</a></td></tr>
+          <tr><td><a href="Admin-Business.dc.html" style="font-weight: 800; color: #16211C; text-decoration: none">Kelab Futsal Kinrara</a><div class="muted" style="font-size: 12px">/futsal-kinrara</div></td><td>Sports courts</td><td>+60 17-450 8890</td><td><span class="tag t-ok">Business</span></td><td>Renews 2 Nov</td><td style="text-align: right; font-weight: 700">638</td><td style="text-align: right"><a class="btn2" href="Admin-Business.dc.html" style="height: 36px; padding: 0 12px; font-size: 13px">View</a></td></tr>
+          <tr><td><a href="Admin-Business.dc.html" style="font-weight: 800; color: #16211C; text-decoration: none">[Barber shop]</a><div class="muted" style="font-size: 12px">/your-barber</div></td><td>Barber / Salon</td><td>+60 11-xxxx xxxx</td><td><span class="tag t-red">Trial ended</span></td><td>Ended 1 Oct</td><td style="text-align: right; font-weight: 700">0</td><td style="text-align: right"><a class="btn2" href="Admin-Business.dc.html" style="height: 36px; padding: 0 12px; font-size: 13px">Extend trial</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

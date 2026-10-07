@@ -4,14 +4,14 @@
 |---|---|
 | Product | **OutletBooking** — multi-tenant booking & appointment SaaS (mobile-first) |
 | Pilot niches | Real estate viewing, vehicle inspection, sports court booking |
-| Payment gateway | ToyyibPay (FPX / DuitNow) |
+| Payment gateway | ToyyibPay (FPX / DuitNow) — each business connects its own account |
 | Trial | 7-day free trial |
 | Market | Malaysian SMEs — any service business that takes appointments |
 | Platforms | Android & iOS app (owner/staff), web booking page (customer) |
 | Stack | Expo app + Hono API + PostgreSQL (local Docker first; Supabase as managed Postgres for staging/production) — see `CLAUDE.md` |
 | Version | 1.0 (MVP) |
 | Owner | Muhammad Fadhil — FTech IT Consulting Sdn Bhd |
-| Status | Draft |
+| Status | Draft v1.1 — updated after wireframe review (74 screens, 5 flow maps) |
 
 ---
 
@@ -89,13 +89,20 @@ The first three templates are built and tested in depth with pilot businesses:
 15. Custom booking fields per template (plate number, property ref, etc.)
 16. Duration options and location-based services
 17. 7-day free trial
+18. Each business connects its own ToyyibPay account (payments go straight to them)
+19. Booking form editor (custom questions per business / service)
+20. Manual payments (cash, DuitNow QR, card, bank transfer) and refund records
+21. In-app notifications and a first-time setup checklist
+22. Customer list & profile, including PDPA erase on request
+23. Platform admin panel for FTech (extend trials, pause booking pages, audit log)
+24. Marketing website and plan payment page (ToyyibPay)
 
 ### 6.2 Out of scope (MVP) — planned later
 - In-app subscription billing (billed on website after pilot)
 - Automated WhatsApp Cloud API messages
 - Customer mobile app / customer accounts
 - Packages, memberships, loyalty points (OutletIQ integration)
-- POS checkout (MYPOS integration), LHDN e-Invoice
+- POS checkout (MYPOS integration), LHDN e-Invoice submission (the plan payment page only collects an optional TIN for later)
 - Multi-branch reporting, franchise view
 - Bahasa Malaysia / Chinese language
 - Recurring bookings, group classes with capacity
@@ -236,6 +243,48 @@ The first three templates are built and tested in depth with pilot businesses:
 | FR-16.3 | After trial ends without payment: public booking page paused, owner app read-only | Must |
 | FR-16.4 | Subscription paid on website via ToyyibPay (not in-app); pilot businesses can be extended manually by admin | Must |
 
+### FR-17 Setup tab per business type
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-17.1 | Setup tab shows three groups: "What customers book" (per template), "Rules" (opening hours, booking rules, payment to confirm, booking form) and "Business" (profile, staff & roles, reminders, plan & billing) | Must |
+| FR-17.2 | Template decides which "What customers book" items appear; built from one template config, not separate screens | Must |
+| FR-17.3 | Sports: courts, sports & prices, peak hours, booking length / changeover | Must |
+| FR-17.4 | Real estate: agents, listings, viewing types, travel time & viewing areas | Must |
+| FR-17.5 | Real estate listings: ref, title, area, assigned agent, status (available / under offer / closed), open-for-viewings switch; customers pick a listing when booking | Should |
+| FR-17.6 | Vehicle inspection: bays & inspectors, services, mobile inspection (fee, area), checklist & report | Must |
+| FR-17.7 | Inspection checklist: sections with checks, result labels (pass / needs attention / fail), report options (WhatsApp PDF, photos, inspector name, review request) | Should |
+| FR-17.8 | Workshop: quotes before work, pick-up & drop-off; Salon: stylist schedules, walk-in queue; Other: rename resource label, group bookings | Later |
+
+> Tables: `listings`, `checklist_sections`, `checklist_items`, `inspection_results`, `inspection_item_results` are in `docs/schema.sql` section 7, marked *confirm before migrating* (see open questions).
+
+### FR-18 Added from wireframe review
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-18.1 | In-app notifications list: new/paid booking, payment not completed, cancellation, walk-in by staff, staff joined, trial reminders | Must |
+| FR-18.2 | Calendar week view showing how busy each hour is per day; tap opens that day | Should |
+| FR-18.3 | First-time Today shows a setup checklist (account, resources & hours, payments, share link, test booking) | Must |
+| FR-18.4 | Offline: show last loaded schedule read-only; block changes with a clear banner | Should |
+| FR-18.5 | Customer profile: stats (visits, spent, no-shows), notes, history; owner can delete a customer's data on request (PDPA) | Must |
+| FR-18.6 | Forgot / reset password by email link (30 min expiry), option to log out other devices | Must |
+| FR-18.7 | Customer page states: fully booked with next available times; booking page paused; payment not completed with held-slot countdown | Must |
+| FR-18.8 | Staff accept-invite screen; staff schedule and profile (own hours read-only) | Must |
+| FR-18.9 | Cancel flow records reason and refund decision (keep / full / partial) and method; refunds paid outside the app | Must |
+
+### FR-19 Payments setup, admin & website
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-19.1 | Owner connects own ToyyibPay: paste User Secret Key, category created automatically, RM 1 test payment; key stored encrypted, never shown to staff or platform admins | Must |
+| FR-19.2 | Services list: reorder, show/hide on booking page, archive/restore | Must |
+| FR-19.3 | Booking form editor: add/edit/reorder questions (text, number, choice, date, address, phone), required, searchable, show to staff, per service | Must |
+| FR-19.4 | Add time off for one resource or all, with clash warning listing affected bookings | Must |
+| FR-19.5 | Owner account: profile, change password, notification settings, log out, delete account | Must |
+| FR-19.6 | Unpaid booking: resend pay link, record manual payment (cash, DuitNow QR, card, bank transfer); checked-in → completed, extend if next slot is free | Must |
+| FR-19.7 | Real estate and inspection flows end with details + confirmation screens | Must |
+| FR-19.8 | Platform admin (desktop web, FTech only): list businesses, filter by trial/paying/ended, extend trial with reason, toggle booking page, audit log of every admin action | Must |
+| FR-19.9 | Marketing website (responsive) and plan payment page (ToyyibPay, receipt details, optional TIN for LHDN e-Invoice) | Must |
+
+> Tables: `payment_accounts`, `refunds`, `booking_events`, `notifications`, `platform_admins`, `admin_audit_log` are in `docs/schema.sql` (validated on PostgreSQL 16).
+
 ### FR-13 Reports
 | ID | Requirement | Priority |
 |---|---|---|
@@ -245,12 +294,12 @@ The first three templates are built and tested in depth with pilot businesses:
 | FR-13.4 | New vs returning customers | Could |
 
 ## 8. Key user flows
+The complete navigation is drawn in five flow maps on the design canvas (`docs/wireframes/Flow-1…5`). Screen IDs below match `docs/wireframes/README.md`.
 
-**Owner onboarding**
-1. Download app → Sign up → Business name, phone, template, slug
-2. Review pre-filled services → edit price/duration
-3. Add resources → set working hours
-4. Share booking link / print QR → done
+**Owner onboarding** (Flow 1)
+1. Website or app → Sign-up 1/3 account (O1a) → 2/3 business name, link, business type (O1b) → 3/3 resources, hours, services, payment rule pre-filled from the template (O1c, six versions)
+2. First-time Today (D8) shows the setup checklist: connect ToyyibPay (H1), share booking link (O7), make a test booking
+3. Trial banner → Choose a plan (E3) → pay on the website (I4); when the trial ends without payment → paywall (E4) and booking page paused (F3)
 
 **Customer booking (with deposit)**
 1. Scan QR or tap link → choose service → choose resource or "any"
@@ -258,9 +307,13 @@ The first three templates are built and tested in depth with pilot businesses:
 3. Pay deposit (FPX/DuitNow) → booking confirmed → confirmation page
 4. Owner/staff receive push notification
 
-**Day of service (staff)**
-1. Open app → Today list
-2. Customer arrives → Check in → Complete (or mark No-show)
+**Day of service (staff)** (Flow 5)
+1. Accept invite (G1) or log in (O0) → Today (S1)
+2. Customer arrives → Check in → Complete (or mark No-show); collect balance and record payment (S2)
+
+**Owner daily work** (Flow 2): Today → new booking / walk-in / reminders / notifications; Calendar → unpaid booking (H7, resend link or record payment) → checked in (H8) → completed; Bookings → booking detail → reschedule (D3) / cancel & refund (D4) / customer profile (D11).
+
+**Setup** (Flow 3): one Setup screen per business type; rows open services (H2 → O5), resources & time off (O6 → H5), booking form (H3 → H4), payments (H1), staff (D12 → G1), profile (E5), rules (E6), plan (E3), account (H6).
 
 ## 9. Business rules
 | ID | Rule |
@@ -277,8 +330,8 @@ The first three templates are built and tested in depth with pilot businesses:
 ## 10. Non-functional requirements
 | Area | Requirement |
 |---|---|
-| Security | All data access through the API; every query scoped by the user's business_id (tested); no secrets or DB credentials in the app; passwords and sessions handled by Better Auth |
-| Privacy | PDPA-compliant privacy notice; collect minimum customer data (name, phone) |
+| Security | All data access through the API; every query scoped by the user's business_id (tested); no secrets or DB credentials in the app; passwords and sessions handled by Better Auth; ToyyibPay secret keys encrypted at rest (AES-256-GCM) and never returned to any client; platform admin actions require a reason and are written to an audit log |
+| Privacy | PDPA-compliant privacy notice and consent at sign-up; collect minimum customer data (name, phone); owners can erase a customer's personal data on request (history kept, anonymised) |
 | Performance | Booking page first load < 3 s on 4G; slot lookup < 1 s |
 | Availability | Local Docker Postgres in development; Supabase-managed Postgres (Singapore) for staging/production with daily backups; schema kept portable (plain Postgres 16) |
 | Usability | Owner can set up in < 15 min without training; large tap targets; works on mid-range Android |
@@ -287,7 +340,7 @@ The first three templates are built and tested in depth with pilot businesses:
 | Observability | Error tracking (Sentry); webhook and payment logs |
 
 ## 11. Data model (summary)
-See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. Main entities: businesses, business_members, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments.
+See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. 32 tables. Main entities: businesses, business_members, staff_invitations, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments, refunds, payment_accounts, booking_events, notifications, platform_admins, admin_audit_log; pilot extras (confirm first): listings, checklist_sections, checklist_items, inspection_results, inspection_item_results.
 
 ## 12. Pricing (draft, post-pilot)
 | Plan | Price | Limits |
@@ -313,10 +366,10 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 | Milestone | Target |
 |---|---|
 | Phase 1–3 (foundation, setup, booking engine) — local Postgres | Weeks 1–3 |
-| Phase 4–5 (public page, payments, jobs) | Weeks 4–5 |
-| Phase 6 (niche features, reports, trial) | Week 6 |
-| Phase 7 (move to Supabase + staging) | Week 7 |
-| Play Store internal/closed testing + pilots | Week 8 |
+| Phase 4–5 (public booking page, ToyyibPay per business, manual payments, jobs) | Weeks 4–5 |
+| Phase 6 (staff app, customers, reports, trial & plans, pilot niche extras) | Week 6 |
+| Phase 7 (platform admin, website, move to Supabase + staging) | Week 7 |
+| Phase 8 Play Store internal/closed testing + pilots | Week 8 |
 | Paid launch | After 1–2 month pilot |
 
 ## 15. Decisions & open questions
@@ -328,10 +381,18 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 | Payment gateway | ToyyibPay first |
 | Free offering | 7-day free trial (no permanent free plan at launch) |
 | Pilot niches | Real estate viewing, vehicle inspection, sports booking |
+| Customer payments | Each business connects its **own ToyyibPay account**; money goes straight to them. OutletBooking never holds customer money |
 
 **Still open**
+- Listings (real estate) and inspection checklist & report: in the MVP? Tables are designed (`schema.sql` section 7); if not, real estate uses a "property ref" booking question and inspection uses result notes + photos only.
+- Plan renewal: automatic recurring charge or manual renewal with reminder? (Web billing page shows a placeholder.)
 - Domain: check and register (e.g. outletbooking.my / outletbooking.com) and secure the app name on Play Store
 - Pilot businesses: identify 1–2 per niche (agency, inspection centre, sports centre)
 - Real estate: is the resource the agent or the property? (Recommended: agent as resource, property as booking field)
 - Vehicle inspection: offer mobile inspection at MVP or on-site only?
 - Sports: peak/off-peak pricing needed at MVP?
+
+## 16. Screens & flows
+- **74 screens** in `docs/wireframes/` with IDs, descriptions and build phase in `docs/wireframes/README.md` (customer page, owner app, staff app, sign-up and Setup per business type, platform admin, website).
+- **5 flow maps** (`Flow-1-Account`, `Flow-2-Daily`, `Flow-3-Setup`, `Flow-4-Customer`, `Flow-5-Staff`) show how screens connect; use them for Expo Router routes.
+- Screens that differ by business type (sign-up step 3, Setup tab) are built as **one screen driven by the template config**, never one screen per niche.

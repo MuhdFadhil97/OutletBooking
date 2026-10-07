@@ -119,7 +119,11 @@ CREATE TABLE businesses (
   max_days_ahead      integer     NOT NULL DEFAULT 30  CHECK (max_days_ahead BETWEEN 1 AND 365),
   cancel_cutoff_min   integer     NOT NULL DEFAULT 120 CHECK (cancel_cutoff_min >= 0),
   pending_expiry_min  integer     NOT NULL DEFAULT 15  CHECK (pending_expiry_min BETWEEN 5 AND 1440),
-  booking_enabled     boolean     NOT NULL DEFAULT true,
+  booking_enabled     boolean     NOT NULL DEFAULT true,   -- false = booking page paused (F3)
+  auto_confirm_paid   boolean     NOT NULL DEFAULT true,   -- E6
+  customers_can_cancel boolean    NOT NULL DEFAULT true,   -- E6 / F5
+  late_cancel_keeps_deposit boolean NOT NULL DEFAULT true, -- E6
+  settings            jsonb       NOT NULL DEFAULT '{}'::jsonb,  -- template-specific: mobile fee/area, report options, travel areas…
   created_at          timestamptz NOT NULL DEFAULT now(),
   updated_at          timestamptz NOT NULL DEFAULT now(),
   deleted_at          timestamptz
@@ -131,6 +135,8 @@ CREATE TABLE business_members (
   user_id      integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role         text        NOT NULL CHECK (role IN ('owner','staff')),
   can_view_all boolean     NOT NULL DEFAULT false,   -- staff may see all bookings
+  can_take_payments boolean NOT NULL DEFAULT true,   -- record cash / DuitNow / card (D12, S2, H7)
+  can_edit_setup boolean    NOT NULL DEFAULT false,  -- services, prices, hours (D12)
   is_active    boolean     NOT NULL DEFAULT true,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
@@ -143,6 +149,10 @@ CREATE TABLE staff_invitations (
   business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   email        citext      NOT NULL,
   resource_id  integer,                                   -- FK added below
+  role         text        NOT NULL DEFAULT 'staff' CHECK (role IN ('owner','staff')),
+  can_view_all boolean     NOT NULL DEFAULT false,
+  can_take_payments boolean NOT NULL DEFAULT true,
+  can_edit_setup boolean   NOT NULL DEFAULT false,
   token        text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'hex'),
   invited_by   integer     NOT NULL REFERENCES users(id),
   expires_at   timestamptz NOT NULL DEFAULT now() + interval '7 days',
@@ -248,7 +258,6 @@ CREATE TABLE service_price_rules (
   FOREIGN KEY (business_id, service_id) REFERENCES services(business_id, id) ON DELETE CASCADE
 );
 CREATE INDEX service_price_rules_service_id_idx ON service_price_rules(service_id);
-CREATE INDEX service_price_rules_business_id_idx ON service_price_rules(business_id);
 
 CREATE TABLE resource_services (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -262,7 +271,6 @@ CREATE TABLE resource_services (
   FOREIGN KEY (business_id, service_id)  REFERENCES services(business_id, id)  ON DELETE CASCADE
 );
 CREATE INDEX resource_services_service_id_idx ON resource_services(service_id);
-CREATE INDEX resource_services_business_id_idx ON resource_services(business_id);
 
 CREATE TABLE working_hours (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -277,7 +285,6 @@ CREATE TABLE working_hours (
   FOREIGN KEY (business_id, resource_id) REFERENCES resources(business_id, id) ON DELETE CASCADE
 );
 CREATE INDEX working_hours_resource_weekday_idx ON working_hours(resource_id, weekday);
-CREATE INDEX working_hours_business_id_idx ON working_hours(business_id);
 
 CREATE TABLE time_off (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -304,6 +311,8 @@ CREATE TABLE booking_fields (
   options      jsonb,                      -- for select: ["Buyer","Tenant"]
   is_required  boolean     NOT NULL DEFAULT false,
   is_searchable boolean    NOT NULL DEFAULT false,  -- plate number, property ref
+  show_to_staff boolean    NOT NULL DEFAULT true,
+  hint         text,                       -- placeholder, e.g. "e.g. WXY 1234"
   sort_order   integer     NOT NULL DEFAULT 0,
   is_active    boolean     NOT NULL DEFAULT true,
   created_at   timestamptz NOT NULL DEFAULT now(),
@@ -312,7 +321,6 @@ CREATE TABLE booking_fields (
 );
 CREATE UNIQUE INDEX booking_fields_key_uidx
   ON booking_fields(business_id, COALESCE(service_id, 0), field_key);
-CREATE INDEX booking_fields_business_id_idx ON booking_fields(business_id);
 
 -- =====================================================================
 -- 4. CUSTOMERS & BOOKINGS
@@ -321,9 +329,10 @@ CREATE TABLE customers (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   name         text        NOT NULL,
-  phone        text        NOT NULL CHECK (phone ~ '^\+[1-9][0-9]{7,14}$'),  -- E.164
+  phone        text        CHECK (phone IS NULL OR phone ~ '^\+[1-9][0-9]{7,14}$'),  -- E.164; NULL after PDPA erase
   email        citext,
   notes        text,
+  anonymized_at timestamptz,               -- PDPA erase (D11): name → 'Deleted customer', phone/email/notes → NULL
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
   deleted_at   timestamptz,
@@ -362,6 +371,7 @@ CREATE TABLE bookings (
   result_notes       text,                   -- inspection result, etc.
 
   expires_at         timestamptz,            -- pending payment expiry
+  reminder_sent_at   timestamptz,            -- D5 remind tomorrow's customers
   confirmed_at       timestamptz,
   checked_in_at      timestamptz,
   completed_at       timestamptz,
@@ -406,7 +416,7 @@ CREATE TABLE booking_attachments (
 CREATE INDEX booking_attachments_booking_idx ON booking_attachments(booking_id);
 
 -- =====================================================================
--- 5. PAYMENTS (ToyyibPay)
+-- 5. PAYMENTS, REFUNDS, EVENTS & NOTIFICATIONS
 -- =====================================================================
 CREATE TABLE payments (
   id               integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -414,8 +424,11 @@ CREATE TABLE payments (
   booking_id       integer,
   subscription_id  integer     REFERENCES subscriptions(id) ON DELETE RESTRICT,
   purpose          text        NOT NULL
-                   CHECK (purpose IN ('deposit','full_payment','subscription')),
-  provider         text        NOT NULL DEFAULT 'toyyibpay',
+                   CHECK (purpose IN ('deposit','full_payment','balance','subscription')),
+  provider         text        NOT NULL DEFAULT 'toyyibpay'
+                   CHECK (provider IN ('toyyibpay','manual')),   -- manual = recorded by owner/staff (H7, S2, D2)
+  method           text        CHECK (method IN ('fpx','duitnow','card','cash','duitnow_qr','bank_transfer')),
+  recorded_by_user_id integer  REFERENCES users(id) ON DELETE SET NULL,
   bill_code        text        UNIQUE,          -- ToyyibPay BillCode
   amount_sen       integer     NOT NULL CHECK (amount_sen > 0),
   status           text        NOT NULL DEFAULT 'pending'
@@ -431,8 +444,171 @@ CREATE TABLE payments (
 CREATE INDEX payments_booking_idx ON payments(booking_id);
 CREATE INDEX payments_business_idx ON payments(business_id, created_at);
 
+CREATE TABLE refunds (                       -- D4: refunds are paid outside the app; recorded only
+  id                  integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id         integer     NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
+  booking_id          integer     NOT NULL,
+  payment_id          integer     REFERENCES payments(id) ON DELETE RESTRICT,
+  amount_sen          integer     NOT NULL CHECK (amount_sen > 0),
+  method              text        NOT NULL CHECK (method IN ('bank_transfer','duitnow','cash')),
+  reason              text,
+  recorded_by_user_id integer     REFERENCES users(id) ON DELETE SET NULL,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE RESTRICT
+);
+CREATE INDEX refunds_booking_idx ON refunds(booking_id);
+
+-- Each business connects its OWN ToyyibPay account (H1). Money goes straight to the business.
+CREATE TABLE payment_accounts (
+  id                    integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id           integer     NOT NULL UNIQUE REFERENCES businesses(id) ON DELETE CASCADE,
+  provider              text        NOT NULL DEFAULT 'toyyibpay' CHECK (provider IN ('toyyibpay')),
+  secret_key_encrypted  text,                 -- AES-256-GCM in the API with APP_ENCRYPTION_KEY; never returned to clients
+  secret_key_last4      text,
+  category_code         text,                 -- created automatically on connect
+  status                text        NOT NULL DEFAULT 'not_connected'
+                        CHECK (status IN ('not_connected','connected','error')),
+  last_error            text,
+  tested_at             timestamptz,          -- RM 1.00 test payment passed
+  connected_by_user_id  integer     REFERENCES users(id) ON DELETE SET NULL,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  updated_at            timestamptz NOT NULL DEFAULT now()
+);
+
+-- Booking timeline (H8) and history for reports / support
+CREATE TABLE booking_events (
+  id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id    integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  booking_id     integer     NOT NULL,
+  event_type     text        NOT NULL CHECK (event_type IN (
+                   'created','paid','payment_failed','pay_link_sent','reminder_sent','rescheduled',
+                   'checked_in','completed','extended','no_show','cancelled','refunded','expired')),
+  actor_user_id  integer     REFERENCES users(id) ON DELETE SET NULL,   -- NULL = customer or system
+  details        jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE CASCADE
+);
+CREATE INDEX booking_events_booking_idx ON booking_events(booking_id, created_at);
+
+-- In-app notifications (D6)
+CREATE TABLE notifications (
+  id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  user_id      integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type         text        NOT NULL CHECK (type IN (
+                 'booking_new','booking_paid','payment_failed','booking_cancelled','walk_in',
+                 'staff_joined','reminders_sent','trial_ending','trial_ended')),
+  title        text        NOT NULL,
+  body         text,
+  booking_id   integer,
+  read_at      timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE CASCADE
+);
+CREATE INDEX notifications_user_unread_idx ON notifications(user_id, created_at DESC) WHERE read_at IS NULL;
+
 -- =====================================================================
--- 6. updated_at triggers
+-- 6. PLATFORM ADMIN (FTech only — not tenant data)
+-- =====================================================================
+CREATE TABLE platform_admins (
+  id          integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id     integer     NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
+  id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  admin_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  business_id    integer     REFERENCES businesses(id) ON DELETE SET NULL,
+  action         text        NOT NULL CHECK (action IN ('extend_trial','pause_booking_page','resume_booking_page','change_plan','note')),
+  reason         text        NOT NULL,
+  details        jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX admin_audit_log_business_idx ON admin_audit_log(business_id, created_at DESC);
+
+-- =====================================================================
+-- 7. PILOT NICHE EXTRAS (Phase 6 — confirm before migrating)
+-- =====================================================================
+-- Real estate listings (ST-RE-L). Customers pick a listing when booking a viewing.
+CREATE TABLE listings (
+  id                 integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id        integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  ref                text        NOT NULL,           -- e.g. LR-0231
+  title              text        NOT NULL,
+  area               text,
+  address            text,
+  agent_resource_id  integer,
+  status             text        NOT NULL DEFAULT 'available'
+                     CHECK (status IN ('available','under_offer','closed')),
+  open_for_viewings  boolean     NOT NULL DEFAULT true,
+  photo_key          text,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now(),
+  deleted_at         timestamptz,
+  UNIQUE (business_id, ref),
+  UNIQUE (business_id, id),
+  FOREIGN KEY (business_id, agent_resource_id) REFERENCES resources(business_id, id)
+);
+ALTER TABLE bookings ADD COLUMN listing_id integer;
+ALTER TABLE bookings ADD FOREIGN KEY (business_id, listing_id) REFERENCES listings(business_id, id);
+
+-- Vehicle inspection checklist & report (ST-VI-C, S2)
+CREATE TABLE checklist_sections (
+  id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  name         text        NOT NULL,
+  sort_order   integer     NOT NULL DEFAULT 0,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (business_id, id)
+);
+CREATE TABLE checklist_items (
+  id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  section_id   integer     NOT NULL,
+  label        text        NOT NULL,
+  sort_order   integer     NOT NULL DEFAULT 0,
+  is_active    boolean     NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (business_id, id),
+  FOREIGN KEY (business_id, section_id) REFERENCES checklist_sections(business_id, id) ON DELETE CASCADE
+);
+CREATE TABLE inspection_results (
+  id              integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id     integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  booking_id      integer     NOT NULL,
+  overall         text        CHECK (overall IN ('pass','attention','fail')),
+  notes           text,
+  report_sent_at  timestamptz,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (business_id, booking_id),
+  UNIQUE (business_id, id),
+  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE CASCADE
+);
+CREATE TABLE inspection_item_results (
+  id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  result_id    integer     NOT NULL,
+  item_id      integer     NOT NULL,
+  outcome      text        NOT NULL CHECK (outcome IN ('pass','attention','fail','na')),
+  note         text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (result_id, item_id),
+  FOREIGN KEY (business_id, result_id) REFERENCES inspection_results(business_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (business_id, item_id)   REFERENCES checklist_items(business_id, id)
+);
+
+-- =====================================================================
+-- 8. updated_at triggers
 -- =====================================================================
 DO $$
 DECLARE t text;
@@ -442,7 +618,9 @@ BEGIN
     'businesses','business_members','staff_invitations','subscriptions',
     'branches','resources','services','service_price_rules','resource_services',
     'working_hours','time_off','booking_fields','customers','bookings',
-    'booking_attachments','payments'
+    'booking_attachments','payments','refunds','payment_accounts','booking_events',
+    'notifications','platform_admins','admin_audit_log','listings','checklist_sections',
+    'checklist_items','inspection_results','inspection_item_results'
   ] LOOP
     EXECUTE format(
       'CREATE TRIGGER %I BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION set_updated_at()',

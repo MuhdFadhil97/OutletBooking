@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OutletBooking · Pay for plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.fld{display:flex;flex-direction:column;gap:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.nav a.nl{color:#33403A;text-decoration:none;font-weight:600;font-size:15px}
+.nav a.nl:hover{color:#0F7B55}
+.side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#33403A;text-decoration:none;font-weight:600;font-size:14px}
+.side a:hover{background:#F0F3F1;color:#16211C}
+.side a.on{background:#DDF3E8;color:#0B5E40}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#56625B;padding:12px 14px;border-bottom:1px solid #E1E6E2;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#F6F8F7}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2">
+    <div class="wrap" style="height: 68px; display: flex; align-items: center; gap: 16px"><span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span><span style="flex-grow: 1"></span><span class="muted" style="font-size: 14px">Logged in as <b style="color: #16211C">owner@smasharena.my</b></span></div>
+  </header>
+  <section class="wrap" style="padding-top: 36px; padding-bottom: 48px; display: flex; flex-direction: column; gap: 24px">
+    <div><h1 style="margin: 0; font-size: 30px; font-weight: 800">Choose your plan</h1><div class="muted" style="font-size: 15px; margin-top: 4px">Smash Arena PJ · free trial ends Sat, 17 Oct</div></div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div class="card" style="padding: 16px; display: flex; gap: 12px; align-items: center; "><span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid #9AA59F; box-sizing: border-box; flex-shrink: 0"></span><span style="flex-grow: 1"><b style="font-size: 16px">Starter</b><span class="muted" style="display: block; font-size: 13px">Up to 3 courts — you have 4</span></span><b style="font-size: 18px">RM 49</b></div>
+        <div class="card" style="padding: 16px; display: flex; gap: 12px; align-items: center; border: 2px solid #0F7B55; background: #F0F7F3"><span style="width: 22px; height: 22px; border-radius: 11px; border: 7px solid #0F7B55; box-sizing: border-box; flex-shrink: 0"></span><span style="flex-grow: 1"><b style="font-size: 16px">Business</b><span class="muted" style="display: block; font-size: 13px">Up to 10 courts · staff app · reports</span></span><b style="font-size: 18px">RM 99</b></div>
+        <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <b style="font-size: 16px">Receipt details</b>
+          <div class="fld"><label class="lbl" for="wn">Business or company name</label><input class="inp" id="wn" value="Smash Arena PJ"></div>
+          <div class="fld"><label class="lbl" for="wr">SSM registration no. <span class="muted" style="font-weight: 500">(optional)</span></label><input class="inp" id="wr" value=""></div>
+          <div class="fld"><label class="lbl" for="we">Email for receipts</label><input class="inp" id="we" value="owner@smasharena.my"></div>
+          <div class="fld"><label class="lbl" for="wt">TIN for LHDN e-Invoice <span class="muted" style="font-weight: 500">(optional)</span></label><input class="inp" id="wt" value=""></div>
+        </div>
+      </div>
+      <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px">
+        <b style="font-size: 18px">Summary</b>
+        <div style="display: flex; justify-content: space-between; font-size: 15px"><span>Business plan · 1 month</span><b>RM 99.00</b></div>
+        <div style="display: flex; justify-content: space-between; font-size: 15px"><span class="muted">Extra courts (0)</span><span>RM 0.00</span></div>
+        <div style="height: 1px; background: #E1E6E2"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 18px"><b>Total today</b><b>RM 99.00</b></div>
+        <div class="muted" style="font-size: 13px">Plan starts when your trial ends. [Renewal: automatic or reminder — to decide]</div>
+        <a class="btn" href="#" style="width: 100%; box-sizing: border-box"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pay RM 99.00 with FPX / DuitNow</a>
+        <div class="muted" style="font-size: 12px; text-align: center">Secure payment by ToyyibPay. By paying you agree to the <a href="#">Terms</a>.</div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

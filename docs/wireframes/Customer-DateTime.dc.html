@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Choose date and time</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:14px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit;cursor:pointer}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.btnd{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#B42318;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit}
+.btnd:hover{background:#912018;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;white-space:nowrap;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button,.seg a{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.seg .on{background:#FFFFFF;color:#16211C}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none;flex-shrink:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;padding:11px 14px}
+.hr{height:1px;background:#E1E6E2}
+.grp{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#56625B;padding:4px 2px 0}
+.av{width:40px;height:40px;border-radius:20px;background:#E0ECFB;color:#1D4F91;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.slot{height:42px;border-radius:10px;border:1px solid #CBD3CE;background:#FFFFFF;font-family:inherit;font-size:13px;font-weight:700;color:#16211C;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.slot.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.slot.off{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F;text-decoration:line-through}
+.day{width:44px;height:58px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;color:#16211C;font-size:11px;font-weight:600}
+.day b{font-size:16px}
+.day.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.day.full{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.dot{width:8px;height:8px;border-radius:4px;background:#0F7B55;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #0F7B55; color: #FFFFFF; padding: 20px 20px 18px; display: flex; align-items: center; gap: 12px; flex-shrink: 0">
+    <div style="width: 48px; height: 48px; border-radius: 14px; background: #FFFFFF; color: #0F7B55; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px">SK</div>
+    <div><div style="font-size: 19px; font-weight: 800">SemakAuto Puchong</div><div style="font-size: 13px; opacity: 0.9">Vehicle inspection · Puchong</div></div>
+  </div>
+  <div style="height: 4px; background: #E1E6E2; flex-shrink: 0"><div style="width: 50%; height: 4px; background: #0F7B55"></div></div>
+  <div style="flex-grow: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 10px"><a class="icb" href="#" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><path d="M15 6l-6 6 6 6"></path></svg></a><div><div style="font-size: 18px; font-weight: 800">Choose date &amp; time</div><div class="muted" style="font-size: 12px">Step 2 of 4 · Pre-purchase inspection · 60 min</div></div></div>
+    <div style="display: flex; justify-content: space-between; align-items: center"><span class="lbl">October 2026</span><span style="display: flex; gap: 6px"><a class="icb" href="#" aria-label="Previous week" style="width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M15 6l-6 6 6 6"></path></svg></a><a class="icb" href="#" aria-label="Next week" style="width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M9 6l6 6-6 6"></path></svg></a></span></div>
+    <div style="display: flex; gap: 6px; justify-content: space-between"><button class="day full">Sat<b>10</b></button><button class="day full">Sun<b>11</b></button><button class="day on">Mon<b>12</b></button><button class="day">Tue<b>13</b></button><button class="day">Wed<b>14</b></button><button class="day">Thu<b>15</b></button><button class="day">Fri<b>16</b></button></div>
+    <div class="fld"><span class="lbl">Inspector</span><div class="seg"><button class="on">Any (earliest)</button><button>Kumar</button><button>Lee</button></div></div>
+    <div class="fld"><span class="lbl">Morning</span><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><button class="slot">9:00 AM</button><button class="slot off">9:30 AM</button><button class="slot on">10:00 AM</button><button class="slot">11:00 AM</button></div></div>
+    <div class="fld"><span class="lbl">Afternoon</span><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px"><button class="slot">2:00 PM</button><button class="slot">3:00 PM</button><button class="slot off">4:00 PM</button><button class="slot">5:00 PM</button></div></div>
+    <div class="muted" style="font-size: 12px">Grey days are fully booked. Times shown in Malaysia time.</div>
+  </div>
+  <div style="padding: 12px 16px 20px; background: #FFFFFF; border-top: 1px solid #E1E6E2; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0">
+    <div style="display: flex; justify-content: space-between; font-size: 14px"><span class="muted">Mon, 12 Oct · 10:00 AM</span><b>RM 180</b></div>
+    <a class="btn" href="Customer-Inspection.dc.html">Continue</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

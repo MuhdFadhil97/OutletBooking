@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:14px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit;cursor:pointer}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.btnd{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#B42318;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit}
+.btnd:hover{background:#912018;color:#FFFFFF}
+.chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;white-space:nowrap;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button,.seg a{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.seg .on{background:#FFFFFF;color:#16211C}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.fld{display:flex;flex-direction:column;gap:6px}
+.icb{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFFFF;border:1px solid #E1E6E2;color:#16211C;text-decoration:none;flex-shrink:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;padding:11px 14px}
+.hr{height:1px;background:#E1E6E2}
+.grp{font-size:12px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:#56625B;padding:4px 2px 0}
+.av{width:40px;height:40px;border-radius:20px;background:#E0ECFB;color:#1D4F91;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.slot{height:42px;border-radius:10px;border:1px solid #CBD3CE;background:#FFFFFF;font-family:inherit;font-size:13px;font-weight:700;color:#16211C;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.slot.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.slot.off{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F;text-decoration:line-through}
+.day{width:44px;height:58px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;color:#16211C;font-size:11px;font-weight:600}
+.day b{font-size:16px}
+.day.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.day.full{background:#E9ECEA;border-color:#E9ECEA;color:#6B766F}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid #E1E6E2;background:#FFFFFF;height:72px;padding-bottom:6px;flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;color:#56625B;text-decoration:none;width:72px}
+.tab:hover{color:#16211C}.tab.on{color:#0F7B55}
+.dot{width:8px;height:8px;border-radius:4px;background:#0F7B55;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 1040px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex-grow: 1; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <span class="av" style="width: 60px; height: 60px; border-radius: 30px; font-size: 20px">AI</span>
+      <div><div style="font-size: 20px; font-weight: 800">Aina Ismail</div><div class="muted" style="font-size: 14px">Laman Realty · Agent</div></div>
+    </div>
+    <div class="card" style="overflow: hidden">
+      <div class="row"><span class="muted">Mobile</span><b>+60 12-410 7788</b></div>
+      <div class="hr"></div>
+      <div class="row"><span class="muted">Email</span><b>aina@lamanrealty.my</b></div>
+    </div>
+    <div class="grp">My viewing hours</div>
+    <div class="card" style="overflow: hidden">
+      <div class="row"><span>Mon – Sat</span><b>9:00 AM – 7:00 PM</b></div>
+      <div class="hr"></div>
+      <div class="row"><span>Sun</span><b>10:00 AM – 5:00 PM</b></div>
+      <div class="hr"></div>
+      <div class="row"><span>Wed</span><span class="tag t-gray">Day off</span></div>
+    </div>
+    <div class="muted" style="font-size: 12px">Your hours are set by the business owner. Ask them to change.</div>
+    <div class="grp">Notifications</div>
+    <div class="card" style="overflow: hidden">
+      <div class="row"><span style="flex-grow: 1"><b style="font-size: 14px">New viewing assigned to me</b></span><button class="sw" aria-label="New viewing assigned to me on"></button></div>
+      <div class="hr"></div>
+      <div class="row"><span style="flex-grow: 1"><b style="font-size: 14px">Cancellations &amp; changes</b></span><button class="sw" aria-label="Cancellations &amp; changes on"></button></div>
+      <div class="hr"></div>
+      <div class="row"><span style="flex-grow: 1"><b style="font-size: 14px">Daily summary at 8 AM</b></span><button class="sw off" aria-label="Daily summary at 8 AM off"></button></div>
+    </div>
+    <div class="card" style="overflow: hidden">
+      <a class="row" href="Owner-Forgot.dc.html" style="text-decoration: none; color: #16211C"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg><span style="flex-grow: 1; font-weight: 700">Change password</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px; color: #9AA59F"><path d="M9 6l6 6-6 6"></path></svg></a>
+      <div class="hr"></div>
+      <a class="row" href="Owner-Login.dc.html" style="text-decoration: none; color: #B42318; font-weight: 700"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 20px; height: 20px"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"></path></svg><span style="flex-grow: 1">Log out</span></a>
+    </div>
+  </div>
+  <nav class="tabbar">
+    <a class="tab" href="Staff-Today.dc.html" style="width: 90px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"></path></svg>Today</a>
+    <a class="tab" href="Staff-Schedule.dc.html" style="width: 90px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Schedule</a>
+    <a class="tab on" href="Staff-Profile.dc.html" style="width: 90px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 22px; height: 22px"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add your courts and hours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none;border:0;font-family:inherit;cursor:pointer}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.muted{color:#56625B}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.step{width:44px;height:44px;border-radius:12px;border:1px solid #CBD3CE;background:#FFFFFF;color:#16211C;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.pill{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;background:#F0F7F3;color:#0B5E40;font-size:12px;font-weight:700}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:10px 0}
+.svc{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:14px}
+.chk{width:22px;height:22px;border-radius:6px;background:#0F7B55;color:#FFFFFF;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chk.off{background:#FFFFFF;border:2px solid #9AA59F;box-sizing:border-box}
+.seg{display:flex;background:#E9ECEA;border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:700;color:#46524B;height:38px;border-radius:8px}
+.seg button.on{background:#FFFFFF;color:#16211C}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <a href="Owner-Signup.dc.html" aria-label="Back" style="width: 44px; height: 44px; margin-left: -10px; display: flex; align-items: center; justify-content: center; color: #16211C"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+      <div style="font-size: 13px; font-weight: 600" class="muted">Step 3 of 3</div>
+    </div>
+    <div style="display: flex; gap: 6px"><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div><div style="flex: 1; height: 4px; border-radius: 2px; background: #0F7B55"></div></div>
+    <h1 style="margin: 6px 0 0; font-size: 22px; font-weight: 800">Add your courts &amp; hours</h1>
+    <div style="font-size: 13px; line-height: 1.45" class="muted">Filled in from the Sports courts template. You can change all of this later in Setup.</div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 14px 20px 8px; display: flex; flex-direction: column; gap: 12px; overflow: hidden">
+    <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span class="lbl" style="font-size: 14px">How many courts?</span>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <button class="step" aria-label="Fewer courts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+          <span style="font-size: 20px; font-weight: 800; width: 20px; text-align: center">4</span>
+          <button class="step" aria-label="More courts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap"><span class="pill">Court 1</span><span class="pill">Court 2</span><span class="pill">Court 3</span><span class="pill">Court 4</span></div>
+    </div>
+
+    <div class="card" style="padding: 4px 14px">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0 2px"><span class="lbl" style="font-size: 14px">Opening hours</span><a href="#" style="font-size: 13px; font-weight: 700">Edit</a></div>
+      <div class="row"><span>Mon – Fri</span><span style="font-weight: 700">8:00 AM – 12:00 AM</span></div>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <div class="row"><span>Sat – Sun</span><span style="font-weight: 700">7:00 AM – 12:00 AM</span></div>
+    </div>
+
+    <div class="card" style="padding: 4px 14px">
+      <div style="padding: 10px 0 2px"><span class="lbl" style="font-size: 14px">What can customers book?</span></div>
+      <div class="svc"><span class="chk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; stroke-width: 2.6"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex-grow: 1; font-weight: 700">Badminton</span><span class="muted" style="font-size: 13px">RM 20/hr · peak RM 30</span></div>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <div class="svc"><span class="chk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 14px; height: 14px; stroke-width: 2.6"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex-grow: 1; font-weight: 700">Pickleball</span><span class="muted" style="font-size: 13px">RM 25/hr</span></div>
+      <div style="height: 1px; background: #E1E6E2"></div>
+      <div class="svc"><span class="chk off"></span><span style="flex-grow: 1; font-weight: 700">Futsal</span><span class="muted" style="font-size: 13px">RM 120/hr</span></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span class="lbl">To confirm a booking, customers</span>
+      <div class="seg"><button class="on">Pay in full</button><button>Pay deposit</button><button>Pay at venue</button></div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 20px 22px; display: flex; flex-direction: column; gap: 10px; align-items: center">
+    <a class="btn" href="Owner-Today.dc.html" style="width: 100%">Finish &amp; open my booking page</a>
+    <a href="Owner-Today.dc.html" style="font-size: 14px; font-weight: 700">Skip for now</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
