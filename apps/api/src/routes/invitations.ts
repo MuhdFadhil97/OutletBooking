@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { acceptInviteNewAccountSchema, acceptInviteSchema, inviteTokenParam } from '@outletbooking/shared';
 import { rateLimit } from '../middleware/rate-limit';
+import { Outbox } from '../services/notifications';
 import { acceptInvitation, getInvitation } from '../services/staff';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
@@ -19,10 +20,14 @@ export const invitationRoutes = new Hono<AppEnv>()
     const session = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
     const sessionUserId = session ? Number(session.user.id) : undefined;
     const body = acceptInviteNewAccountSchema.safeParse(c.req.valid('json'));
-    const result = await acceptInvitation(c.var.db, c.req.valid('param').token, {
-      sessionUserId,
-      newAccount: body.success ? body.data : undefined,
-    });
+    const outbox = new Outbox();
+    const result = await acceptInvitation(
+      c.var.db,
+      c.req.valid('param').token,
+      { sessionUserId, newAccount: body.success ? body.data : undefined },
+      outbox,
+    );
+    void outbox.flush(c.var.db, c.var.push);
     // New accounts sign in through Better Auth right after (same as owner sign-up).
     return c.json(result);
   });

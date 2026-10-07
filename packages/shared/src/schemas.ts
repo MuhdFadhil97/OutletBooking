@@ -68,3 +68,11 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const slugAvailabilityQuery = z.object({ slug: z.string() });
+
+/** Register this device for push (Expo push token). */
+export const pushTokenSchema = z.object({
+  token: z.string().regex(/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/, 'Not an Expo push token'),
+  platform: z.enum(['android', 'ios', 'web']),
+});
+export type PushTokenInput = z.infer<typeof pushTokenSchema>;
+export const pushTokenDeleteSchema = pushTokenSchema.pick({ token: true });

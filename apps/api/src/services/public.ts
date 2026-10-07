@@ -35,6 +35,7 @@ import { AppError, notFound } from '../errors';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
 import { recordBookingEvent } from './booking-events';
+import { notifyBooking, Outbox } from './notifications';
 import { getPriceQuote, getPriceQuotes } from './pricing';
 
 type Q = Db | Tx;
@@ -239,6 +240,7 @@ export async function createPublicBooking(
   db: Db,
   slug: string,
   input: PublicBookingCreate,
+  outbox = new Outbox(),
   now = new Date(),
 ): Promise<PublicBookingConfirmation> {
   return db.transaction(async (tx) => {
@@ -324,6 +326,11 @@ export async function createPublicBooking(
       actorUserId: null,
       // The name as typed: the confirmation shows this, never the name already stored for the phone.
       details: { source: 'web', status, customerName: input.customer.name },
+    });
+    await notifyBooking(tx, outbox, biz.id, row!.id, null, {
+      kind: 'web_booking',
+      customerName: input.customer.name,
+      awaitingPayment: needsPayment,
     });
 
     return publicBookingView(tx, row!.token, now);
@@ -415,7 +422,12 @@ async function publicBookingView(q: Q, token: string, now = new Date()): Promise
 export const getPublicBooking = (db: Db, token: string, now = new Date()) => publicBookingView(db, token, now);
 
 /** F5 · customer cancels from their link: allowed by the business, still open, before the cut-off. */
-export async function cancelPublicBooking(db: Db, token: string, now = new Date()): Promise<PublicBookingConfirmation> {
+export async function cancelPublicBooking(
+  db: Db,
+  token: string,
+  outbox = new Outbox(),
+  now = new Date(),
+): Promise<PublicBookingConfirmation> {
   return db.transaction(async (tx) => {
     const view = await publicBookingView(tx, token, now);
     if (!view.cancel.allowed) {
@@ -434,6 +446,7 @@ export async function cancelPublicBooking(db: Db, token: string, now = new Date(
       actorUserId: null,
       details: { from: view.status, by: 'customer' },
     });
+    await notifyBooking(tx, outbox, b.businessId, b.id, null, { kind: 'cancelled', byCustomer: true });
     return publicBookingView(tx, token, now);
   });
 }

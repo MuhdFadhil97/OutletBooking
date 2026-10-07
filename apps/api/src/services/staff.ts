@@ -20,6 +20,7 @@ import type {
   StaffMember,
 } from '@outletbooking/shared';
 import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
+import { notifyStaffJoined, Outbox } from './notifications';
 import { assertResourcesInBusiness } from './ownership';
 
 const inviteUrl = (appPublicUrl: string, token: string) => `${appPublicUrl.replace(/\/+$/, '')}/invite/${token}`;
@@ -263,6 +264,7 @@ export async function acceptInvitation(
   db: Db,
   token: string,
   opts: { sessionUserId?: number; newAccount?: AcceptInviteNewAccount },
+  outbox = new Outbox(),
   now = new Date(),
 ): Promise<{ email: string; businessName: string }> {
   const passwordHash = opts.newAccount ? await hashPassword(opts.newAccount.password) : null;
@@ -320,6 +322,7 @@ export async function acceptInvitation(
       }
 
       await tx.update(staffInvitations).set({ acceptedAt: now }).where(eq(staffInvitations.id, inv.id));
+      await notifyStaffJoined(tx, outbox, inv.businessId, userId);
       return { email: inv.email, businessName: inv.businessName };
     });
   } catch (err) {

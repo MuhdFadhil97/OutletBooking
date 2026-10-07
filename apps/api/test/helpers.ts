@@ -6,6 +6,7 @@ import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
 import type { MailMessage } from '../src/services/mailer';
+import type { PushMessage } from '../src/services/push';
 import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
@@ -23,14 +24,24 @@ export function createTestContext() {
   /** Every email the API "sent" during the test. */
   const outbox: MailMessage[] = [];
   const auth = createAuth(db, env, { send: async (m) => void outbox.push(m) });
-  const app = createApp({ db, auth, env });
+  /** Every push the API "sent"; tokens containing "Dead" come back as unregistered. */
+  const pushed: PushMessage[] = [];
+  const push = {
+    async send(messages: PushMessage[]) {
+      pushed.push(...messages);
+      return { deadTokens: messages.filter((m) => m.to.includes('Dead')).map((m) => m.to) };
+    },
+  };
+  const app = createApp({ db, auth, env, push });
 
   return {
     db,
     app,
     outbox,
+    pushed,
     async reset() {
       outbox.length = 0;
+      pushed.length = 0;
       await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);
     },
     async close() {

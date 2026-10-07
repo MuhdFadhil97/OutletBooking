@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { availabilityQuerySchema, publicBookingCreateSchema, publicSlugParam, publicTokenParam } from '@outletbooking/shared';
 import { rateLimit } from '../middleware/rate-limit';
+import { Outbox } from '../services/notifications';
 import { cancelPublicBooking, createPublicBooking, getPublicBooking, getPublicBusiness, getPublicSlots } from '../services/public';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
@@ -19,7 +20,12 @@ export const publicRoutes = new Hono<AppEnv>()
     '/bookings/:token/cancel',
     rateLimit({ prefix: 'public-cancel', windowMs: 10 * 60_000, max: 10 }),
     validate('param', publicTokenParam),
-    async (c) => c.json(await cancelPublicBooking(c.var.db, c.req.valid('param').token)),
+    async (c) => {
+      const outbox = new Outbox();
+      const result = await cancelPublicBooking(c.var.db, c.req.valid('param').token, outbox);
+      void outbox.flush(c.var.db, c.var.push);
+      return c.json(result);
+    },
   )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>
     c.json(await getPublicBusiness(c.var.db, c.req.valid('param').slug)),
@@ -32,5 +38,10 @@ export const publicRoutes = new Hono<AppEnv>()
     rateLimit({ prefix: 'public-book', windowMs: 10 * 60_000, max: 10 }),
     validate('param', publicSlugParam),
     validate('json', publicBookingCreateSchema),
-    async (c) => c.json(await createPublicBooking(c.var.db, c.req.valid('param').slug, c.req.valid('json')), 201),
+    async (c) => {
+      const outbox = new Outbox();
+      const result = await createPublicBooking(c.var.db, c.req.valid('param').slug, c.req.valid('json'), outbox);
+      void outbox.flush(c.var.db, c.var.push);
+      return c.json(result, 201);
+    },
   );

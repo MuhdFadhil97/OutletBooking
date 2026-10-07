@@ -33,3 +33,33 @@ export interface SlugAvailabilityResponse {
 export interface ApiError {
   error: { code: string; message: string; details?: unknown };
 }
+
+// ------------------------------------------------------------ D6 notifications
+
+export const NOTIFICATION_TYPES = [
+  'booking_new',
+  'booking_paid',
+  'payment_failed',
+  'booking_cancelled',
+  'walk_in',
+  'staff_joined',
+  'reminders_sent',
+  'trial_ending',
+  'trial_ended',
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export interface AppNotification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  bookingId: number | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  unread: number;
+}

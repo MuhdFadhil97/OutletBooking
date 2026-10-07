@@ -43,6 +43,7 @@ import {
 } from './availability';
 import { recordBookingEvent, STATUS_EVENT } from './booking-events';
 import { getPriceQuote } from './pricing';
+import { notifyBooking, Outbox } from './notifications';
 import { resourceScope } from './resources';
 import type { Tenant } from '../types';
 
@@ -397,7 +398,13 @@ export async function upsertCustomer(
 }
 
 /** Owner calendar / walk-in booking. Created as confirmed; payment due (if any) is collected separately. */
-export async function createBooking(db: Db, businessId: number, userId: number, input: BookingCreate): Promise<Booking> {
+export async function createBooking(
+  db: Db,
+  businessId: number,
+  userId: number,
+  input: BookingCreate,
+  outbox = new Outbox(),
+): Promise<Booking> {
   return db.transaction(async (tx) => {
     const tz = await businessTimezone(tx, businessId);
     const svc = await loadService(tx, businessId, input.serviceId);
@@ -465,6 +472,7 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
       actorUserId: userId,
       details: { source: input.source, status: 'confirmed' },
     });
+    await notifyBooking(tx, outbox, businessId, row!.id, userId, { kind: 'added', walkIn: input.source === 'walk_in' });
     return getBooking(tx, businessId, row!.id);
   });
 }
@@ -634,6 +642,7 @@ export async function cancelBooking(
   id: number,
   input: BookingCancel,
   actorUserId: number,
+  outbox = new Outbox(),
 ): Promise<Booking> {
   return db.transaction(async (tx) => {
     const current = await lockBooking(tx, businessId, id);
@@ -653,6 +662,7 @@ export async function cancelBooking(
       actorUserId,
       details: { from, ...(reason ? { reason } : {}) },
     });
+    await notifyBooking(tx, outbox, businessId, id, actorUserId, { kind: 'cancelled', byCustomer: false });
 
     if (input.refund) {
       if (current.paymentStatus !== 'paid') {

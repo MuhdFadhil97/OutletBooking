@@ -31,6 +31,8 @@ const envSchema = z.object({
   /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */
   MAIL_FROM: z.string().min(3).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
+  /** Expo push service; `off` drops push (default in tests). */
+  PUSH_TRANSPORT: z.enum(['expo', 'off']).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

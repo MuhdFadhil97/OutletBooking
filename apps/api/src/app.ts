@@ -11,6 +11,7 @@ import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { notificationRoutes, pushTokenRoutes } from './routes/notifications';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
 import { resourceRoutes } from './routes/resources';
@@ -18,15 +19,18 @@ import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
 import { staffRoutes } from './routes/staff';
 import { timeOffRoutes } from './routes/time-off';
+import { createPushSender, type PushSender } from './services/push';
 import type { AppEnv } from './types';
 
 export interface AppDeps {
   db: Db;
   auth: Auth;
   env: Env;
+  /** Defaults to Expo push (off in tests). */
+  push?: PushSender;
 }
 
-export function createApp({ db, auth, env }: AppDeps) {
+export function createApp({ db, auth, env, push = createPushSender(env) }: AppDeps) {
   const app = new Hono<AppEnv>();
 
   if (env.NODE_ENV === 'development') app.use(logger());
@@ -48,6 +52,7 @@ export function createApp({ db, auth, env }: AppDeps) {
     c.set('db', db);
     c.set('auth', auth);
     c.set('env', env);
+    c.set('push', push);
     await next();
   });
 
@@ -66,6 +71,8 @@ export function createApp({ db, auth, env }: AppDeps) {
   app.route('/invitations', invitationRoutes);
   app.route('/bookings', bookingRoutes);
   app.route('/public', publicRoutes);
+  app.route('/notifications', notificationRoutes);
+  app.route('/push-tokens', pushTokenRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

@@ -14,6 +14,7 @@ import { requireSession } from '../middleware/session';
 import { requireRole, resolveTenant } from '../middleware/tenant';
 import { getAvailability } from '../services/availability';
 import { listBookingEvents } from '../services/booking-events';
+import { Outbox } from '../services/notifications';
 import {
   bookingScope,
   cancelBooking,
@@ -60,9 +61,12 @@ export const bookingRoutes = new Hono<AppEnv>()
     await getBooking(c.var.db, businessId, id, await scopeOf(c));
     return c.json(await listBookingEvents(c.var.db, businessId, id));
   })
-  .post('/', requireRole('owner'), validate('json', bookingCreateSchema), async (c) =>
-    c.json(await createBooking(c.var.db, c.var.tenant.businessId, c.var.userId, c.req.valid('json')), 201),
-  )
+  .post('/', requireRole('owner'), validate('json', bookingCreateSchema), async (c) => {
+    const outbox = new Outbox();
+    const result = await createBooking(c.var.db, c.var.tenant.businessId, c.var.userId, c.req.valid('json'), outbox);
+    void outbox.flush(c.var.db, c.var.push);
+    return c.json(result, 201);
+  })
   .patch('/:id', requireRole('owner'), validate('param', idParam), validate('json', bookingUpdateSchema), async (c) =>
     c.json(await updateBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'))),
   )
@@ -77,9 +81,13 @@ export const bookingRoutes = new Hono<AppEnv>()
       ),
   )
   // D4 · cancel with reason and optional refund (owner)
-  .post('/:id/cancel', requireRole('owner'), validate('param', idParam), validate('json', bookingCancelSchema), async (c) =>
-    c.json(await cancelBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId)),
-  )
+  .post('/:id/cancel', requireRole('owner'), validate('param', idParam), validate('json', bookingCancelSchema), async (c) => {
+    const outbox = new Outbox();
+    const { businessId } = c.var.tenant;
+    const result = await cancelBooking(c.var.db, businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId, outbox);
+    void outbox.flush(c.var.db, c.var.push);
+    return c.json(result);
+  })
   .post('/:id/status', validate('param', idParam), validate('json', bookingStatusSchema), async (c) =>
     c.json(
       await changeBookingStatus(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), {
