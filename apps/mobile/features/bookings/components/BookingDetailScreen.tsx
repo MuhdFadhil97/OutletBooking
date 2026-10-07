@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import type { Booking, BookingStatus } from '@outletbooking/shared';
+import type { Booking, BookingEvent, BookingStatus } from '@outletbooking/shared';
+import { formatInTimeZone } from 'date-fns-tz';
 import { StackScreen } from '@/components/StackScreen';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -10,7 +11,7 @@ import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/
 import { Tag } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
 import { formatPhone, formatWhen, mapsUrl, statusTone, wazeUrl, whatsappUrl } from '@/features/bookings/format';
-import { useBooking, useSetBookingStatus } from '@/features/bookings/hooks';
+import { useBooking, useBookingEvents, useSetBookingStatus } from '@/features/bookings/hooks';
 import { openBookingForm, openCancelBooking, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
 import { confirm } from '@/lib/confirm';
@@ -29,6 +30,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const services = useServices();
   const fields = useBookingFields();
   const setStatus = useSetBookingStatus(id);
+  const events = useBookingEvents(id);
 
   if (!booking.data || !business.data) {
     const error = booking.error ?? business.error;
@@ -57,7 +59,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   return (
     <StackScreen
       title={b.service.name}
-      subtitle={`${b.resource.name} · ${s.source[b.source]}`}
+      subtitle={`${b.resource.name} · ${s.source[b.source]} · ${s.ref(b.ref)}`}
       right={<Tag label={s.status[b.status]} tone={statusTone[b.status]} />}
     >
       <FormError message={setStatus.error ? errorMessage(setStatus.error) : null} />
@@ -70,7 +72,13 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
           <Text className="text-[15px] font-extrabold" numberOfLines={1}>
             {b.customer.name}
           </Text>
-          {phone ? <Text className="text-[13px] text-muted">{formatPhone(phone)}</Text> : null}
+          {phone || b.customer.bookingCount > 1 ? (
+            <Text className="text-[13px] text-muted">
+              {[phone ? formatPhone(phone) : null, b.customer.bookingCount > 1 ? s.visit(b.customer.bookingCount) : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
+          ) : null}
         </View>
         {/* No phone once the customer has been anonymised (PDPA erase). */}
         {phone ? (
@@ -105,6 +113,8 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
       ) : null}
 
       <PaymentSection b={b} />
+
+      {events.data?.length ? <HistorySection events={events.data} status={b.status} tz={tz} /> : null}
 
       {b.customerNotes || b.internalNotes || b.cancelReason ? (
         <Section title={s.notesTitle}>
@@ -147,6 +157,66 @@ function PaymentSection({ b }: { b: Booking }) {
         />
       ) : null}
       <Row label={s.balance} value={formatRM(b.priceSen - paidOnline)} />
+      {b.refundedSen > 0 ? <Row label={s.refunded} value={formatRM(b.refundedSen)} /> : null}
+    </Section>
+  );
+}
+
+/** H8 · what happened to the booking, oldest first; a checked-in booking shows "Completed" as the next step. */
+function HistorySection({ events, status, tz }: { events: BookingEvent[]; status: BookingStatus; tz: string }) {
+  const methods = t.booking.cancelScreen.methods;
+  const who = (e: BookingEvent) => (e.actor ? s.by(e.actor.name) : e.type === 'created' ? s.bookingPage : s.system);
+  const line = (e: BookingEvent): { title: string; sub: string } => {
+    const d = e.details as Record<string, unknown>;
+    switch (e.type) {
+      case 'created': {
+        const source = (d.source as 'web' | 'app' | 'walk_in' | undefined) ?? 'app';
+        return { title: s.event.created[source], sub: who(e) };
+      }
+      case 'rescheduled': {
+        const to = (d.to as { startAt?: string } | undefined)?.startAt;
+        return { title: s.event.rescheduled, sub: [to ? s.movedTo(formatInTimeZone(new Date(to), tz, 'EEE d MMM, h:mm a')) : null, who(e)].filter(Boolean).join(' · ') };
+      }
+      case 'cancelled':
+        return { title: s.event.cancelled, sub: [typeof d.reason === 'string' ? d.reason : null, who(e)].filter(Boolean).join(' · ') };
+      case 'refunded':
+        return {
+          title: s.event.refunded,
+          sub: [
+            typeof d.amountSen === 'number' ? s.refundLine(formatRM(d.amountSen), methods[d.method as keyof typeof methods] ?? String(d.method)) : null,
+            who(e),
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        };
+      default:
+        return { title: s.event[e.type], sub: who(e) };
+    }
+  };
+  return (
+    <Section title={s.history}>
+      {events.map((e) => {
+        const { title, sub } = line(e);
+        return (
+          <View key={e.id} className="flex-row gap-3">
+            <View className="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
+            <View className="flex-1">
+              <Text className="text-[14px] font-bold">{title}</Text>
+              <Text className="text-[12px] text-muted">{sub}</Text>
+            </View>
+            <Text className="text-[12px] text-muted">{formatInTimeZone(new Date(e.createdAt), tz, 'd MMM, h:mm a')}</Text>
+          </View>
+        );
+      })}
+      {status === 'checked_in' ? (
+        <View className="flex-row gap-3">
+          <View className="mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-input-border" />
+          <View className="flex-1">
+            <Text className="text-[14px] font-bold text-muted">{s.nextCompleted}</Text>
+            <Text className="text-[12px] text-muted">{s.nextCompletedHint}</Text>
+          </View>
+        </View>
+      ) : null}
     </Section>
   );
 }
@@ -178,6 +248,7 @@ function Actions({
   return (
     <View className="gap-2">
       <Button title={p.label} loading={busy} onPress={() => onChange(p.to)} />
+      {status === 'checked_in' ? <Text className="text-center text-[12px] text-muted">{s.noShowAfterCheckIn}</Text> : null}
       {open ? (
         <View className="flex-row gap-2">
           <SmallButton label={t.booking.rescheduleTitle} onPress={onReschedule} />
