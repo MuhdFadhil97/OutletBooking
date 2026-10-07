@@ -11,6 +11,7 @@ import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
 import { resourceRoutes } from './routes/resources';
 import { serviceRoutes } from './routes/services';
@@ -54,6 +55,7 @@ export function createApp({ db, auth, env }: AppDeps) {
 
   app.route('/health', healthRoutes);
   app.route('/signup', signupRoutes);
+  app.route('/password', passwordRoutes);
   app.route('/me', meRoutes);
   app.route('/businesses', businessRoutes);
   app.route('/services', serviceRoutes);

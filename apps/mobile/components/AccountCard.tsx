@@ -8,7 +8,7 @@ import { useMe } from '@/features/me/hooks';
 import { bookingUrlLabel } from '@/lib/config';
 import { t } from '@/strings/en';
 
-/** Who is logged in + log out (Setup tab for owners, Profile tab for staff). */
+/** Who is logged in + log out (staff Profile tab; owners use H6 My account). */
 export function AccountCard() {
   const { me } = useMe();
   const logout = useLogout();

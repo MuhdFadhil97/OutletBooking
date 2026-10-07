@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { Pressable, RefreshControl, ScrollView, Share, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, Share, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
-import type { Booking } from '@outletbooking/shared';
+import type { Booking, SetupStep } from '@outletbooking/shared';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/ScreenState';
@@ -13,6 +13,9 @@ import { shiftDate, todayIn } from '@/features/bookings/format';
 import { useDayBookingsAll } from '@/features/bookings/hooks';
 import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { useMe } from '@/features/me/hooks';
+import { SetupChecklistCard } from '@/features/onboarding/components/SetupChecklistCard';
+import { useSetupChecklist, useUpdateChecklist } from '@/features/onboarding/hooks';
+import { confirm } from '@/lib/confirm';
 import { bookingUrl } from '@/lib/config';
 import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -20,17 +23,20 @@ import { colors } from '@/theme';
 
 const UP_NEXT_MAX = 5;
 
-/** O2 · Today dashboard: trial countdown, today's numbers, quick actions, up next. */
+/** O2 · Today dashboard: trial countdown, D8 setup checklist (first weeks), today's numbers, quick actions, up next. */
 export default function OwnerTodayScreen() {
   const { me, isLoading, error, refetch, isRefetching } = useMe();
   const tz = me?.business.timezone ?? 'Asia/Kuala_Lumpur';
   const date = todayIn(tz);
   const day = useDayBookingsAll(date, shiftDate(date, 1));
+  const checklist = useSetupChecklist();
+  const updateChecklist = useUpdateChecklist();
 
   useFocusEffect(
     useCallback(() => {
       void day.refetch();
-    }, [day.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
+      void checklist.refetch(); // steps done on other screens (hours, first booking)
+    }, [day.refetch, checklist.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (isLoading) return <LoadingState />;
@@ -39,12 +45,29 @@ export default function OwnerTodayScreen() {
   const { business, subscription } = me;
   const todayLabel = formatInTimeZone(new Date(), business.timezone, 'EEE, d MMM yyyy');
   const link = bookingUrl(business.slug);
-  const shareLink = () => void Share.share({ message: t.today.shareMessage(business.name, link) });
+  const shareLink = async () => {
+    try {
+      const result = await Share.share({ message: t.today.shareMessage(business.name, link) });
+      if (result.action === Share.sharedAction) updateChecklist.mutate({ linkShared: true });
+    } catch {
+      // Share sheet unavailable (some browsers) — nothing to record.
+    }
+  };
+  const onChecklistStep = (step: SetupStep) => {
+    if (step === 'resources') router.push('/setup/resources');
+    else if (step === 'shareLink') void shareLink();
+    else if (step === 'testBooking') void Linking.openURL(link);
+  };
+  const hideChecklist = async () => {
+    if (await confirm(t.today.checklist.hideTitle, t.today.checklist.hideBody, t.today.checklist.hide)) {
+      updateChecklist.mutate({ hide: true });
+    }
+  };
 
   const actions: { label: string; icon: IconName; onPress: () => void }[] = [
     { label: t.today.newBooking, icon: 'plus', onPress: () => openBookingForm('today', { date }) },
     { label: t.today.walkIn, icon: 'walk', onPress: () => openBookingForm('today', { walkIn: '1' }) },
-    { label: t.today.shareLink, icon: 'share', onPress: shareLink },
+    { label: t.today.shareLink, icon: 'share', onPress: () => void shareLink() },
   ];
 
   const all = day.data ?? [];
@@ -63,6 +86,7 @@ export default function OwnerTodayScreen() {
   const refresh = () => {
     void refetch();
     void day.refetch();
+    void checklist.refetch();
   };
 
   let upNextBody;
@@ -83,7 +107,7 @@ export default function OwnerTodayScreen() {
         title={t.today.emptyTitle}
         body={t.today.emptyBody}
         action={
-          <Pressable onPress={shareLink} className="mt-1 min-h-[44px] justify-center">
+          <Pressable onPress={() => void shareLink()} className="mt-1 min-h-[44px] justify-center">
             <Text className="text-[14px] font-bold text-primary">{t.today.shareLink}</Text>
           </Pressable>
         }
@@ -115,6 +139,15 @@ export default function OwnerTodayScreen() {
           </View>
           <Text className="text-[14px] font-bold text-primary">{t.today.choosePlan}</Text>
         </View>
+
+        {checklist.data && !checklist.data.hidden ? (
+          <SetupChecklistCard
+            checklist={checklist.data}
+            resourceLabel={business.resourceLabel}
+            onPressStep={onChecklistStep}
+            onHide={() => void hideChecklist()}
+          />
+        ) : null}
 
         <View className="flex-row flex-wrap gap-2.5">
           {kpis.map((k) => (

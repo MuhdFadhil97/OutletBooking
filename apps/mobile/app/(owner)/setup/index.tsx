@@ -1,12 +1,13 @@
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { AccountCard } from '@/components/AccountCard';
 import { ScreenTitle } from '@/components/Screen';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ListRow } from '@/components/ui/Rows';
 import { Text } from '@/components/ui/Text';
+import { Avatar } from '@/features/account/components/Avatar';
+import { useMe } from '@/features/me/hooks';
 import { useBookingFields, useBusiness, useResources, useServices } from '@/features/setup/hooks';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
@@ -23,6 +24,7 @@ function RowIcon({ name }: { name: IconName }) {
 
 /** Setup menu: everything an owner configures before taking bookings. */
 export default function SetupScreen() {
+  const { me } = useMe();
   const business = useBusiness();
   const services = useServices();
   const resources = useResources();
@@ -67,7 +69,19 @@ export default function SetupScreen() {
         contentContainerClassName="gap-4 px-4 pb-8 pt-3"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
       >
-        <ScreenTitle title={t.setup.title} subtitle={business.data?.name} />
+        <View className="flex-row items-center justify-between">
+          <ScreenTitle title={t.setup.title} subtitle={business.data?.name} />
+          {me ? (
+            <Pressable
+              onPress={() => router.push('/setup/account')}
+              accessibilityRole="button"
+              accessibilityLabel={t.account.open}
+              className="h-11 w-11 items-center justify-center rounded-full active:opacity-70"
+            >
+              <Avatar name={me.user.name} size={40} />
+            </Pressable>
+          ) : null}
+        </View>
 
         {business.data && !business.data.bookingEnabled ? (
           <View className="flex-row items-center gap-2 rounded-card bg-pend-bg px-3.5 py-3">
@@ -91,7 +105,15 @@ export default function SetupScreen() {
         </Card>
 
         <Text className="text-[13px] font-bold text-label">{t.setup.account}</Text>
-        <AccountCard />
+        <Card className="overflow-hidden">
+          <ListRow
+            title={t.account.title}
+            subtitle={me?.user.email}
+            left={<RowIcon name="user" />}
+            onPress={() => router.push('/setup/account')}
+            last
+          />
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

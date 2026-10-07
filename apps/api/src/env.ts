@@ -26,6 +26,8 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   TRUSTED_ORIGINS: csv,
   APP_PUBLIC_URL: z.url().default('http://localhost:8081'),
+  /** Only `console` until an email provider is chosen (refused in production). */
+  MAIL_TRANSPORT: z.enum(['console']).default('console'),
 });
 
 export type Env = z.infer<typeof envSchema>;
