@@ -1,3 +1,6 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 const url = process.env.EXPO_PUBLIC_API_URL;
 
 if (!url) {
@@ -18,8 +21,23 @@ function devWebApiUrl(base: string): string {
   return api.toString().replace(/\/+$/, '');
 }
 
+/**
+ * In dev on a phone (Expo Go / dev build), use the laptop address Metro was reached on.
+ * The phone already loaded the app from it, and it keeps working when the laptop's LAN / hotspot
+ * IP changes — no need to edit .env each time. Only for plain IP hosts (not --tunnel URLs);
+ * the port still comes from EXPO_PUBLIC_API_URL (default 3000).
+ */
+function devNativeApiUrl(base: string): string {
+  if (!__DEV__ || Platform.OS === 'web') return base;
+  const host = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (!host || !/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return base;
+  const api = new URL(base);
+  api.hostname = host;
+  return api.toString().replace(/\/+$/, '');
+}
+
 /** API base URL without trailing slash. */
-export const API_URL = devWebApiUrl(configured);
+export const API_URL = devNativeApiUrl(devWebApiUrl(configured));
 
 /**
  * Where the shared booking link points. The booking page is the Expo web build of `app/book/[slug]`.
@@ -28,7 +46,7 @@ export const API_URL = devWebApiUrl(configured);
  */
 function defaultBookingBase(): string {
   if (!__DEV__) return 'https://outletbooking.my';
-  const dev = new URL(configured);
+  const dev = new URL(API_URL);
   dev.port = '8081';
   return dev.origin;
 }
