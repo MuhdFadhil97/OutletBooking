@@ -70,3 +70,19 @@ export const checklistUpdateSchema = z
   })
   .refine((v) => v.linkShared || v.hide, { message: 'Nothing to update' });
 export type ChecklistUpdate = z.infer<typeof checklistUpdateSchema>;
+
+// ------------------------------------------------------------ H6 help + delete account
+
+/** FTech support on WhatsApp (H6 "Help on WhatsApp"). E.164. */
+export const SUPPORT_WHATSAPP = '+60145990042';
+
+/**
+ * H6 · Delete my account and business data (owner only). Permanent: the business and everything
+ * in it (bookings, customers, services, staff access) is erased, plus the owner's login.
+ */
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Enter your password'),
+  /** The business name typed again, so this can't happen by accident. */
+  confirmBusinessName: z.string().trim().min(1, 'Type your business name to confirm'),
+});
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

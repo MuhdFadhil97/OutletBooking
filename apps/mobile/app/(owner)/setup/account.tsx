@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
+import { SUPPORT_WHATSAPP } from '@outletbooking/shared';
 import { router } from 'expo-router';
 import { StackScreen } from '@/components/StackScreen';
 import { Button } from '@/components/ui/Button';
@@ -9,14 +10,14 @@ import { Text } from '@/components/ui/Text';
 import { Avatar } from '@/features/account/components/Avatar';
 import { useLogout } from '@/features/auth/hooks';
 import { useMe } from '@/features/me/hooks';
-import { formatPhone } from '@/features/bookings/format';
+import { formatPhone, whatsappUrl } from '@/features/bookings/format';
 import { t } from '@/strings/en';
 
 const s = t.account;
 
 /**
- * H6 · My account (opened from the Setup avatar): details, change password, app, log out.
- * Notification settings, help and "delete my account" come with later phases.
+ * H6 · My account (opened from the Setup avatar): details, change password, app, help on WhatsApp,
+ * log out, delete account (owner). Notification settings come with the Phase 4 notifications work.
  */
 export default function AccountScreen() {
   const { me, isLoading, error, refetch } = useMe();
@@ -47,7 +48,17 @@ export default function AccountScreen() {
 
       <SectionLabel label={s.app} />
       <Card className="overflow-hidden">
-        <ListRow title={s.language} subtitle={s.english} last />
+        <ListRow title={s.language} subtitle={s.english} />
+        <ListRow
+          title={s.help}
+          subtitle={s.helpHint}
+          onPress={() =>
+            void Linking.openURL(
+              `${whatsappUrl(SUPPORT_WHATSAPP)}?text=${encodeURIComponent(s.helpMessage(me.business.name))}`,
+            )
+          }
+          last
+        />
       </Card>
 
       <Button
@@ -56,6 +67,10 @@ export default function AccountScreen() {
         loading={logout.isPending}
         onPress={() => logout.mutate(undefined, { onSettled: () => router.replace('/login') })}
       />
+
+      {me.role === 'owner' ? (
+        <Button variant="secondary" title={s.deleteAccount} onPress={() => router.push('/setup/delete-account')} />
+      ) : null}
     </StackScreen>
   );
 }

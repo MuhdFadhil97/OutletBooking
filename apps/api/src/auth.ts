@@ -6,7 +6,7 @@ import type { Env } from './env';
 import { createMailer, type Mailer } from './services/mailer';
 import { RESET_LINK_MINUTES, resetPasswordEmail, resetPasswordUrl } from './services/password-emails';
 
-export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env.MAIL_TRANSPORT, env.NODE_ENV)) {
+export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env)) {
   return betterAuth({
     appName: 'OutletBooking',
     baseURL: env.BETTER_AUTH_URL,

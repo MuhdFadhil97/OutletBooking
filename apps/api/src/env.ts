@@ -26,8 +26,11 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   TRUSTED_ORIGINS: csv,
   APP_PUBLIC_URL: z.url().default('http://localhost:8081'),
-  /** Only `console` until an email provider is chosen (refused in production). */
-  MAIL_TRANSPORT: z.enum(['console']).default('console'),
+  /** `resend` for staging / production; `console` prints emails to the log (refused in production). */
+  MAIL_TRANSPORT: z.enum(['console', 'resend']).default('console'),
+  /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */
+  MAIL_FROM: z.string().min(3).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
