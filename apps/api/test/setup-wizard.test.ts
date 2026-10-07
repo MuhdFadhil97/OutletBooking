@@ -251,3 +251,19 @@ describe('ST · summary and payment rule', () => {
   });
 });
 
+
+describe('weekly hours text', () => {
+  it('groups consecutive days, Monday first, with breaks and midnight', async () => {
+    const { weeklyHoursLine, groupWeeklyHours, expandHours } = await import('@outletbooking/shared');
+    expect(weeklyHoursLine(expandHours(TEMPLATE_INFO.sports.defaultHours))).toBe('Mon–Fri 8 AM–12 AM · Sat–Sun 7 AM–12 AM');
+    expect(weeklyHoursLine(expandHours(TEMPLATE_INFO.barber_salon.defaultHours))).toBe('Tue–Sun 10 AM–9 PM');
+    expect(groupWeeklyHours(expandHours(TEMPLATE_INFO.barber_salon.defaultHours))[0]).toEqual({ days: 'Mon', hours: null });
+    expect(
+      weeklyHoursLine([
+        { weekday: 1, startTime: '09:00', endTime: '12:30' },
+        { weekday: 1, startTime: '14:00', endTime: '18:00' },
+      ]),
+    ).toBe('Mon 9 AM–12:30 PM, 2 PM–6 PM');
+    expect(weeklyHoursLine([])).toBe('');
+  });
+});

@@ -18,7 +18,40 @@ export const setupKeys = {
   hours: (resourceId: number) => ['working-hours', resourceId] as const,
   timeOff: ['time-off'] as const,
   fields: ['booking-fields'] as const,
+  summary: ['setup-summary'] as const,
 };
+
+// ------------------------------------------------------------ ST summary, payment rule, O1c finish
+
+/** Setup tab rows. Refetched when the tab is focused, so edits made deeper in the stack show up. */
+export const useSetupSummary = () => useQuery({ queryKey: setupKeys.summary, queryFn: api.getSetupSummary });
+
+export function useSetPaymentRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.setPaymentRule,
+    onSuccess: (data) => {
+      qc.setQueryData(setupKeys.summary, data);
+      void qc.invalidateQueries({ queryKey: setupKeys.services });
+    },
+  });
+}
+
+/** Sign-up step 3 "Finish": resources, hours, prices and payment rule in one call. */
+export function useFinishOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.finishOnboarding,
+    onSuccess: (data) => {
+      qc.setQueryData(setupKeys.summary, data);
+      return Promise.all(
+        [setupKeys.business, setupKeys.services, setupKeys.resources, ['working-hours'], ['setup-checklist'], ['me']].map(
+          (queryKey) => qc.invalidateQueries({ queryKey }),
+        ),
+      );
+    },
+  });
+}
 
 // ------------------------------------------------------------ business profile
 
