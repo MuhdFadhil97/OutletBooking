@@ -4,7 +4,7 @@ import { hashPassword } from 'better-auth/crypto';
 import { accounts, users } from '@outletbooking/db';
 import type { MeResponse } from '@outletbooking/shared';
 import { errorHandler } from '../src/middleware/error-handler';
-import { requireRole } from '../src/middleware/tenant';
+import { requirePermission, requireRole } from '../src/middleware/tenant';
 import type { AppEnv } from '../src/types';
 import { createTestContext, signupInput } from './helpers';
 
@@ -77,14 +77,27 @@ describe('tenant isolation', () => {
 describe('requireRole', () => {
   const app = new Hono<AppEnv>()
     .use(async (c, next) => {
-      c.set('tenant', { businessId: 1, memberId: 1, role: c.req.header('x-role') as 'owner' | 'staff', canViewAll: false });
+      c.set('tenant', {
+        businessId: 1,
+        memberId: 1,
+        role: c.req.header('x-role') as 'owner' | 'staff',
+        canViewAll: false,
+        canTakePayments: c.req.header('x-pay') === '1',
+        canEditSetup: false,
+      });
       await next();
     })
-    .get('/owner-only', requireRole('owner'), (c) => c.text('ok'));
+    .get('/owner-only', requireRole('owner'), (c) => c.text('ok'))
+    .get('/payments', requirePermission('canTakePayments'), (c) => c.text('ok'));
   app.onError(errorHandler);
 
   it('blocks staff from owner-only routes', async () => {
     expect((await app.request('/owner-only', { headers: { 'x-role': 'staff' } })).status).toBe(403);
     expect((await app.request('/owner-only', { headers: { 'x-role': 'owner' } })).status).toBe(200);
+  });
+
+  it('requirePermission checks the resolved flag', async () => {
+    expect((await app.request('/payments', { headers: { 'x-role': 'staff' } })).status).toBe(403);
+    expect((await app.request('/payments', { headers: { 'x-role': 'staff', 'x-pay': '1' } })).status).toBe(200);
   });
 });

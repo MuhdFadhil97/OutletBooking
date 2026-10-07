@@ -7,7 +7,7 @@ import {
   workingHoursSchema,
 } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requireRole, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireRole, resolveTenant } from '../middleware/tenant';
 import {
   archiveResource,
   createResource,
@@ -20,7 +20,10 @@ import { copyWorkingHours, getWorkingHours, setWorkingHours } from '../services/
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
-/** Read: owner, or staff limited to their linked resources. Write: owner. */
+/**
+ * Read: owner, or staff limited to their linked resources.
+ * Create / edit / archive (plan limit, staff links): owner. Working hours: owner, or staff with "can change setup".
+ */
 export const resourceRoutes = new Hono<AppEnv>()
   .use(requireSession, resolveTenant)
   .get('/', async (c) =>
@@ -54,7 +57,7 @@ export const resourceRoutes = new Hono<AppEnv>()
   })
   .put(
     '/:id/working-hours',
-    requireRole('owner'),
+    requirePermission('canEditSetup'),
     validate('param', idParam),
     validate('json', workingHoursSchema),
     async (c) =>
@@ -64,7 +67,7 @@ export const resourceRoutes = new Hono<AppEnv>()
   )
   .post(
     '/:id/working-hours/copy',
-    requireRole('owner'),
+    requirePermission('canEditSetup'),
     validate('param', idParam),
     validate('json', copyWorkingHoursSchema),
     async (c) => {
