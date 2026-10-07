@@ -43,6 +43,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   }
 
   const b = booking.data;
+  const phone = b.customer.phone;
   const tz = business.data.timezone;
   const service = services.data?.find((x) => x.id === b.service.id);
   const atCustomer = service?.locationType === 'at_customer_location' || !!b.locationAddress;
@@ -72,10 +73,15 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
           <Text className="text-[15px] font-extrabold" numberOfLines={1}>
             {b.customer.name}
           </Text>
-          <Text className="text-[13px] text-muted">{formatPhone(b.customer.phone)}</Text>
+          {phone ? <Text className="text-[13px] text-muted">{formatPhone(phone)}</Text> : null}
         </View>
-        <RoundButton icon="phone" label={s.call} onPress={() => void Linking.openURL(`tel:${b.customer.phone}`)} />
-        <RoundButton icon="chat" label={s.whatsapp} primary onPress={() => void Linking.openURL(whatsappUrl(b.customer.phone))} />
+        {/* No phone once the customer has been anonymised (PDPA erase). */}
+        {phone ? (
+          <>
+            <RoundButton icon="phone" label={s.call} onPress={() => void Linking.openURL(`tel:${phone}`)} />
+            <RoundButton icon="chat" label={s.whatsapp} primary onPress={() => void Linking.openURL(whatsappUrl(phone))} />
+          </>
+        ) : null}
       </Card>
 
       <Section title={s.appointment}>

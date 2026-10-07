@@ -482,7 +482,7 @@ CREATE TABLE booking_events (
   business_id    integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   booking_id     integer     NOT NULL,
   event_type     text        NOT NULL CHECK (event_type IN (
-                   'created','paid','payment_failed','pay_link_sent','reminder_sent','rescheduled',
+                   'created','confirmed','paid','payment_failed','pay_link_sent','reminder_sent','rescheduled',
                    'checked_in','completed','extended','no_show','cancelled','refunded','expired')),
   actor_user_id  integer     REFERENCES users(id) ON DELETE SET NULL,   -- NULL = customer or system
   details        jsonb       NOT NULL DEFAULT '{}'::jsonb,

@@ -30,6 +30,25 @@ export const STAFF_STATUS_CHANGES: readonly BookingStatus[] = ['checked_in', 'co
 
 export const canTransition = (from: BookingStatus, to: BookingStatus) => BOOKING_TRANSITIONS[from].includes(to);
 
+/** booking_events.event_type — every status change writes one in the same transaction. */
+export const BOOKING_EVENT_TYPES = [
+  'created',
+  'confirmed',
+  'paid',
+  'payment_failed',
+  'pay_link_sent',
+  'reminder_sent',
+  'rescheduled',
+  'checked_in',
+  'completed',
+  'extended',
+  'no_show',
+  'cancelled',
+  'refunded',
+  'expired',
+] as const;
+export type BookingEventType = (typeof BOOKING_EVENT_TYPES)[number];
+
 const isoDateTime = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
 const text = (max: number) =>
   z
@@ -163,7 +182,8 @@ export interface Booking {
   durationMin: number;
   resource: { id: number; name: string };
   service: { id: number; name: string };
-  customer: { id: number; name: string; phone: string; email: string | null };
+  /** phone is null once the customer has been anonymised (PDPA erase). */
+  customer: { id: number; name: string; phone: string | null; email: string | null };
   priceSen: number;
   amountDueSen: number;
   paymentStatus: PaymentStatus;
@@ -173,5 +193,14 @@ export interface Booking {
   internalNotes: string | null;
   resultNotes: string | null;
   cancelReason: string | null;
+  createdAt: string;
+}
+
+/** O4 timeline entry. `actor` is null for the customer (web page) or the system. */
+export interface BookingEvent {
+  id: number;
+  type: BookingEventType;
+  actor: { id: number; name: string } | null;
+  details: Record<string, unknown>;
   createdAt: string;
 }

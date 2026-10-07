@@ -238,6 +238,9 @@ export const bookingFields = pgTable(
     options: jsonb('options').$type<string[]>(),
     isRequired: boolean('is_required').notNull().default(false),
     isSearchable: boolean('is_searchable').notNull().default(false),
+    showToStaff: boolean('show_to_staff').notNull().default(true),
+    /** Placeholder, e.g. "e.g. WXY 1234". */
+    hint: text('hint'),
     sortOrder: integer('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: createdAt(),
@@ -266,6 +269,10 @@ export const staffInvitations = pgTable(
     businessId: businessId(),
     email: citext('email').notNull(),
     resourceId: integer('resource_id').references(() => resources.id, { onDelete: 'set null' }),
+    role: text('role').notNull().default('staff'),
+    canViewAll: boolean('can_view_all').notNull().default(false),
+    canTakePayments: boolean('can_take_payments').notNull().default(true),
+    canEditSetup: boolean('can_edit_setup').notNull().default(false),
     token: text('token')
       .notNull()
       .unique()
@@ -280,5 +287,8 @@ export const staffInvitations = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('staff_invitations_business_id_idx').on(t.businessId)],
+  (t) => [
+    index('staff_invitations_business_id_idx').on(t.businessId),
+    check('staff_invitations_role_check', sql`${t.role} IN ('owner','staff')`),
+  ],
 );

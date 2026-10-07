@@ -12,6 +12,7 @@ import {
 import { requireSession } from '../middleware/session';
 import { requireRole, resolveTenant } from '../middleware/tenant';
 import { getAvailability } from '../services/availability';
+import { listBookingEvents } from '../services/booking-events';
 import {
   changeBookingStatus,
   createBooking,
@@ -53,6 +54,13 @@ export const bookingRoutes = new Hono<AppEnv>()
       await getBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, resourceScope(c.var.tenant, c.var.userId)),
     ),
   )
+  // O4 timeline. getBooking first: 404 for bookings outside the business or the staff member's resources.
+  .get('/:id/events', validate('param', idParam), async (c) => {
+    const { businessId } = c.var.tenant;
+    const { id } = c.req.valid('param');
+    await getBooking(c.var.db, businessId, id, resourceScope(c.var.tenant, c.var.userId));
+    return c.json(await listBookingEvents(c.var.db, businessId, id));
+  })
   .post('/', requireRole('owner'), validate('json', bookingCreateSchema), async (c) =>
     c.json(await createBooking(c.var.db, c.var.tenant.businessId, c.var.userId, c.req.valid('json')), 201),
   )
@@ -65,11 +73,14 @@ export const bookingRoutes = new Hono<AppEnv>()
     validate('param', idParam),
     validate('json', bookingRescheduleSchema),
     async (c) =>
-      c.json(await rescheduleBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'))),
+      c.json(
+        await rescheduleBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId),
+      ),
   )
   .post('/:id/status', validate('param', idParam), validate('json', bookingStatusSchema), async (c) =>
     c.json(
       await changeBookingStatus(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), {
+        userId: c.var.userId,
         role: c.var.tenant.role,
         scope: resourceScope(c.var.tenant, c.var.userId),
       }),

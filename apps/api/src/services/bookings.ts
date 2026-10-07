@@ -39,6 +39,7 @@ import {
   unbookable,
   type ServiceTiming,
 } from './availability';
+import { recordBookingEvent, STATUS_EVENT } from './booking-events';
 import { getPriceQuote } from './pricing';
 
 type Q = Db | Tx;
@@ -406,6 +407,13 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
         })
         .returning({ id: bookings.id }),
     );
+    await recordBookingEvent(tx, {
+      businessId,
+      bookingId: row!.id,
+      type: 'created',
+      actorUserId: userId,
+      details: { source: input.source, status: 'confirmed' },
+    });
     return getBooking(tx, businessId, row!.id);
   });
 }
@@ -417,6 +425,7 @@ async function lockBooking(tx: Tx, businessId: number, id: number) {
       status: bookings.status,
       serviceId: bookings.serviceId,
       resourceId: bookings.resourceId,
+      startAt: bookings.startAt,
       durationMin: bookings.durationMin,
       paymentStatus: bookings.paymentStatus,
       resourceUserId: resources.userId,
@@ -446,6 +455,7 @@ export async function rescheduleBooking(
   businessId: number,
   id: number,
   input: BookingReschedule,
+  actorUserId: number,
 ): Promise<Booking> {
   return db.transaction(async (tx) => {
     const current = await lockBooking(tx, businessId, id);
@@ -493,11 +503,22 @@ export async function rescheduleBooking(
         })
         .where(eq(bookings.id, id)),
     );
+    await recordBookingEvent(tx, {
+      businessId,
+      bookingId: id,
+      type: 'rescheduled',
+      actorUserId,
+      details: {
+        from: { startAt: current.startAt.toISOString(), resourceId: current.resourceId, durationMin: current.durationMin },
+        to: { startAt: input.startAt.toISOString(), resourceId, durationMin: timing.durationMin },
+      },
+    });
     return getBooking(tx, businessId, id);
   });
 }
 
 export interface StatusActor {
+  userId: number;
   role: MemberRole;
   scope: BookingScope;
 }
@@ -536,6 +557,16 @@ export async function changeBookingStatus(
         ...(input.status === 'cancelled' ? { cancelReason: input.reason ?? null } : {}),
       })
       .where(eq(bookings.id, id));
+    await recordBookingEvent(tx, {
+      businessId,
+      bookingId: id,
+      type: STATUS_EVENT[input.status as Exclude<BookingStatus, 'pending'>],
+      actorUserId: actor.userId,
+      details: {
+        from,
+        ...(input.status === 'cancelled' && input.reason ? { reason: input.reason } : {}),
+      },
+    });
     return getBooking(tx, businessId, id, actor.scope);
   });
 }
