@@ -74,7 +74,7 @@
 - [x] **O7** share link & QR *(`setup/share` + `setup/poster` (printable QR poster); QR drawn in-app with `qrcode` + `react-native-svg`. Link base = `EXPO_PUBLIC_BOOKING_URL` once the domain is live)*
 - [x] Migration: `notifications`; Expo push + **D6** notifications screen *(0009/0010. Owner, view-all staff and the staff linked to the resource get a row (never the person who made the change) for: web booking, booking/walk-in added, cancellation (customer or owner), staff joined. Push via Expo's push service after commit, best-effort; dead tokens removed. `GET /notifications`, read / read-all, `POST/DELETE /push-tokens`; 11 tests in `notifications.test.ts`. D6 = Today bell (unread badge) → `today/notifications`. Push needs `eas init` (projectId) and a real device; not in Expo Go on Android (use a dev build). Paid / payment-failed come with Phase 5; trial reminders and "reminders sent" with their jobs; reschedule has no notification type yet. Staff see push now; their in-app list comes with Phase 6 screens)*
 
-**Done when:** a customer books from a phone browser for each pilot type, and the owner gets a push notification.
+**Done when:** a customer books from a phone browser for each pilot type, and the owner gets a push notification. ✅ *(Confirmed by the product owner: booking from the web page and push on iPhone working.)*
 
 ---
 
