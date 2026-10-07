@@ -17,6 +17,7 @@ import {
   resetPassword,
   signup,
 } from './api';
+import { unregisterPush } from '@/features/notifications/push';
 import { markOnboardingPending } from './onboarding';
 
 export function useLogin() {
@@ -44,7 +45,10 @@ export function useSignup() {
 export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: logout,
+    mutationFn: async () => {
+      await unregisterPush(); // while the session still works
+      await logout();
+    },
     onSettled: () => qc.clear(),
   });
 }

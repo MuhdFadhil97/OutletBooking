@@ -178,7 +178,11 @@ function PaymentSection({ b }: { b: Booking }) {
 /** H8 · what happened to the booking, oldest first; a checked-in booking shows "Completed" as the next step. */
 function HistorySection({ events, status, tz }: { events: BookingEvent[]; status: BookingStatus; tz: string }) {
   const methods = t.booking.cancelScreen.methods;
-  const who = (e: BookingEvent) => (e.actor ? s.by(e.actor.name) : e.type === 'created' ? s.bookingPage : s.system);
+  const who = (e: BookingEvent) => {
+    if (e.actor) return s.by(e.actor.name);
+    if (e.type === 'created') return s.bookingPage;
+    return e.details?.by === 'customer' ? s.byCustomer : s.system;
+  };
   const line = (e: BookingEvent): { title: string; sub: string } => {
     const d = e.details as Record<string, unknown>;
     switch (e.type) {

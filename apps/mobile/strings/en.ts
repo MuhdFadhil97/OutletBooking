@@ -187,6 +187,16 @@ export const en = {
       hideBody: 'You can still do every step from Setup.',
     },
   },
+  notifications: {
+    title: 'Notifications',
+    open: 'Notifications',
+    unread: (n: number) => `${n} unread`,
+    markAllRead: 'Mark all read',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    emptyTitle: 'No notifications yet',
+    emptyBody: 'New bookings, cancellations and walk-ins will show up here.',
+  },
   tabs: {
     today: 'Today',
     calendar: 'Calendar',
@@ -850,6 +860,7 @@ export const en = {
     history: 'History',
     by: (name: string) => `by ${name}`,
     bookingPage: 'Booking page',
+    byCustomer: 'By the customer (booking page)',
     system: 'Automatic',
     event: {
       created: { web: 'Booked online', app: 'Booked', walk_in: 'Walk-in' },

@@ -117,7 +117,7 @@ async function bookingSummary(q: Q, businessId: number, bookingId: number) {
     .where(and(eq(bookings.businessId, businessId), eq(bookings.id, bookingId)));
   if (!b) throw notFound('Booking');
   const day = formatInTimeZone(b.startAt, b.timezone, 'EEE d MMM');
-  const from = formatInTimeZone(b.startAt, b.timezone, 'h:mm');
+  const from = formatInTimeZone(b.startAt, b.timezone, 'h:mm a');
   const to = formatInTimeZone(b.endAt, b.timezone, 'h:mm a');
   return { ...b, when: `${day}, ${from}–${to}` };
 }

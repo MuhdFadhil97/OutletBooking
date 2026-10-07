@@ -13,6 +13,7 @@ import { shiftDate, todayIn } from '@/features/bookings/format';
 import { useDayBookingsAll } from '@/features/bookings/hooks';
 import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { useMe } from '@/features/me/hooks';
+import { BellButton } from '@/features/notifications/components/BellButton';
 import { SetupChecklistCard } from '@/features/onboarding/components/SetupChecklistCard';
 import { useSetupChecklist, useUpdateChecklist } from '@/features/onboarding/hooks';
 import { confirm } from '@/lib/confirm';
@@ -121,9 +122,12 @@ export default function OwnerTodayScreen() {
         contentContainerClassName="gap-4 px-4 pb-8 pt-3"
         refreshControl={<RefreshControl refreshing={isRefetching || day.isRefetching} onRefresh={refresh} tintColor={colors.primary} />}
       >
-        <View className="gap-0.5">
-          <Text className="text-[13px] font-semibold text-muted">{todayLabel}</Text>
-          <Text className="text-[24px] font-extrabold">{business.name}</Text>
+        <View className="flex-row items-start gap-3">
+          <View className="flex-1 gap-0.5">
+            <Text className="text-[13px] font-semibold text-muted">{todayLabel}</Text>
+            <Text className="text-[24px] font-extrabold">{business.name}</Text>
+          </View>
+          <BellButton onPress={() => router.push('/today/notifications')} />
         </View>
 
         <View
