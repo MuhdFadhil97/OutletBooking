@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { changePasswordFormSchema, type ChangePasswordForm } from '@outletbooking/shared';
@@ -11,6 +10,7 @@ import { FormError, errorMessage } from '@/components/ui/ScreenState';
 import { TextField } from '@/components/ui/TextField';
 import { useChangePassword } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 
 const s = t.changePassword;
@@ -27,7 +27,7 @@ export default function ChangePasswordScreen() {
   const onSubmit = handleSubmit((v) =>
     change.mutate(
       { currentPassword: v.currentPassword, newPassword: v.newPassword, revokeOtherSessions: logoutOthers },
-      { onSuccess: () => router.back() },
+      { onSuccess: closeWith(t.common.saved) },
     ),
   );
 

@@ -22,6 +22,7 @@ import { TextField } from '@/components/ui/TextField';
 import { useBookingFields, useDeleteBookingField, useSaveBookingField, useServices } from '@/features/setup/hooks';
 import { ApiError } from '@/lib/api';
 import { confirm } from '@/lib/confirm';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
 
@@ -87,7 +88,7 @@ function FieldForm({
   const onSave = handleSubmit(
     (values) =>
       save.mutate(values, {
-        onSuccess: () => router.back(),
+        onSuccess: closeWith(t.common.saved),
         onError: (err) => {
           if (err instanceof ApiError && err.code === 'field_key_taken') setError('fieldKey', { message: err.message });
         },
@@ -98,7 +99,7 @@ function FieldForm({
   const onDelete = async () => {
     if (!field) return;
     if (await confirm(f.deleteTitle, f.deleteBody, t.setup.delete)) {
-      remove.mutate(field.id, { onSuccess: () => router.back() });
+      remove.mutate(field.id, { onSuccess: closeWith(t.common.deleted) });
     }
   };
 

@@ -26,6 +26,7 @@ import { WEEK_ORDER, formatTimeRange, formatWeekdays, groupPriceRules } from '@/
 import { useArchiveService, useBusiness, useResources, useSaveService, useServices } from '@/features/setup/hooks';
 import { confirm } from '@/lib/confirm';
 import { formatDuration, formatRM } from '@/lib/format';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
 
@@ -145,12 +146,12 @@ function ServiceForm({
     );
   };
 
-  const onSave = handleSubmit((values) => save.mutate(values, { onSuccess: () => router.back() }));
+  const onSave = handleSubmit((values) => save.mutate(values, { onSuccess: closeWith(t.common.saved) }));
 
   const onArchive = async () => {
     if (!service) return;
     if (!(await confirm(s.archiveTitle, s.archiveBody, t.setup.archive))) return;
-    archive.mutate(service.id, { onSuccess: () => router.back() });
+    archive.mutate(service.id, { onSuccess: closeWith(t.common.archived) });
   };
 
   const blockLabel = formatDuration(durationMin).replace(/^1 /, '');

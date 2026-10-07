@@ -13,6 +13,7 @@ import {
   Manrope_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/manrope';
+import { ToastProvider } from '@/components/ui/Toast';
 import { queryClient } from '@/lib/query-client';
 import { colors } from '@/theme';
 
@@ -37,8 +38,10 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        <ToastProvider>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        </ToastProvider>
       </SafeAreaProvider>
     </QueryClientProvider>
   );

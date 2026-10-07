@@ -35,6 +35,7 @@ import {
 } from '@/features/setup/hooks';
 import { ApiError } from '@/lib/api';
 import { confirm } from '@/lib/confirm';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 
 const r = t.setup.resources;
@@ -161,7 +162,7 @@ function ResourceForm({
   const onArchive = async () => {
     if (!resource) return;
     if (!(await confirm(r.archiveTitle(label), r.archiveBody, t.setup.archive))) return;
-    archive.mutate(resource.id, { onSuccess: () => router.back() });
+    archive.mutate(resource.id, { onSuccess: closeWith(t.common.archived) });
   };
 
   const myTimeOff = (timeOff.data ?? []).filter((x) => x.resourceId === null || x.resourceId === resource?.id);

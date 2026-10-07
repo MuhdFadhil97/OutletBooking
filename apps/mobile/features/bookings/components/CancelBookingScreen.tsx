@@ -15,6 +15,7 @@ import { formatWhen, whatsappUrl } from '@/features/bookings/format';
 import { useBooking, useCancelBooking } from '@/features/bookings/hooks';
 import type { BookingsTab } from '@/features/bookings/nav';
 import { useBusiness } from '@/features/setup/hooks';
+import { useToast } from '@/components/ui/Toast';
 import { formatDuration, formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
 
@@ -39,6 +40,7 @@ export function CancelBookingScreen({ tab: _tab }: { tab: BookingsTab }) {
 
 function CancelForm({ b, business }: { b: Booking; business: BusinessProfile }) {
   const cancel = useCancelBooking(b.id);
+  const toast = useToast();
   const when = formatWhen(b, business.timezone);
 
   // What the customer paid online and has not had back yet.
@@ -66,6 +68,7 @@ function CancelForm({ b, business }: { b: Booking; business: BusinessProfile }) 
       { reason: finalReason, ...(refundSen > 0 ? { refund: { amountSen: refundSen, method } } : {}) },
       {
         onSuccess: () => {
+          toast(refundSen > 0 ? t.booking.toast.cancelledRefund(formatRM(refundSen)) : t.booking.toast.cancelled);
           if (tell && b.customer.phone) {
             const text = s.whatsappText(b.customer.name, business.name, when, refundSen > 0 ? formatRM(refundSen) : null);
             void Linking.openURL(`${whatsappUrl(b.customer.phone)}?text=${encodeURIComponent(text)}`);

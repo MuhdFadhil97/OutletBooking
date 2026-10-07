@@ -17,6 +17,8 @@ import { Chip } from '@/components/ui/Chip';
 import { DateSelect } from '@/components/ui/DateSelect';
 import { SectionLabel, SwitchRow } from '@/components/ui/Rows';
 import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/ui/ScreenState';
+import { useToast } from '@/components/ui/Toast';
+import { ApiError } from '@/lib/api';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { TimeSelect } from '@/components/ui/TimeSelect';
@@ -72,6 +74,7 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
   const existing = useBooking(bookingId).data;
   const tz = business.timezone;
   const create = useCreateBooking();
+  const toast = useToast();
   const move = useRescheduleBooking(bookingId);
 
   const startLocal = existing ? formatInTimeZone(new Date(existing.startAt), tz, "yyyy-MM-dd'T'HH:mm") : null;
@@ -172,7 +175,12 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
       setFormError(null);
       move.mutate(
         { startAt: start, durationMin, resourceId: chosenResource, allowOutsideHours: pick?.kind === 'custom' && outsideHours },
-        { onSuccess: () => router.back() },
+        {
+          onSuccess: () => {
+            toast(s.toast.moved);
+            router.back();
+          },
+        },
       );
       return;
     }
@@ -195,11 +203,23 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
     const check = bookingCreateSchema.safeParse(body);
     if (!check.success) return setFormError(check.error.issues[0]?.message ?? t.common.genericError);
     setFormError(null);
-    create.mutate(body, { onSuccess: (b) => openBooking(tab, b.id, 'replace') });
+    create.mutate(body, {
+      onSuccess: (b) => {
+        toast(s.toast.created);
+        openBooking(tab, b.id, 'replace');
+      },
+    });
   };
 
   const mutation = editing ? move : create;
   const label = business.resourceLabel;
+  // D9: someone else took the slot between loading and saving → say so and offer fresh times.
+  const slotTaken = mutation.error instanceof ApiError && mutation.error.code === 'slot_taken';
+  const pickAnother = () => {
+    mutation.reset();
+    setPick(null);
+    void availability.refetch();
+  };
 
   return (
     <StackScreen
@@ -209,7 +229,15 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
         <Button title={editing ? s.reschedule : s.create} loading={mutation.isPending} disabled={!pick} onPress={submit} />
       }
     >
-      <FormError message={formError ?? (mutation.error ? errorMessage(mutation.error) : null)} />
+      {slotTaken ? (
+        <Card className="gap-2 border border-danger bg-danger-tint p-3.5">
+          <Text className="text-[15px] font-extrabold text-danger">{s.slotTaken}</Text>
+          <Text className="text-[13px] text-text">{s.slotTakenGeneric}</Text>
+          <Button variant="secondary" title={s.pickAnother} onPress={pickAnother} />
+        </Card>
+      ) : (
+        <FormError message={formError ?? (mutation.error ? errorMessage(mutation.error) : null)} />
+      )}
 
       <Card className="gap-3 p-3.5">
         {!editing ? (

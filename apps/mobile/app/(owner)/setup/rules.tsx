@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { bookingRulesSchema, type BookingRulesInput, type BusinessProfile } from '@outletbooking/shared';
@@ -13,6 +12,7 @@ import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/
 import { Text } from '@/components/ui/Text';
 import { useBusiness, useUpdateBusiness } from '@/features/setup/hooks';
 import { formatDuration } from '@/lib/format';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 
 const p = t.setup.profile;
@@ -86,7 +86,7 @@ function RulesForm({ business }: { business: BusinessProfile }) {
     name: ['customersCanCancel', 'cancelCutoffMin', 'lateCancelKeepsDeposit'],
   });
 
-  const onSave = handleSubmit((values) => save.mutate(values, { onSuccess: () => router.back() }));
+  const onSave = handleSubmit((values) => save.mutate(values, { onSuccess: closeWith(t.common.saved) }));
 
   const chips = <K extends 'slotIntervalMin' | 'minAdvanceMin' | 'maxDaysAhead' | 'pendingExpiryMin' | 'cancelCutoffMin'>(
     name: K,

@@ -14,6 +14,7 @@ import { formatPhone, formatWhen, mapsUrl, statusTone, wazeUrl, whatsappUrl } fr
 import { useBooking, useBookingEvents, useSetBookingStatus } from '@/features/bookings/hooks';
 import { openBookingForm, openCancelBooking, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
+import { useToast } from '@/components/ui/Toast';
 import { confirm } from '@/lib/confirm';
 import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -31,6 +32,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const fields = useBookingFields();
   const setStatus = useSetBookingStatus(id);
   const events = useBookingEvents(id);
+  const toast = useToast();
 
   if (!booking.data || !business.data) {
     const error = booking.error ?? business.error;
@@ -50,7 +52,17 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const answers = Object.entries(b.customFields).filter(([, v]) => v !== '');
 
   const change = (status: BookingStatus, reason?: string | null) =>
-    setStatus.mutate({ status, reason });
+    setStatus.mutate(
+      { status, reason },
+      {
+        onSuccess: (updated) => {
+          const m = s.toast;
+          toast(
+            status === 'checked_in' ? m.checked_in(updated.customer.name) : status === 'cancelled' ? m.cancelled : m[status as 'confirmed' | 'completed' | 'no_show'],
+          );
+        },
+      },
+    );
   const onNoShow = async () => {
     if (await confirm(s.noShowTitle, s.noShowBody, s.noShow)) change('no_show');
   };
@@ -156,7 +168,8 @@ function PaymentSection({ b }: { b: Booking }) {
           tone={b.paymentStatus === 'paid' ? 'ok' : undefined}
         />
       ) : null}
-      <Row label={s.balance} value={formatRM(b.priceSen - paidOnline)} />
+      {/* Nothing is owed on a cancelled or no-show booking. */}
+      {b.status !== 'cancelled' && b.status !== 'no_show' ? <Row label={s.balance} value={formatRM(b.priceSen - paidOnline)} /> : null}
       {b.refundedSen > 0 ? <Row label={s.refunded} value={formatRM(b.refundedSen)} /> : null}
     </Section>
   );

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { router } from 'expo-router';
 import { TEMPLATE_INFO, type BusinessTemplate, type PaymentRule } from '@outletbooking/shared';
 import { StackScreen } from '@/components/StackScreen';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +8,7 @@ import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/
 import { Text } from '@/components/ui/Text';
 import { useSetPaymentRule, useSetupSummary } from '@/features/setup/hooks';
 import { paymentRuleHint, paymentRuleLabel } from '@/features/setup/payment';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 
 const s = t.setup.paymentRule;
@@ -42,7 +42,7 @@ export default function PaymentRuleScreen() {
           title={s.save}
           loading={save.isPending}
           disabled={!rule || rule === current}
-          onPress={() => rule && save.mutate(rule, { onSuccess: () => router.back() })}
+          onPress={() => rule && save.mutate(rule, { onSuccess: closeWith(t.common.saved) })}
         />
       }
     >

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -18,6 +17,7 @@ import { TextField } from '@/components/ui/TextField';
 import { useBusiness, useUpdateBusiness } from '@/features/setup/hooks';
 import { ApiError } from '@/lib/api';
 import { PUBLIC_BOOKING_BASE } from '@/lib/config';
+import { closeWith } from '@/lib/close-with';
 import { t } from '@/strings/en';
 
 const p = t.setup.profile;
@@ -57,7 +57,7 @@ function ProfileForm({ business }: { business: BusinessProfile }) {
 
   const onSave = handleSubmit((values) =>
     save.mutate(values, {
-      onSuccess: () => router.back(),
+      onSuccess: closeWith(t.common.saved),
       onError: (err) => {
         if (err instanceof ApiError && err.code === 'slug_taken') setError('slug', { message: p.slugTaken });
       },
