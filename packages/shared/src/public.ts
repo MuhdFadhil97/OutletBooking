@@ -49,7 +49,10 @@ export interface PublicResource {
   serviceIds: number[];
 }
 
-export type PublicBookingField = Pick<BookingField, 'serviceId' | 'fieldKey' | 'label' | 'fieldType' | 'options' | 'isRequired'>;
+export type PublicBookingField = Pick<
+  BookingField,
+  'serviceId' | 'fieldKey' | 'label' | 'fieldType' | 'options' | 'isRequired' | 'hint'
+>;
 
 /** Returned after booking (and later on the confirmation page via the token). Only this booking's data. */
 export interface PublicBookingConfirmation {

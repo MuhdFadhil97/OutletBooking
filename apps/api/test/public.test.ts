@@ -140,6 +140,7 @@ describe('public booking flow', () => {
       fieldType: 'text',
       options: null,
       isRequired: true,
+      hint: null,
     });
   });
 

@@ -15,7 +15,11 @@ import { validate } from '../validate';
 /** Read: any member (staff see answers in booking detail). Write: owner, or staff with "can change setup". */
 export const bookingFieldRoutes = new Hono<AppEnv>()
   .use(requireSession, resolveTenant)
-  .get('/', async (c) => c.json(await listBookingFields(c.var.db, c.var.tenant.businessId)))
+  .get('/', async (c) => {
+    const all = await listBookingFields(c.var.db, c.var.tenant.businessId);
+    // Questions hidden from staff are only listed for members who can change setup.
+    return c.json(c.var.tenant.canEditSetup ? all : all.filter((f) => f.showToStaff));
+  })
   .post('/', requirePermission('canEditSetup'), validate('json', bookingFieldCreateSchema), async (c) =>
     c.json(await createBookingField(c.var.db, c.var.tenant.businessId, c.req.valid('json')), 201),
   )

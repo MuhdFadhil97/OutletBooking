@@ -58,9 +58,21 @@ export const businessProfileSchema = z.object({
   minAdvanceMin: z.number().int().min(0).max(60 * 24 * 30),
   maxDaysAhead: z.number().int().min(1).max(365),
   cancelCutoffMin: z.number().int().min(0).max(60 * 24 * 30),
+  /** Unpaid web bookings hold the slot this long (E6 "Hold unpaid bookings for"). */
+  pendingExpiryMin: z.number().int().min(5).max(1440),
   bookingEnabled: z.boolean(),
+  /** E6: paid bookings confirm automatically; off = the owner approves each one. */
+  autoConfirmPaid: z.boolean(),
+  /** E6 / F5: customers may cancel from their confirmation link until cancelCutoffMin before. */
+  customersCanCancel: z.boolean(),
+  /** E6: a late cancellation keeps the deposit. */
+  lateCancelKeepsDeposit: z.boolean(),
 });
-export const businessProfileUpdateSchema = businessProfileSchema.partial();
+/** Template-specific settings (mobile fee / area, report options, travel areas…). Shallow-merged on update. */
+export const businessSettingsSchema = z
+  .record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,49}$/), z.union([z.string().max(1000), z.number().finite(), z.boolean(), z.null()]))
+  .refine((s) => Object.keys(s).length <= 50, { message: 'Too many settings' });
+export const businessProfileUpdateSchema = businessProfileSchema.extend({ settings: businessSettingsSchema }).partial();
 export type BusinessProfileInput = z.input<typeof businessProfileSchema>;
 export type BusinessProfileUpdate = z.infer<typeof businessProfileUpdateSchema>;
 
@@ -264,6 +276,10 @@ const bookingFieldBase = z.object({
   options: z.array(z.string().trim().min(1).max(100)).max(50).nullable().default(null),
   isRequired: z.boolean().default(false),
   isSearchable: z.boolean().default(false),
+  /** Off = only the owner (and staff who can change setup) see the answer. */
+  showToStaff: z.boolean().default(true),
+  /** Placeholder on the booking form, e.g. "e.g. WXY 1234". */
+  hint: optionalText(100).default(null),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
   isActive: z.boolean().default(true),
 });
@@ -286,6 +302,8 @@ export const bookingFieldUpdateSchema = z
     options: z.array(z.string().trim().min(1).max(100)).max(50).nullable(),
     isRequired: z.boolean(),
     isSearchable: z.boolean(),
+    showToStaff: z.boolean(),
+    hint: optionalText(100),
     sortOrder: z.number().int().min(0).max(10_000),
     isActive: z.boolean(),
   })
@@ -316,6 +334,10 @@ export interface BusinessProfile {
   cancelCutoffMin: number;
   pendingExpiryMin: number;
   bookingEnabled: boolean;
+  autoConfirmPaid: boolean;
+  customersCanCancel: boolean;
+  lateCancelKeepsDeposit: boolean;
+  settings: Record<string, string | number | boolean | null>;
 }
 
 export interface PriceRule {
@@ -381,6 +403,8 @@ export interface BookingField {
   options: string[] | null;
   isRequired: boolean;
   isSearchable: boolean;
+  showToStaff: boolean;
+  hint: string | null;
   sortOrder: number;
   isActive: boolean;
 }

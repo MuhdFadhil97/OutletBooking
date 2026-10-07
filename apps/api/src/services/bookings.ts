@@ -41,12 +41,33 @@ import {
 } from './availability';
 import { recordBookingEvent, STATUS_EVENT } from './booking-events';
 import { getPriceQuote } from './pricing';
+import { resourceScope } from './resources';
+import type { Tenant } from '../types';
 
 type Q = Db | Tx;
 
-/** Staff without "view all" only see bookings on resources linked to their login. */
+/**
+ * What a member may see. Staff without "view all" only see bookings on resources linked to
+ * their login; staff who cannot change setup don't see answers to questions hidden from staff.
+ */
 export interface BookingScope {
   linkedUserId?: number;
+  hiddenFieldKeys?: string[];
+}
+
+/** Booking-question keys hidden from this member (none for owners and setup editors). */
+export async function hiddenFieldKeys(q: Q, tenant: Tenant): Promise<string[]> {
+  if (tenant.canEditSetup) return [];
+  const rows = await q
+    .selectDistinct({ key: bookingFields.fieldKey })
+    .from(bookingFields)
+    .where(and(eq(bookingFields.businessId, tenant.businessId), eq(bookingFields.showToStaff, false)));
+  return rows.map((r) => r.key);
+}
+
+/** Scope for booking routes, resolved from the tenant (never from the client). */
+export async function bookingScope(q: Q, tenant: Tenant, userId: number): Promise<BookingScope> {
+  return { ...resourceScope(tenant, userId), hiddenFieldKeys: await hiddenFieldKeys(q, tenant) };
 }
 
 const columns = {
@@ -87,7 +108,7 @@ function selectBookings(q: Q) {
 
 type Row = Awaited<ReturnType<ReturnType<typeof selectBookings>['execute']>>[number];
 
-const toDto = (r: Row): Booking => ({
+const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   id: r.id,
   status: r.status as BookingStatus,
   source: r.source as BookingSource,
@@ -101,13 +122,18 @@ const toDto = (r: Row): Booking => ({
   amountDueSen: r.amountDueSen,
   paymentStatus: r.paymentStatus as PaymentStatus,
   locationAddress: r.locationAddress,
-  customFields: r.customFields as Record<string, string | number>,
+  customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,
   internalNotes: r.internalNotes,
   resultNotes: r.resultNotes,
   cancelReason: r.cancelReason,
   createdAt: r.createdAt.toISOString(),
 });
+
+function withoutKeys<T>(obj: Record<string, T>, keys: string[] | undefined): Record<string, T> {
+  if (!keys?.length) return obj;
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k)));
+}
 
 const scopeFilter = (scope: BookingScope): SQL | undefined =>
   scope.linkedUserId !== undefined ? eq(resources.userId, scope.linkedUserId) : undefined;
@@ -140,18 +166,24 @@ export async function listBookings(
       ),
     )
     .orderBy(asc(bookings.startAt), asc(resources.sortOrder), asc(bookings.id));
-  return rows.map(toDto);
+  return rows.map((r) => toDto(r, scope));
 }
 
 /** Treat % _ \ typed by the user as plain characters in LIKE patterns. */
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 /** O9 search: customer name, phone digits, or a searchable booking answer (spaces ignored, "WXY1234" = "WXY 1234"). */
-async function searchCondition(q: Q, businessId: number, term: string): Promise<SQL | undefined> {
+async function searchCondition(q: Q, businessId: number, term: string, hidden: string[] = []): Promise<SQL | undefined> {
   const fields = await q
     .selectDistinct({ key: bookingFields.fieldKey })
     .from(bookingFields)
-    .where(and(eq(bookingFields.businessId, businessId), eq(bookingFields.isSearchable, true)));
+    .where(
+      and(
+        eq(bookingFields.businessId, businessId),
+        eq(bookingFields.isSearchable, true),
+        hidden.length ? notInArray(bookingFields.fieldKey, hidden) : undefined,
+      ),
+    );
   const compact = `%${escapeLike(term.replace(/\s+/g, ''))}%`;
   const conds: SQL[] = [ilike(customers.name, `%${escapeLike(term)}%`)];
   // Phone-looking input only ("012-345 6789", "+60 12…") → match the stored +60123456789.
@@ -174,7 +206,7 @@ export async function searchBookings(
   now = new Date(),
 ): Promise<Booking[]> {
   const where: (SQL | undefined)[] = [eq(bookings.businessId, businessId), scopeFilter(scope)];
-  if (query.q) where.push(await searchCondition(q, businessId, query.q));
+  if (query.q) where.push(await searchCondition(q, businessId, query.q, scope.hiddenFieldKeys));
 
   const upcoming = gte(bookings.endAt, now);
   let order: SQL[];
@@ -206,7 +238,7 @@ export async function searchBookings(
     .where(and(...where))
     .orderBy(...order, desc(bookings.id))
     .limit(query.limit);
-  return rows.map(toDto);
+  return rows.map((r) => toDto(r, scope));
 }
 
 export async function getBooking(q: Q, businessId: number, id: number, scope: BookingScope = {}): Promise<Booking> {
@@ -214,7 +246,7 @@ export async function getBooking(q: Q, businessId: number, id: number, scope: Bo
     and(eq(bookings.businessId, businessId), eq(bookings.id, id), scopeFilter(scope)),
   );
   if (!row) throw notFound('Booking');
-  return toDto(row);
+  return toDto(row, scope);
 }
 
 /** Service timing + allowed durations, or 404 for archived / other businesses' services. */

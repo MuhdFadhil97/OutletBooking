@@ -34,7 +34,7 @@ export const businesses = pgTable(
     lateCancelKeepsDeposit: boolean('late_cancel_keeps_deposit').notNull().default(true),
     /** Template-specific settings: mobile fee/area, report options, travel areas… */
     settings: jsonb('settings')
-      .$type<Record<string, unknown>>()
+      .$type<Record<string, string | number | boolean | null>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
     createdAt: createdAt(),

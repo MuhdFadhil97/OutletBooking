@@ -26,6 +26,7 @@ const p = t.setup.profile;
 const SLOT_INTERVALS = [15, 30, 60, 90, 120] as const;
 const MIN_ADVANCE = [0, 30, 60, 120, 240, 1440] as const;
 const CANCEL_CUTOFF = [0, 60, 120, 1440, 2880] as const;
+const HOLD_UNPAID = [10, 15, 30, 60] as const;
 const MAX_DAYS = [7, 14, 30, 60, 90] as const;
 
 const leadTime = (min: number) => (min === 0 ? p.none : p.before(formatDuration(min)));
@@ -43,7 +44,11 @@ function toForm(b: BusinessProfile): BusinessProfileInput {
     minAdvanceMin: b.minAdvanceMin,
     maxDaysAhead: b.maxDaysAhead,
     cancelCutoffMin: b.cancelCutoffMin,
+    pendingExpiryMin: b.pendingExpiryMin,
     bookingEnabled: b.bookingEnabled,
+    autoConfirmPaid: b.autoConfirmPaid,
+    customersCanCancel: b.customersCanCancel,
+    lateCancelKeepsDeposit: b.lateCancelKeepsDeposit,
   };
 }
 
@@ -173,8 +178,42 @@ function ProfileForm({ business }: { business: BusinessProfile }) {
             )}
           />
         </View>
+      </Card>
+
+      <SectionLabel label={p.payment} />
+      <Card className="gap-4 p-4">
+        <View className="gap-2">
+          <Text className="text-[13px] font-bold text-label">{p.holdUnpaid}</Text>
+          <Text className="text-[12px] text-muted">{p.holdUnpaidHint}</Text>
+          <Controller
+            control={control}
+            name="pendingExpiryMin"
+            render={({ field }) => (
+              <ChipChoice options={HOLD_UNPAID} value={field.value} onChange={field.onChange} format={formatDuration} />
+            )}
+          />
+        </View>
+        <Controller
+          control={control}
+          name="autoConfirmPaid"
+          render={({ field }) => (
+            <SwitchRow label={p.autoConfirmPaid} hint={p.autoConfirmPaidHint} value={field.value} onChange={field.onChange} />
+          )}
+        />
+      </Card>
+
+      <SectionLabel label={p.cancelling} />
+      <Card className="gap-4 p-4">
+        <Controller
+          control={control}
+          name="customersCanCancel"
+          render={({ field }) => (
+            <SwitchRow label={p.customersCanCancel} hint={p.customersCanCancelHint} value={field.value} onChange={field.onChange} />
+          )}
+        />
         <View className="gap-2">
           <Text className="text-[13px] font-bold text-label">{p.cancelCutoff}</Text>
+          <Text className="text-[12px] text-muted">{p.cancelCutoffHint}</Text>
           <Controller
             control={control}
             name="cancelCutoffMin"
@@ -183,6 +222,18 @@ function ProfileForm({ business }: { business: BusinessProfile }) {
             )}
           />
         </View>
+        <Controller
+          control={control}
+          name="lateCancelKeepsDeposit"
+          render={({ field }) => (
+            <SwitchRow
+              label={p.lateCancelKeepsDeposit}
+              hint={p.lateCancelKeepsDepositHint}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
       </Card>
     </StackScreen>
   );

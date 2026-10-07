@@ -75,6 +75,8 @@ function FieldForm({
       options: field?.options ?? ['', ''],
       isRequired: field?.isRequired ?? false,
       isSearchable: field?.isSearchable ?? false,
+      showToStaff: field?.showToStaff ?? true,
+      hint: field?.hint ?? '',
       sortOrder: field?.sortOrder ?? nextSortOrder,
       isActive: field?.isActive ?? true,
     } as BookingFieldCreateInput,
@@ -142,6 +144,23 @@ function FieldForm({
         )}
       />
 
+      <Controller
+        control={control}
+        name="hint"
+        render={({ field: fld }) => (
+          <TextField
+            compact
+            label={f.hint}
+            value={fld.value ?? ''}
+            onChangeText={fld.onChange}
+            onBlur={fld.onBlur}
+            error={errors.hint?.message}
+            hint={f.hintHint}
+            placeholder="e.g. WXY 1234"
+          />
+        )}
+      />
+
       <View className="gap-2">
         <Text className="text-[13px] font-bold text-label">{f.type}</Text>
         <Controller
@@ -195,6 +214,13 @@ function FieldForm({
           name="isSearchable"
           render={({ field: fld }) => (
             <SwitchRow label={f.searchable} hint={f.searchableHint} value={fld.value ?? false} onChange={fld.onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="showToStaff"
+          render={({ field: fld }) => (
+            <SwitchRow label={f.showToStaff} hint={f.showToStaffHint} value={fld.value ?? true} onChange={fld.onChange} />
           )}
         />
         <Controller

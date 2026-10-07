@@ -13,6 +13,8 @@ const columns = {
   options: bookingFields.options,
   isRequired: bookingFields.isRequired,
   isSearchable: bookingFields.isSearchable,
+  showToStaff: bookingFields.showToStaff,
+  hint: bookingFields.hint,
   sortOrder: bookingFields.sortOrder,
   isActive: bookingFields.isActive,
 };

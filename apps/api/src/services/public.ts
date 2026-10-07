@@ -149,6 +149,7 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
       fieldType: bookingFields.fieldType,
       options: bookingFields.options,
       isRequired: bookingFields.isRequired,
+      hint: bookingFields.hint,
     })
     .from(bookingFields)
     .where(and(eq(bookingFields.businessId, id), eq(bookingFields.isActive, true)))
