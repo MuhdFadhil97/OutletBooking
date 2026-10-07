@@ -21,7 +21,18 @@ import { colors } from '@/theme';
 
 const s = t.staff;
 
-/** FR-05.1/05.3 · Team: invite staff by email (shareable link), link resources, remove access. */
+/** What a member or invitation may do, e.g. "all bookings · takes payments" (D12). */
+function permissionSummary(p: { canViewAll: boolean; canTakePayments: boolean; canEditSetup: boolean }) {
+  return [
+    p.canViewAll ? s.perm.all : s.perm.own,
+    p.canTakePayments ? s.perm.pay : null,
+    p.canEditSetup ? s.perm.setup : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** D12 · Staff & roles: invite staff by email (shareable link), link resources, permissions, remove access. */
 export default function StaffScreen() {
   const staff = useStaff();
   const resources = useResources();
@@ -55,7 +66,11 @@ export default function StaffScreen() {
           <ListRow
             key={m.memberId}
             title={m.name}
-            subtitle={[m.email, m.resources.map((r) => r.name).join(', ')].filter(Boolean).join(' · ')}
+            subtitle={
+              m.role === 'owner'
+                ? s.ownerSummary
+                : [m.resources.map((r) => r.name).join(', '), permissionSummary(m)].filter(Boolean).join(' · ')
+            }
             right={
               <Tag
                 label={m.role === 'owner' ? s.owner : m.isActive ? s.staffRole : s.inactive}
@@ -92,7 +107,11 @@ export default function StaffScreen() {
                   <View className="flex-1">
                     <Text className="text-[15px] font-bold">{inv.email}</Text>
                     <Text className="text-[12px] text-muted">
-                      {[inv.resourceId ? resourceName.get(inv.resourceId) : null, s.expires(format(parseISO(inv.expiresAt), 'd MMM'))]
+                      {[
+                        inv.resourceId ? resourceName.get(inv.resourceId) : null,
+                        permissionSummary(inv),
+                        s.expires(format(parseISO(inv.expiresAt), 'd MMM')),
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </Text>
@@ -144,12 +163,18 @@ function InviteSheet({
   const invite = useInviteStaff();
   const [email, setEmail] = useState('');
   const [resourceId, setResourceId] = useState<number | null>(null);
+  const [canViewAll, setCanViewAll] = useState(false);
+  const [canTakePayments, setCanTakePayments] = useState(true);
+  const [canEditSetup, setCanEditSetup] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setEmail('');
       setResourceId(null);
+      setCanViewAll(false);
+      setCanTakePayments(true);
+      setCanEditSetup(false);
       setError(null);
       invite.reset();
     }
@@ -157,7 +182,7 @@ function InviteSheet({
   }, [visible]);
 
   const submit = () => {
-    const parsed = staffInviteSchema.safeParse({ email, resourceId });
+    const parsed = staffInviteSchema.safeParse({ email, resourceId, canViewAll, canTakePayments, canEditSetup });
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? 'Enter a valid email');
     setError(null);
     invite.mutate(parsed.data, { onSuccess: onCreated });
@@ -190,6 +215,10 @@ function InviteSheet({
           </View>
         </View>
       ) : null}
+      <Text className="text-[13px] font-bold text-label">{s.permissions}</Text>
+      <SwitchRow label={s.viewAll} hint={s.viewAllHint} value={canViewAll} onChange={setCanViewAll} />
+      <SwitchRow label={s.takePayments} hint={s.takePaymentsHint} value={canTakePayments} onChange={setCanTakePayments} />
+      <SwitchRow label={s.editSetup} hint={s.editSetupHint} value={canEditSetup} onChange={setCanEditSetup} />
       <Button title={s.send} loading={invite.isPending} onPress={submit} />
     </Sheet>
   );
@@ -209,12 +238,16 @@ function MemberSheet({
   const update = useUpdateMember();
   const [isActive, setIsActive] = useState(true);
   const [canViewAll, setCanViewAll] = useState(false);
+  const [canTakePayments, setCanTakePayments] = useState(true);
+  const [canEditSetup, setCanEditSetup] = useState(false);
   const [linked, setLinked] = useState<number[]>([]);
 
   useEffect(() => {
     if (!member) return;
     setIsActive(member.isActive);
     setCanViewAll(member.canViewAll);
+    setCanTakePayments(member.canTakePayments);
+    setCanEditSetup(member.canEditSetup);
     setLinked(member.resources.map((r) => r.id));
     update.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,6 +260,8 @@ function MemberSheet({
       <FormError message={update.error ? errorMessage(update.error) : null} />
       <SwitchRow label={s.active} hint={s.activeHint} value={isActive} onChange={setIsActive} />
       <SwitchRow label={s.viewAll} hint={s.viewAllHint} value={canViewAll} onChange={setCanViewAll} />
+      <SwitchRow label={s.takePayments} hint={s.takePaymentsHint} value={canTakePayments} onChange={setCanTakePayments} />
+      <SwitchRow label={s.editSetup} hint={s.editSetupHint} value={canEditSetup} onChange={setCanEditSetup} />
       <View className="gap-2">
         <Text className="text-[13px] font-bold text-label">{s.linked(label)}</Text>
         {resources.length === 0 ? <Text className="text-[13px] text-muted">{s.noLinks}</Text> : null}
@@ -248,7 +283,10 @@ function MemberSheet({
         title={s.save}
         loading={update.isPending}
         onPress={() =>
-          update.mutate({ memberId: member.memberId, isActive, canViewAll, resourceIds: linked }, { onSuccess: onClose })
+          update.mutate(
+            { memberId: member.memberId, isActive, canViewAll, canTakePayments, canEditSetup, resourceIds: linked },
+            { onSuccess: onClose },
+          )
         }
       />
     </Sheet>
