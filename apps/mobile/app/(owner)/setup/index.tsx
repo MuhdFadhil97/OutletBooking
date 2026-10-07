@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Pressable, RefreshControl, ScrollView, Share, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
@@ -19,10 +19,9 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { Avatar } from '@/features/account/components/Avatar';
 import { useMe } from '@/features/me/hooks';
-import { useUpdateChecklist } from '@/features/onboarding/hooks';
 import { useBusiness, useSetupSummary } from '@/features/setup/hooks';
 import { payPlace } from '@/features/setup/payment';
-import { bookingUrl, bookingUrlLabel } from '@/lib/config';
+import { bookingUrlLabel } from '@/lib/config';
 import { formatDuration, formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
@@ -168,7 +167,6 @@ export default function SetupScreen() {
   const { me } = useMe();
   const business = useBusiness();
   const summary = useSetupSummary();
-  const updateChecklist = useUpdateChecklist();
 
   // Edits happen deeper in the Setup stack; refresh the summaries when coming back.
   useFocusEffect(
@@ -204,10 +202,6 @@ export default function SetupScreen() {
   const sections = buildSections(sum, trial);
   const typeName = t.templates[sum.template as keyof typeof t.templates]?.title ?? sum.template;
 
-  const share = async () => {
-    const result = await Share.share({ message: s.shareMessage(biz.name, bookingUrl(biz.slug)) });
-    if (result.action === Share.sharedAction) updateChecklist.mutate({ linkShared: true });
-  };
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-bg">
@@ -256,7 +250,7 @@ export default function SetupScreen() {
               {bookingUrlLabel(biz.slug)}
             </Text>
           </View>
-          <Button variant="secondary" title={s.share} onPress={() => void share()} className="px-4" />
+          <Button variant="secondary" title={s.share} onPress={() => router.push('/setup/share')} className="px-4" />
         </Card>
 
         {sections.map((section) => (
