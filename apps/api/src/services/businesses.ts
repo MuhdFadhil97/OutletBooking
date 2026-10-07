@@ -52,7 +52,7 @@ export async function getBusinessBySlug(db: Db, businessId: number, slug: string
   return row;
 }
 
-/** Owner edits profile + booking settings. Slug, template and timezone are not editable here. */
+/** Owner edits profile (E5, incl. booking link) + booking rules (E6). Template and timezone are not editable here. */
 export async function updateBusiness(db: Db, businessId: number, input: BusinessProfileUpdate): Promise<BusinessProfile> {
   if (!Object.keys(input).length) return getBusiness(db, businessId);
   const { settings, ...rest } = input;
