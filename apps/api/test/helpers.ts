@@ -6,6 +6,7 @@ import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
 import type { MailMessage } from '../src/services/mailer';
+import type { PushMessage, PushSender, PushTicket } from '../src/services/push';
 import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
@@ -23,12 +24,26 @@ export function createTestContext() {
   /** Every email the API "sent" during the test. */
   const outbox: MailMessage[] = [];
   const auth = createAuth(db, env, { send: async (m) => void outbox.push(m) });
-  const app = createApp({ db, auth, env });
+  /** Push messages "sent" by the API (never reaches Expo in tests). Set `pushError` to fail a token. */
+  const pushes: PushMessage[] = [];
+  const pushErrors = new Map<string, string>();
+  const push: PushSender = {
+    async send(messages) {
+      pushes.push(...messages);
+      return messages.map((m): PushTicket => {
+        const error = pushErrors.get(m.to);
+        return error ? { status: 'error', message: error, details: { error } } : { status: 'ok', id: m.to };
+      });
+    },
+  };
+  const app = createApp({ db, auth, env, push });
 
   return {
     db,
     app,
     outbox,
+    pushes,
+    pushErrors,
     async reset() {
       outbox.length = 0;
       await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);

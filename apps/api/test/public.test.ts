@@ -125,7 +125,7 @@ describe('public booking flow', () => {
 
   it('GET /public/:slug includes what the booking page needs, nothing internal', async () => {
     const biz = await json<PublicBusiness>(await ctx.get('/public/arena-a'));
-    expect(biz).toMatchObject({ resourceLabel: expect.any(String), minAdvanceMin: 60, maxDaysAhead: 30 });
+    expect(biz).toMatchObject({ resourceLabel: expect.any(String), minAdvanceMin: 60, maxDaysAhead: 30, cancelCutoffMin: 120 });
     expect(biz).not.toHaveProperty('pendingExpiryMin');
     const ids = biz.resources.map((r) => r.id);
     expect(ids).toContain(court1);

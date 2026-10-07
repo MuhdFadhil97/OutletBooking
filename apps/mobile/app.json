@@ -29,7 +29,13 @@
       "expo-status-bar",
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-notifications",
+        {
+          "color": "#0F7B55"
+        }
+      ]
     ],
     "scheme": "outletbooking",
     "experiments": {

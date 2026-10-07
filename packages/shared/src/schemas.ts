@@ -29,6 +29,13 @@ export const phoneE164 = z
   .trim()
   .regex(/^\+[1-9][0-9]{7,14}$/, 'Use international format, e.g. +60123456789');
 
+/** Expo push token of a signed-in device (FR-10.1). */
+export const pushTokenSchema = z.object({
+  token: z.string().regex(/^Expo(nent)?PushToken\[[^\]]+\]$/, 'Not an Expo push token'),
+  platform: z.enum(['android', 'ios', 'web']),
+});
+export type PushTokenInput = z.infer<typeof pushTokenSchema>;
+
 /** Must match the CHECK on businesses.slug */
 export const slugSchema = z
   .string()

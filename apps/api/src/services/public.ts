@@ -16,6 +16,8 @@ import type {
   Availability,
   AvailabilityQuery,
   BookingStatus,
+  PriceQuote,
+  PublicQuoteQuery,
   LocationType,
   PaymentStatus,
   PriceUnit,
@@ -49,6 +51,7 @@ const businessColumns = {
   minAdvanceMin: businesses.minAdvanceMin,
   maxDaysAhead: businesses.maxDaysAhead,
   pendingExpiryMin: businesses.pendingExpiryMin,
+  cancelCutoffMin: businesses.cancelCutoffMin,
 };
 
 async function findBusiness(q: Q, slug: string) {
@@ -183,7 +186,7 @@ export async function createPublicBooking(
   slug: string,
   input: PublicBookingCreate,
   now = new Date(),
-): Promise<PublicBookingConfirmation> {
+): Promise<{ booking: PublicBookingConfirmation; id: number; businessId: number }> {
   return db.transaction(async (tx) => {
     const biz = await findBusiness(tx, slug);
     assertBookingOpen(biz);
@@ -268,30 +271,135 @@ export async function createPublicBooking(
       details: { source: 'web', status },
     });
 
-    const [resource] = await tx.select({ name: resources.name }).from(resources).where(eq(resources.id, resourceId));
-    return {
-      token: row!.token,
-      status,
-      startAt: input.startAt.toISOString(),
-      endAt: endAt.toISOString(),
-      durationMin,
-      serviceName: svc.name,
-      resourceName: resource!.name,
-      // What the customer typed — never the name already stored for this phone.
-      customerName: input.customer.name,
-      locationAddress: input.locationAddress ?? null,
-      priceSen: quote.priceSen,
-      amountDueSen: quote.amountDueSen,
-      paymentStatus: quote.paymentStatus as PaymentStatus,
-      expiresAt: expiresAt?.toISOString() ?? null,
-      business: {
-        slug: biz.slug,
-        name: biz.name,
-        address: biz.address,
-        phone: biz.phone,
-        whatsappPhone: biz.whatsappPhone,
-        timezone: biz.timezone,
-      },
-    };
+    const booking = await loadPublicBooking(tx, row!.token, now);
+    // What the customer typed — never the name already stored for this phone.
+    return { booking: { ...booking, customerName: input.customer.name }, id: row!.id, businessId: biz.id };
   });
+}
+
+/** Price for the details step (same engine as the booking itself). */
+export async function getPublicQuote(db: Db, slug: string, query: PublicQuoteQuery): Promise<PriceQuote> {
+  const biz = await findBusiness(db, slug);
+  assertBookingOpen(biz);
+  await visibleService(db, biz.id, query.serviceId);
+  return getPriceQuote(db, biz.id, query);
+}
+
+const CUSTOMER_CANCELLABLE: readonly BookingStatus[] = ['pending', 'confirmed'];
+
+/** FR-08.5: online cancel is allowed for pending/confirmed bookings until start − cancel_cutoff_min. */
+function cancellableUntil(status: BookingStatus, startAt: Date, cutoffMin: number, now: Date): Date | null {
+  if (!CUSTOMER_CANCELLABLE.includes(status)) return null;
+  const until = addMinutes(startAt, -cutoffMin);
+  return until > now ? until : null;
+}
+
+async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
+  const query = q
+    .select({
+      id: bookings.id,
+      businessId: bookings.businessId,
+      token: bookings.publicToken,
+      status: bookings.status,
+      startAt: bookings.startAt,
+      endAt: bookings.endAt,
+      durationMin: bookings.durationMin,
+      locationAddress: bookings.locationAddress,
+      priceSen: bookings.priceSen,
+      amountDueSen: bookings.amountDueSen,
+      paymentStatus: bookings.paymentStatus,
+      expiresAt: bookings.expiresAt,
+      serviceName: services.name,
+      resourceName: resources.name,
+      cancelCutoffMin: businesses.cancelCutoffMin,
+      business: {
+        slug: businesses.slug,
+        name: businesses.name,
+        address: businesses.address,
+        phone: businesses.phone,
+        whatsappPhone: businesses.whatsappPhone,
+        timezone: businesses.timezone,
+      },
+    })
+    .from(bookings)
+    .innerJoin(businesses, eq(businesses.id, bookings.businessId))
+    .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
+    .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
+    .where(and(eq(bookings.publicToken, token), isNull(businesses.deletedAt)));
+  const [row] = opts.lock ? await query.for('update', { of: bookings }) : await query;
+  if (!row) throw notFound('Booking');
+  return row;
+}
+
+async function loadPublicBooking(q: Q, token: string, now: Date): Promise<PublicBookingConfirmation> {
+  const { id: _id, businessId: _b, cancelCutoffMin, ...b } = await findByToken(q, token);
+  const status = b.status as BookingStatus;
+  return {
+    ...b,
+    status,
+    startAt: b.startAt.toISOString(),
+    endAt: b.endAt.toISOString(),
+    customerName: null,
+    cancellableUntil: cancellableUntil(status, b.startAt, cancelCutoffMin, now)?.toISOString() ?? null,
+    paymentStatus: b.paymentStatus as PaymentStatus,
+    expiresAt: b.expiresAt?.toISOString() ?? null,
+  };
+}
+
+/** Confirmation page (`/my-booking/:token`): only this booking, no customer details. */
+export async function getPublicBooking(db: Db, token: string, now = new Date()): Promise<PublicBookingConfirmation> {
+  return loadPublicBooking(db, token, now);
+}
+
+/** Customer cancels from the confirmation link (FR-08.5). */
+export async function cancelPublicBooking(
+  db: Db,
+  token: string,
+  now = new Date(),
+): Promise<{ booking: PublicBookingConfirmation; id: number; businessId: number }> {
+  return db.transaction(async (tx) => {
+    const b = await findByToken(tx, token, { lock: true });
+    if (b.status === 'cancelled') throw new AppError(409, 'already_cancelled', 'This booking is already cancelled');
+    if (!cancellableUntil(b.status as BookingStatus, b.startAt, b.cancelCutoffMin, now)) {
+      throw new AppError(409, 'cancel_closed', 'This booking can no longer be cancelled online. Please contact the business.');
+    }
+    await tx
+      .update(bookings)
+      .set({ status: 'cancelled', cancelledAt: now, cancelReason: 'Cancelled by customer' })
+      .where(eq(bookings.id, b.id));
+    return { booking: await loadPublicBooking(tx, token, now), id: b.id, businessId: b.businessId };
+  });
+}
+
+/** iCalendar escaping (RFC 5545 §3.3.11). */
+const icsText = (s: string) =>
+  s
+    .replace(/\\/g, '\\\\')
+    .replace(/[;,]/g, (m) => `\\${m}`)
+    .replace(/\r?\n/g, '\\n');
+const icsTime = (iso: string) => iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+/** "Add to calendar" file for the confirmation page. */
+export function bookingIcs(b: PublicBookingConfirmation, manageUrl: string, now = new Date()): string {
+  const where = b.locationAddress ?? [b.business.name, b.business.address].filter(Boolean).join(', ');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//OutletBooking//Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${b.token}@outletbooking`,
+    `DTSTAMP:${icsTime(now.toISOString())}`,
+    `DTSTART:${icsTime(b.startAt)}`,
+    `DTEND:${icsTime(b.endAt)}`,
+    `SUMMARY:${icsText(`${b.serviceName} · ${b.business.name}`)}`,
+    `LOCATION:${icsText(where)}`,
+    `DESCRIPTION:${icsText(`${b.resourceName}\nView or cancel: ${manageUrl}`)}`,
+    `URL:${manageUrl}`,
+    `STATUS:${b.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+    '',
+  ].join('\r\n');
 }

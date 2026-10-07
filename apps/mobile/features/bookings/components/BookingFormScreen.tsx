@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
@@ -7,7 +7,6 @@ import {
   normalizeMyPhone,
   type AvailableSlot,
   type BookingCreateInput,
-  type BookingField,
   type Service,
 } from '@outletbooking/shared';
 import { StackScreen } from '@/components/StackScreen';
@@ -20,6 +19,7 @@ import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { TimeSelect } from '@/components/ui/TimeSelect';
+import { ChipGroup, FieldInput, fieldAnswers } from '@/features/bookings/components/FieldInput';
 import { todayIn } from '@/features/bookings/format';
 import { useBooking, useCalendarAvailability, useCreateBooking, useRescheduleBooking } from '@/features/bookings/hooks';
 import { openBooking, type BookingFormParams, type BookingsTab } from '@/features/bookings/nav';
@@ -147,20 +147,6 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
     return null;
   };
 
-  const customFields = (): Record<string, string | number> | string => {
-    const out: Record<string, string | number> = {};
-    for (const f of serviceFields) {
-      const v = answers[f.fieldKey]?.trim();
-      if (!v) continue;
-      if (f.fieldType === 'number') {
-        const n = Number(v);
-        if (!Number.isFinite(n)) return `${f.label}: enter a number`;
-        out[f.fieldKey] = n;
-      } else out[f.fieldKey] = v;
-    }
-    return out;
-  };
-
   const submit = () => {
     const start = startAt();
     if (!start) return setFormError(s.pickSlot);
@@ -177,7 +163,7 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
       return;
     }
 
-    const cf = customFields();
+    const cf = fieldAnswers(serviceFields, answers);
     if (typeof cf === 'string') return setFormError(cf);
     const body: BookingCreateInput = {
       serviceId,
@@ -339,41 +325,6 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
         </>
       ) : null}
     </StackScreen>
-  );
-}
-
-function ChipGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <View className="gap-2">
-      <Text className="text-[13px] font-bold text-label">{label}</Text>
-      <View className="flex-row flex-wrap gap-2">{children}</View>
-    </View>
-  );
-}
-
-/** One booking question (custom field). Required marks are shown but not enforced for owner bookings. */
-function FieldInput({ field, value, onChange }: { field: BookingField; value: string; onChange: (v: string) => void }) {
-  const label = field.isRequired ? `${field.label} *` : field.label;
-  if (field.fieldType === 'select') {
-    return (
-      <ChipGroup label={label}>
-        {(field.options ?? []).map((o) => (
-          <Chip key={o} role="radio" label={o} selected={value === o} onPress={() => onChange(value === o ? '' : o)} />
-        ))}
-      </ChipGroup>
-    );
-  }
-  return (
-    <TextField
-      compact
-      label={label}
-      value={value}
-      onChangeText={onChange}
-      keyboardType={field.fieldType === 'number' ? 'numeric' : field.fieldType === 'phone' ? 'phone-pad' : 'default'}
-      multiline={field.fieldType === 'address'}
-      placeholder={field.fieldType === 'date' ? 'YYYY-MM-DD' : undefined}
-      maxLength={500}
-    />
   );
 }
 

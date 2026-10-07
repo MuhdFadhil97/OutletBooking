@@ -18,15 +18,18 @@ import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
 import { staffRoutes } from './routes/staff';
 import { timeOffRoutes } from './routes/time-off';
+import { expoPushSender, type PushSender } from './services/push';
 import type { AppEnv } from './types';
 
 export interface AppDeps {
   db: Db;
   auth: Auth;
   env: Env;
+  /** Push notifications; tests pass a fake. */
+  push?: PushSender;
 }
 
-export function createApp({ db, auth, env }: AppDeps) {
+export function createApp({ db, auth, env, push = expoPushSender(env.EXPO_ACCESS_TOKEN) }: AppDeps) {
   const app = new Hono<AppEnv>();
 
   if (env.NODE_ENV === 'development') app.use(logger());
@@ -48,6 +51,7 @@ export function createApp({ db, auth, env }: AppDeps) {
     c.set('db', db);
     c.set('auth', auth);
     c.set('env', env);
+    c.set('push', push);
     await next();
   });
 

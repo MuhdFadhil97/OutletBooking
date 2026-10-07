@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Linking, Pressable, RefreshControl, ScrollView, Share, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -45,17 +45,11 @@ export default function OwnerTodayScreen() {
   const { business, subscription } = me;
   const todayLabel = formatInTimeZone(new Date(), business.timezone, 'EEE, d MMM yyyy');
   const link = bookingUrl(business.slug);
-  const shareLink = async () => {
-    try {
-      const result = await Share.share({ message: t.today.shareMessage(business.name, link) });
-      if (result.action === Share.sharedAction) updateChecklist.mutate({ linkShared: true });
-    } catch {
-      // Share sheet unavailable (some browsers) — nothing to record.
-    }
-  };
+  // O7 share screen (copy, WhatsApp, QR); it ticks "Share your booking link" on the checklist.
+  const shareLink = () => router.push('/today/share');
   const onChecklistStep = (step: SetupStep) => {
     if (step === 'resources') router.push('/setup/resources');
-    else if (step === 'shareLink') void shareLink();
+    else if (step === 'shareLink') shareLink();
     else if (step === 'testBooking') void Linking.openURL(link);
   };
   const hideChecklist = async () => {
@@ -67,7 +61,7 @@ export default function OwnerTodayScreen() {
   const actions: { label: string; icon: IconName; onPress: () => void }[] = [
     { label: t.today.newBooking, icon: 'plus', onPress: () => openBookingForm('today', { date }) },
     { label: t.today.walkIn, icon: 'walk', onPress: () => openBookingForm('today', { walkIn: '1' }) },
-    { label: t.today.shareLink, icon: 'share', onPress: () => void shareLink() },
+    { label: t.today.shareLink, icon: 'share', onPress: shareLink },
   ];
 
   const all = day.data ?? [];
@@ -107,7 +101,7 @@ export default function OwnerTodayScreen() {
         title={t.today.emptyTitle}
         body={t.today.emptyBody}
         action={
-          <Pressable onPress={() => void shareLink()} className="mt-1 min-h-[44px] justify-center">
+          <Pressable onPress={shareLink} className="mt-1 min-h-[44px] justify-center">
             <Text className="text-[14px] font-bold text-primary">{t.today.shareLink}</Text>
           </Pressable>
         }
