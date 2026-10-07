@@ -1,7 +1,8 @@
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { and, asc, count, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import {
+  bookingEvents,
   bookingFields,
   bookings,
   businesses,
@@ -9,13 +10,19 @@ import {
   resources,
   resourceServices,
   services,
+  workingHours,
   type Db,
   type Tx,
 } from '@outletbooking/db';
+import {
+  TEMPLATE_INFO,
+  type AvailabilityQuery,
+  type BookingStatus,
+  type BusinessTemplate,
+  type PublicAvailability,
+  type PublicSettings,
+} from '@outletbooking/shared';
 import type {
-  Availability,
-  AvailabilityQuery,
-  BookingStatus,
   LocationType,
   PaymentStatus,
   PriceUnit,
@@ -28,7 +35,7 @@ import { AppError, notFound } from '../errors';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
 import { recordBookingEvent } from './booking-events';
-import { getPriceQuote } from './pricing';
+import { getPriceQuote, getPriceQuotes } from './pricing';
 
 type Q = Db | Tx;
 
@@ -49,7 +56,23 @@ const businessColumns = {
   minAdvanceMin: businesses.minAdvanceMin,
   maxDaysAhead: businesses.maxDaysAhead,
   pendingExpiryMin: businesses.pendingExpiryMin,
+  template: businesses.template,
+  customersCanCancel: businesses.customersCanCancel,
+  cancelCutoffMin: businesses.cancelCutoffMin,
+  lateCancelKeepsDeposit: businesses.lateCancelKeepsDeposit,
+  settings: businesses.settings,
 };
+
+/** Only the template settings the booking page needs. */
+function publicSettings(template: BusinessTemplate, s: Record<string, unknown>): PublicSettings {
+  const out: PublicSettings = {};
+  if (typeof s.mobileFeeSen === 'number') out.mobileFeeSen = s.mobileFeeSen;
+  if (typeof s.serviceArea === 'string' && s.serviceArea) out.serviceArea = s.serviceArea;
+  out.customersPickResource =
+    typeof s.customersPickResource === 'boolean' ? s.customersPickResource : TEMPLATE_INFO[template].resourceSetup === 'people';
+  if (s.pricesFrom === true) out.pricesFrom = true;
+  return out;
+}
 
 async function findBusiness(q: Q, slug: string) {
   const [biz] = await q
@@ -91,7 +114,9 @@ async function visibleService(q: Q, businessId: number, serviceId: number) {
 
 /** Business info, visible services, bookable resources and booking questions for `/book/:slug`. */
 export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBusiness> {
-  const { id, pendingExpiryMin: _p, ...info } = await findBusiness(db, slug);
+  const { id, customersCanCancel, cancelCutoffMin, lateCancelKeepsDeposit, settings, template: rawTemplate, ...info } =
+    await findBusiness(db, slug);
+  const template = rawTemplate as BusinessTemplate;
 
   const svcRows = await db
     .select({
@@ -155,8 +180,27 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
     .where(and(eq(bookingFields.businessId, id), eq(bookingFields.isActive, true)))
     .orderBy(asc(bookingFields.sortOrder), asc(bookingFields.id));
 
+  // Opening hours for the header: per weekday, earliest start → latest end over bookable resources.
+  const resourceIds = [...byResource.keys()];
+  const hourRows = resourceIds.length
+    ? await db
+        .select({
+          weekday: workingHours.weekday,
+          startTime: sql<string>`to_char(min(${workingHours.startTime}), 'HH24:MI')`,
+          endTime: sql<string>`case when bool_or(${workingHours.endTime} = '24:00') then '24:00' else to_char(max(${workingHours.endTime}), 'HH24:MI') end`,
+        })
+        .from(workingHours)
+        .where(and(eq(workingHours.businessId, id), inArray(workingHours.resourceId, resourceIds)))
+        .groupBy(workingHours.weekday)
+        .orderBy(asc(workingHours.weekday))
+    : [];
+
   return {
     ...info,
+    template,
+    cancelPolicy: { customersCanCancel, cancelCutoffMin, lateCancelKeepsDeposit },
+    settings: publicSettings(template, settings),
+    hours: hourRows,
     services: svcRows.map((s) => ({ ...s, priceUnit: s.priceUnit as PriceUnit, locationType: s.locationType as LocationType })),
     resources: [...byResource.values()],
     bookingFields: fields
@@ -165,12 +209,25 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
   };
 }
 
-/** Free slots for customers: booking window (advance notice, max days ahead) applies. */
-export async function getPublicSlots(db: Db, slug: string, query: AvailabilityQuery, now = new Date()): Promise<Availability> {
+/** Free slots for customers, each with its price: booking window (advance notice, max days ahead) applies. */
+export async function getPublicSlots(
+  db: Db,
+  slug: string,
+  query: AvailabilityQuery,
+  now = new Date(),
+): Promise<PublicAvailability> {
   const biz = await findBusiness(db, slug);
   assertBookingOpen(biz);
   await visibleService(db, biz.id, query.serviceId);
-  return getAvailability(db, biz.id, query, { now });
+  const availability = await getAvailability(db, biz.id, query, { now });
+  const quotes = await getPriceQuotes(
+    db,
+    biz.id,
+    query.serviceId,
+    availability.slots.map((s) => new Date(s.startAt)),
+    availability.durationMin,
+  );
+  return { ...availability, slots: availability.slots.map((s, i) => ({ ...s, priceSen: quotes[i]!.priceSen })) };
 }
 
 /**
@@ -265,33 +322,118 @@ export async function createPublicBooking(
       bookingId: row!.id,
       type: 'created',
       actorUserId: null,
-      details: { source: 'web', status },
+      // The name as typed: the confirmation shows this, never the name already stored for the phone.
+      details: { source: 'web', status, customerName: input.customer.name },
     });
 
-    const [resource] = await tx.select({ name: resources.name }).from(resources).where(eq(resources.id, resourceId));
-    return {
-      token: row!.token,
-      status,
-      startAt: input.startAt.toISOString(),
-      endAt: endAt.toISOString(),
-      durationMin,
-      serviceName: svc.name,
-      resourceName: resource!.name,
-      // What the customer typed — never the name already stored for this phone.
-      customerName: input.customer.name,
-      locationAddress: input.locationAddress ?? null,
-      priceSen: quote.priceSen,
-      amountDueSen: quote.amountDueSen,
-      paymentStatus: quote.paymentStatus as PaymentStatus,
-      expiresAt: expiresAt?.toISOString() ?? null,
-      business: {
-        slug: biz.slug,
-        name: biz.name,
-        address: biz.address,
-        phone: biz.phone,
-        whatsappPhone: biz.whatsappPhone,
-        timezone: biz.timezone,
+    return publicBookingView(tx, row!.token, now);
+  });
+}
+
+/** F5 / confirmation: one booking by its random token — only this booking's data. */
+async function publicBookingView(q: Q, token: string, now = new Date()): Promise<PublicBookingConfirmation> {
+  const [row] = await q
+    .select({
+      bookingId: bookings.id,
+      businessId: bookings.businessId,
+      status: bookings.status,
+      startAt: bookings.startAt,
+      endAt: bookings.endAt,
+      durationMin: bookings.durationMin,
+      serviceName: services.name,
+      resourceName: resources.name,
+      storedCustomerName: customers.name,
+      source: bookings.source,
+      locationAddress: bookings.locationAddress,
+      priceSen: bookings.priceSen,
+      amountDueSen: bookings.amountDueSen,
+      paymentStatus: bookings.paymentStatus,
+      expiresAt: bookings.expiresAt,
+      customFields: bookings.customFields,
+      biz: {
+        slug: businesses.slug,
+        name: businesses.name,
+        template: businesses.template,
+        address: businesses.address,
+        phone: businesses.phone,
+        whatsappPhone: businesses.whatsappPhone,
+        timezone: businesses.timezone,
+        customersCanCancel: businesses.customersCanCancel,
+        cancelCutoffMin: businesses.cancelCutoffMin,
       },
-    };
+    })
+    .from(bookings)
+    .innerJoin(businesses, and(eq(businesses.id, bookings.businessId), isNull(businesses.deletedAt)))
+    .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
+    .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
+    .innerJoin(customers, and(eq(customers.businessId, bookings.businessId), eq(customers.id, bookings.customerId)))
+    .where(eq(bookings.publicToken, token));
+  if (!row) throw notFound('Booking');
+
+  const labels = await q
+    .select({ key: bookingFields.fieldKey, label: bookingFields.label })
+    .from(bookingFields)
+    .where(eq(bookingFields.businessId, row.businessId));
+  const labelOf = new Map(labels.map((l) => [l.key, l.label]));
+  // Web bookings show the name typed when booking: a stranger who knows a phone number must not
+  // learn the name stored for it. Bookings made by the business show the stored name.
+  const [created] = await q
+    .select({ details: bookingEvents.details })
+    .from(bookingEvents)
+    .where(and(eq(bookingEvents.bookingId, row.bookingId), eq(bookingEvents.eventType, 'created')))
+    .limit(1);
+  const typedName = typeof created?.details.customerName === 'string' ? created.details.customerName : null;
+  const customerName = row.source === 'web' ? (typedName ?? '') : row.storedCustomerName;
+  const answers = Object.entries(row.customFields)
+    .filter(([k, v]) => labelOf.has(k) && v !== '' && v !== null)
+    .map(([k, v]) => ({ label: labelOf.get(k)!, value: String(v) }));
+
+  const { customersCanCancel, cancelCutoffMin, ...business } = row.biz;
+  const until = new Date(row.startAt.getTime() - cancelCutoffMin * 60_000);
+  const open = row.status === 'pending' || row.status === 'confirmed';
+  return {
+    token,
+    ref: token.slice(0, 4).toUpperCase(),
+    status: row.status as BookingStatus,
+    startAt: row.startAt.toISOString(),
+    endAt: row.endAt.toISOString(),
+    durationMin: row.durationMin,
+    serviceName: row.serviceName,
+    resourceName: row.resourceName,
+    customerName,
+    locationAddress: row.locationAddress,
+    priceSen: row.priceSen,
+    amountDueSen: row.amountDueSen,
+    paymentStatus: row.paymentStatus as PaymentStatus,
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    answers,
+    cancel: { allowed: customersCanCancel && open && now < until, until: customersCanCancel ? until.toISOString() : null },
+    business: { ...business, template: business.template as BusinessTemplate },
+  };
+}
+
+export const getPublicBooking = (db: Db, token: string, now = new Date()) => publicBookingView(db, token, now);
+
+/** F5 · customer cancels from their link: allowed by the business, still open, before the cut-off. */
+export async function cancelPublicBooking(db: Db, token: string, now = new Date()): Promise<PublicBookingConfirmation> {
+  return db.transaction(async (tx) => {
+    const view = await publicBookingView(tx, token, now);
+    if (!view.cancel.allowed) {
+      throw new AppError(409, 'cannot_cancel', 'This booking can no longer be cancelled online. Please contact the business.');
+    }
+    const [b] = await tx
+      .update(bookings)
+      .set({ status: 'cancelled', cancelledAt: now, cancelReason: 'Cancelled by customer' })
+      .where(and(eq(bookings.publicToken, token), inArray(bookings.status, ['pending', 'confirmed'])))
+      .returning({ id: bookings.id, businessId: bookings.businessId });
+    if (!b) throw new AppError(409, 'cannot_cancel', 'This booking can no longer be cancelled online.');
+    await recordBookingEvent(tx, {
+      businessId: b.businessId,
+      bookingId: b.id,
+      type: 'cancelled',
+      actorUserId: null,
+      details: { from: view.status, by: 'customer' },
+    });
+    return publicBookingView(tx, token, now);
   });
 }

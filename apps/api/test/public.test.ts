@@ -126,7 +126,9 @@ describe('public booking flow', () => {
   it('GET /public/:slug includes what the booking page needs, nothing internal', async () => {
     const biz = await json<PublicBusiness>(await ctx.get('/public/arena-a'));
     expect(biz).toMatchObject({ resourceLabel: expect.any(String), minAdvanceMin: 60, maxDaysAhead: 30 });
-    expect(biz).not.toHaveProperty('pendingExpiryMin');
+    // Shown to customers ("your slot is held for 15 minutes"); internal ids and other settings are not.
+    expect(biz).not.toHaveProperty('id');
+    expect(Object.keys(biz.settings).every((k) => ['mobileFeeSen', 'serviceArea', 'customersPickResource', 'pricesFrom'].includes(k))).toBe(true);
     const ids = biz.resources.map((r) => r.id);
     expect(ids).toContain(court1);
     expect(ids).not.toContain(court3); // offers no visible service

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { slugSchema } from './schemas';
+import type { AvailableSlot } from './availability';
 import type { BookingStatus, PaymentStatus } from './bookings';
+import type { BusinessTemplate } from './templates';
 import type { BookingField, LocationType, PriceUnit, ResourceType } from './setup';
 
 /** `/public/:slug` — the business slug from the shared booking link. */
@@ -20,9 +22,30 @@ export interface PublicService {
   locationType: LocationType;
 }
 
+/** What customers are told about cancelling (E6). */
+export interface PublicCancelPolicy {
+  customersCanCancel: boolean;
+  /** Free cancellation until this many minutes before the start. */
+  cancelCutoffMin: number;
+  lateCancelKeepsDeposit: boolean;
+}
+
+/** Template settings the booking page uses — never the business's other settings. */
+export interface PublicSettings {
+  /** Vehicle inspection: travel fee shown on at-customer services (paid with the balance). */
+  mobileFeeSen?: number;
+  serviceArea?: string;
+  /** Salon / people types: customers may pick a person; default true for people types. */
+  customersPickResource?: boolean;
+  /** Workshop: prices are "from" prices. */
+  pricesFrom?: boolean;
+}
+
 export interface PublicBusiness {
   slug: string;
   name: string;
+  /** Drives the page flow (court grid for sports, date & time list otherwise). */
+  template: BusinessTemplate;
   description: string | null;
   address: string | null;
   phone: string | null;
@@ -35,6 +58,12 @@ export interface PublicBusiness {
   /** Booking window: earliest start = now + minAdvanceMin; last date = today + maxDaysAhead. */
   minAdvanceMin: number;
   maxDaysAhead: number;
+  /** Unpaid bookings hold the slot this long. */
+  pendingExpiryMin: number;
+  cancelPolicy: PublicCancelPolicy;
+  settings: PublicSettings;
+  /** Opening hours: per weekday the earliest start and latest end across bookable resources. */
+  hours: { weekday: number; startTime: string; endTime: string }[];
   services: PublicService[];
   /** Active resources that offer at least one visible service. */
   resources: PublicResource[];
@@ -54,10 +83,24 @@ export type PublicBookingField = Pick<
   'serviceId' | 'fieldKey' | 'label' | 'fieldType' | 'options' | 'isRequired' | 'hint'
 >;
 
-/** Returned after booking (and later on the confirmation page via the token). Only this booking's data. */
+/** A free slot with its price (court grid "RM 30"). */
+export interface PublicSlot extends AvailableSlot {
+  priceSen: number;
+}
+
+export interface PublicAvailability {
+  date: string;
+  timezone: string;
+  durationMin: number;
+  slots: PublicSlot[];
+}
+
+/** Returned after booking and on the view / cancel page (by token). Only this booking's data. */
 export interface PublicBookingConfirmation {
   /** Random token for the confirmation / cancel link — never the integer id. */
   token: string;
+  /** Short reference, e.g. "2P9C". */
+  ref: string;
   status: BookingStatus;
   startAt: string;
   endAt: string;
@@ -71,5 +114,12 @@ export interface PublicBookingConfirmation {
   paymentStatus: PaymentStatus;
   /** Pending (unpaid) bookings are released at this time. */
   expiresAt: string | null;
-  business: Pick<PublicBusiness, 'slug' | 'name' | 'address' | 'phone' | 'whatsappPhone' | 'timezone'>;
+  /** The customer's answers, with question labels (C5c "Vehicle WXY 1234"). */
+  answers: { label: string; value: string }[];
+  /** Whether the customer may cancel online now, and until when (F5). */
+  cancel: { allowed: boolean; until: string | null };
+  business: Pick<PublicBusiness, 'slug' | 'name' | 'template' | 'address' | 'phone' | 'whatsappPhone' | 'timezone'>;
 }
+
+/** `/public/bookings/:token` — the random booking token from the confirmation link. */
+export const publicTokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{32}$/, 'Invalid booking link') });

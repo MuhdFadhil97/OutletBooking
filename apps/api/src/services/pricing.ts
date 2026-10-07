@@ -117,6 +117,18 @@ export async function getPriceQuote(
   businessId: number,
   input: { serviceId: number; startAt: Date; durationMin?: number },
 ): Promise<PriceQuote> {
+  const [quote] = await getPriceQuotes(q, businessId, input.serviceId, [input.startAt], input.durationMin);
+  return quote!;
+}
+
+/** Same as getPriceQuote for many start times of one service (e.g. every cell of the court grid), loading once. */
+export async function getPriceQuotes(
+  q: Q,
+  businessId: number,
+  serviceId: number,
+  starts: Date[],
+  durationMin?: number,
+): Promise<PriceQuote[]> {
   const [row] = await q
     .select({
       timezone: businesses.timezone,
@@ -129,7 +141,7 @@ export async function getPriceQuote(
     })
     .from(services)
     .innerJoin(businesses, eq(businesses.id, services.businessId))
-    .where(and(eq(services.businessId, businessId), eq(services.id, input.serviceId), isNull(services.deletedAt)));
+    .where(and(eq(services.businessId, businessId), eq(services.id, serviceId), isNull(services.deletedAt)));
   if (!row) throw notFound('Service');
 
   const rules = await q
@@ -141,14 +153,16 @@ export async function getPriceQuote(
       priceSen: servicePriceRules.priceSen,
     })
     .from(servicePriceRules)
-    .where(and(eq(servicePriceRules.businessId, businessId), eq(servicePriceRules.serviceId, input.serviceId)));
+    .where(and(eq(servicePriceRules.businessId, businessId), eq(servicePriceRules.serviceId, serviceId)));
 
   const { timezone, ...service } = row;
-  return quotePrice({
-    service: { ...service, priceUnit: service.priceUnit as PriceUnit },
-    rules,
-    startAt: input.startAt,
-    durationMin: input.durationMin ?? service.durationMin,
-    timezone,
-  });
+  return starts.map((startAt) =>
+    quotePrice({
+      service: { ...service, priceUnit: service.priceUnit as PriceUnit },
+      rules,
+      startAt,
+      durationMin: durationMin ?? service.durationMin,
+      timezone,
+    }),
+  );
 }

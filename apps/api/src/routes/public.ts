@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { availabilityQuerySchema, publicBookingCreateSchema, publicSlugParam } from '@outletbooking/shared';
+import { availabilityQuerySchema, publicBookingCreateSchema, publicSlugParam, publicTokenParam } from '@outletbooking/shared';
 import { rateLimit } from '../middleware/rate-limit';
-import { createPublicBooking, getPublicBusiness, getPublicSlots } from '../services/public';
+import { cancelPublicBooking, createPublicBooking, getPublicBooking, getPublicBusiness, getPublicSlots } from '../services/public';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
@@ -11,6 +11,16 @@ import { validate } from '../validate';
  */
 export const publicRoutes = new Hono<AppEnv>()
   .use(rateLimit({ prefix: 'public', windowMs: 60_000, max: 60 }))
+  // F5 · the customer's own booking, by the random token in their link ('bookings' is a reserved slug).
+  .get('/bookings/:token', validate('param', publicTokenParam), async (c) =>
+    c.json(await getPublicBooking(c.var.db, c.req.valid('param').token)),
+  )
+  .post(
+    '/bookings/:token/cancel',
+    rateLimit({ prefix: 'public-cancel', windowMs: 10 * 60_000, max: 10 }),
+    validate('param', publicTokenParam),
+    async (c) => c.json(await cancelPublicBooking(c.var.db, c.req.valid('param').token)),
+  )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>
     c.json(await getPublicBusiness(c.var.db, c.req.valid('param').slug)),
   )
