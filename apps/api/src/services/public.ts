@@ -200,6 +200,7 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
   return {
     ...info,
     template,
+    onlinePayments: await isOnlinePaymentAvailable(db, id),
     cancelPolicy: { customersCanCancel, cancelCutoffMin, lateCancelKeepsDeposit },
     settings: publicSettings(template, settings),
     hours: hourRows,

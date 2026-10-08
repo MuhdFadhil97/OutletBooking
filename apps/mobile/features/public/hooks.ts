@@ -48,3 +48,17 @@ export function useCancelPublicBooking(token: string) {
     onSuccess: (b) => qc.setQueryData(['public-booking', token], b),
   });
 }
+
+/** Gets the ToyyibPay page and goes there (same tab on web). */
+export function usePayPublicBooking(token: string) {
+  return useMutation({ mutationFn: () => api.payPublicBooking(token) });
+}
+
+/** Back from the bank: the API re-checks the bill with ToyyibPay. */
+export function useRefreshPublicBooking(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.refreshPublicBooking(token),
+    onSuccess: (b) => qc.setQueryData(['public-booking', token], b),
+  });
+}

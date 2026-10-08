@@ -20,8 +20,10 @@ export interface DetailsValue {
 }
 
 /** What the customer pays online now vs later, from the slot price and the service's payment rule. */
-export function paymentPlan(svc: PublicService, priceSen: number) {
+export function paymentPlan(svc: PublicService, priceSen: number, online = true) {
   if (priceSen === 0) return { kind: 'free' as const, nowSen: 0, laterSen: 0 };
+  // No online payments at this business: everything is paid at the visit.
+  if (!online) return { kind: 'at_visit' as const, nowSen: 0, laterSen: priceSen };
   if (svc.prepayFull) return { kind: 'full' as const, nowSen: priceSen, laterSen: 0 };
   if (svc.depositSen > 0) {
     const nowSen = svc.priceUnit === 'per_block' ? svc.depositSen : Math.min(svc.depositSen, priceSen);
@@ -48,7 +50,7 @@ export function DetailsStep({
   onChange: (patch: Partial<DetailsValue>) => void;
   errors: Partial<Record<string, string>>;
 }) {
-  const plan = paymentPlan(service, priceSen);
+  const plan = paymentPlan(service, priceSen, biz.onlinePayments);
   const setAnswer = (key: string, v: string) => onChange({ answers: { ...value.answers, [key]: v } });
   const policy = biz.cancelPolicy.customersCanCancel
     ? [b.policyFree(formatDuration(biz.cancelPolicy.cancelCutoffMin)), plan.kind === 'deposit' && biz.cancelPolicy.lateCancelKeepsDeposit ? b.policyKeep : null]

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ChecklistUpdate } from '@outletbooking/shared';
 import * as api from './api';
 
-const checklistKey = ['setup-checklist'] as const;
+export const checklistKey = ['setup-checklist'] as const;
 
 export const useSetupChecklist = () => useQuery({ queryKey: checklistKey, queryFn: api.getChecklist });
 

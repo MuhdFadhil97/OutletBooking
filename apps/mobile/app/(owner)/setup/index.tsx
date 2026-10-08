@@ -7,6 +7,7 @@ import {
   weeklyHoursLine,
   type BusinessTemplate,
   type SetupExtraRow,
+  type PaymentAccountView,
   type SetupSummary,
 } from '@outletbooking/shared';
 import { ScreenTitle } from '@/components/Screen';
@@ -21,6 +22,7 @@ import { Avatar } from '@/features/account/components/Avatar';
 import { useMe } from '@/features/me/hooks';
 import { useBusiness, useSetupSummary } from '@/features/setup/hooks';
 import { payPlace } from '@/features/setup/payment';
+import { usePaymentAccount } from '@/features/payments/hooks';
 import { bookingUrlLabel } from '@/lib/config';
 import { formatDuration, formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -98,7 +100,7 @@ function extraRow(key: SetupExtraRow, sum: SetupSummary): Row {
   }
 }
 
-function buildSections(sum: SetupSummary, trial: string): { title: string; rows: Row[] }[] {
+function buildSections(sum: SetupSummary, trial: string, online: PaymentAccountView | undefined): { title: string; rows: Row[] }[] {
   const template = sum.template as BusinessTemplate;
   const info = TEMPLATE_INFO[template];
   const label = sum.resourceLabel;
@@ -147,6 +149,15 @@ function buildSections(sum: SetupSummary, trial: string): { title: string; rows:
         { key: 'time-off', title: s.timeOff, subtitle: s.timeOffSub, href: '/setup/time-off' },
         { key: 'rules', title: t.setup.profile.rulesTitle, subtitle: s.rulesLine(ahead, sum.rules.maxDaysAhead, cancel), href: '/setup/rules' },
         { key: 'payment', title: s.paymentRow, subtitle: payment, href: '/setup/payment-rule' },
+        {
+          key: 'online',
+          title: t.payments.row,
+          subtitle:
+            online?.status === 'connected' && online.secretKeyLast4
+              ? t.payments.rowConnected(online.secretKeyLast4)
+              : t.payments.rowNotConnected,
+          href: '/setup/payments',
+        },
         { key: 'form', title: s.bookingForm, subtitle: s.bookingFormLine(sum.bookingFields), href: '/setup/fields' },
       ],
     },
@@ -167,6 +178,7 @@ export default function SetupScreen() {
   const { me } = useMe();
   const business = useBusiness();
   const summary = useSetupSummary();
+  const online = usePaymentAccount();
 
   // Edits happen deeper in the Setup stack; refresh the summaries when coming back.
   useFocusEffect(
@@ -199,7 +211,7 @@ export default function SetupScreen() {
   const sum = summary.data;
   const sub = me?.subscription;
   const trial = !sub ? '' : sub.status === 'trialing' ? s.planTrial(sub.trialDaysLeft) : s.planActive(sub.plan);
-  const sections = buildSections(sum, trial);
+  const sections = buildSections(sum, trial, online.data);
   const typeName = t.templates[sum.template as keyof typeof t.templates]?.title ?? sum.template;
 
 

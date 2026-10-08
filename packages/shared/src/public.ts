@@ -61,6 +61,8 @@ export interface PublicBusiness {
   maxDaysAhead: number;
   /** Unpaid bookings hold the slot this long. */
   pendingExpiryMin: number;
+  /** ToyyibPay connected: deposits / full payments are paid online to confirm. Otherwise paid at the visit. */
+  onlinePayments: boolean;
   cancelPolicy: PublicCancelPolicy;
   settings: PublicSettings;
   /** Opening hours: per weekday the earliest start and latest end across bookable resources. */

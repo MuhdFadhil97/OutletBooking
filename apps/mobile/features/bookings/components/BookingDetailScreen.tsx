@@ -15,6 +15,8 @@ import { useBooking, useBookingEvents, useSetBookingStatus } from '@/features/bo
 import { openBookingForm, openCancelBooking, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
 import { useToast } from '@/components/ui/Toast';
+import { PaymentSection } from '@/features/payments/components/PaymentSection';
+import { useMe } from '@/features/me/hooks';
 import { confirm } from '@/lib/confirm';
 import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -33,6 +35,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const setStatus = useSetBookingStatus(id);
   const events = useBookingEvents(id);
   const toast = useToast();
+  const { me } = useMe();
 
   if (!booking.data || !business.data) {
     const error = booking.error ?? business.error;
@@ -124,7 +127,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
         </Section>
       ) : null}
 
-      <PaymentSection b={b} />
+      <PaymentSection b={b} tz={tz} businessName={business.data.name} canTakePayments={me?.permissions.canTakePayments ?? false} />
 
       {events.data?.length ? <HistorySection events={events.data} status={b.status} tz={tz} /> : null}
 
@@ -145,33 +148,6 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
         onReschedule={reschedule}
       />
     </StackScreen>
-  );
-}
-
-function PaymentSection({ b }: { b: Booking }) {
-  if (b.priceSen === 0) {
-    return (
-      <Section title={s.payment}>
-        <Row label={s.total} value={s.free} />
-      </Section>
-    );
-  }
-  const paidOnline = b.paymentStatus === 'paid' ? b.amountDueSen : 0;
-  const mode = b.amountDueSen >= b.priceSen ? 'full' : 'deposit';
-  return (
-    <Section title={s.payment}>
-      <Row label={s.total} value={formatRM(b.priceSen)} />
-      {b.amountDueSen > 0 ? (
-        <Row
-          label={`${s.dueOnline(mode)} · ${s.paymentStatus[b.paymentStatus]}`}
-          value={formatRM(b.amountDueSen)}
-          tone={b.paymentStatus === 'paid' ? 'ok' : undefined}
-        />
-      ) : null}
-      {/* Nothing is owed on a cancelled or no-show booking. */}
-      {b.status !== 'cancelled' && b.status !== 'no_show' ? <Row label={s.balance} value={formatRM(b.priceSen - paidOnline)} /> : null}
-      {b.refundedSen > 0 ? <Row label={s.refunded} value={formatRM(b.refundedSen)} /> : null}
-    </Section>
   );
 }
 
@@ -206,6 +182,13 @@ function HistorySection({ events, status, tz }: { events: BookingEvent[]; status
             .filter(Boolean)
             .join(' · '),
         };
+      case 'paid': {
+        const how = d.via === 'toyyibpay' ? t.payments.online : t.payments.methods[d.method as keyof typeof t.payments.methods];
+        return {
+          title: s.event.paid,
+          sub: [typeof d.amountSen === 'number' ? `${formatRM(d.amountSen)} · ${how ?? ''}` : null, who(e)].filter(Boolean).join(' · '),
+        };
+      }
       default:
         return { title: s.event[e.type], sub: who(e) };
     }

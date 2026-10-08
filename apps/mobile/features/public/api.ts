@@ -22,3 +22,9 @@ export const createPublicBooking = (slug: string, body: PublicBookingCreateInput
 export const getPublicBooking = (token: string) => apiFetch<PublicBookingConfirmation>(`/public/bookings/${enc(token)}`);
 export const cancelPublicBooking = (token: string) =>
   apiFetch<PublicBookingConfirmation>(`/public/bookings/${enc(token)}/cancel`, { method: 'POST', json: {} });
+
+// C4 / F4 · pay online (ToyyibPay page of the business's own account) and re-check after the bank
+export const payPublicBooking = (token: string) =>
+  apiFetch<{ url: string }>(`/public/bookings/${enc(token)}/pay`, { method: 'POST', json: {} });
+export const refreshPublicBooking = (token: string) =>
+  apiFetch<PublicBookingConfirmation>(`/public/bookings/${enc(token)}/refresh`, { method: 'POST', json: {} });

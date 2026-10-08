@@ -56,6 +56,7 @@ export default function OwnerTodayScreen() {
   };
   const onChecklistStep = (step: SetupStep) => {
     if (step === 'resources') router.push('/setup/resources');
+    else if (step === 'payments') router.push('/setup/payments');
     else if (step === 'shareLink') void shareLink();
     else if (step === 'testBooking') void Linking.openURL(link);
   };
