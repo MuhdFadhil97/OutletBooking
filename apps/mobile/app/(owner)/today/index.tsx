@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/ScreenStat
 import { Tag, type TagTone } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
 import { shiftDate, todayIn } from '@/features/bookings/format';
-import { useDayBookingsAll } from '@/features/bookings/hooks';
+import { useBookingsRange, useDayBookingsAll } from '@/features/bookings/hooks';
 import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { useMe } from '@/features/me/hooks';
 import { BellButton } from '@/features/notifications/components/BellButton';
@@ -30,14 +30,16 @@ export default function OwnerTodayScreen() {
   const tz = me?.business.timezone ?? 'Asia/Kuala_Lumpur';
   const date = todayIn(tz);
   const day = useDayBookingsAll(date, shiftDate(date, 1));
+  const tomorrow = useBookingsRange(shiftDate(date, 1), shiftDate(date, 2));
   const checklist = useSetupChecklist();
   const updateChecklist = useUpdateChecklist();
 
   useFocusEffect(
     useCallback(() => {
       void day.refetch();
+      void tomorrow.refetch();
       void checklist.refetch(); // steps done on other screens (hours, first booking)
-    }, [day.refetch, checklist.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
+    }, [day.refetch, tomorrow.refetch, checklist.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (isLoading) return <LoadingState />;
@@ -81,6 +83,11 @@ export default function OwnerTodayScreen() {
     { value: String(all.filter((b) => b.status === 'no_show').length), label: t.today.noShow },
   ];
   const now = Date.now();
+  // D5: bookings starting tomorrow that are still on.
+  const nextDay = shiftDate(date, 1);
+  const toRemind = (tomorrow.data ?? []).filter(
+    (b) => formatInTimeZone(b.startAt, business.timezone, 'yyyy-MM-dd') === nextDay && (b.status === 'pending' || b.status === 'confirmed'),
+  );
   const upNext = all
     .filter((b) => ['pending', 'confirmed', 'checked_in'].includes(b.status) && new Date(b.endAt).getTime() > now)
     .slice(0, UP_NEXT_MAX);
@@ -176,6 +183,21 @@ export default function OwnerTodayScreen() {
             </Pressable>
           ))}
         </View>
+
+        {toRemind.length ? (
+          <Pressable
+            onPress={() => router.push('/today/reminders')}
+            accessibilityRole="button"
+            className="min-h-[56px] flex-row items-center gap-3 rounded-card border border-border bg-card px-3.5 py-3 active:bg-pressed"
+          >
+            <Icon name="chat" color={colors.primary} />
+            <View className="flex-1">
+              <Text className="text-[15px] font-bold">{t.reminders.todayCard}</Text>
+              <Text className="text-[13px] text-muted">{t.reminders.todayCardSub(toRemind.filter((b) => !b.reminderSentAt).length)}</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Pressable>
+        ) : null}
 
         <View className="flex-row items-center justify-between pt-1">
           <Text className="text-[17px] font-extrabold">{t.today.upNext}</Text>

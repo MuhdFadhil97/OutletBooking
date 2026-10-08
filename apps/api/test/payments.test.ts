@@ -15,6 +15,7 @@ import type {
   Service,
   SetupChecklist,
 } from '@outletbooking/shared';
+import { DEFAULT_REMINDER_TEMPLATE, fillReminder } from '@outletbooking/shared';
 import { EXPIRED_REASON } from '../src/services/payments';
 import { createTestContext, signupInput } from './helpers';
 
@@ -324,5 +325,24 @@ describe('disconnect', () => {
     expect(row!.secretKeyEncrypted).toBeNull();
     const c = await webBooking(court1, 8);
     expect(c).toMatchObject({ status: 'confirmed', paymentStatus: 'unpaid', payment: { onlineAvailable: false, required: false } });
+  });
+});
+
+describe('D5 · remind tomorrow’s customers', () => {
+  it('marks the reminder as sent (timeline), only for visible bookings', async () => {
+    const id = await bookingId((await webBooking(court1, 9)).token);
+    expect((await ctx.send('POST', `/bookings/${id}/reminder-sent`, ownerB)).status).toBe(404);
+    const b = await json<Booking>(await ctx.send('POST', `/bookings/${id}/reminder-sent`, staff));
+    expect(b.reminderSentAt).not.toBeNull();
+    const events = await ctx.db.select({ type: bookingEvents.eventType }).from(bookingEvents).where(eq(bookingEvents.bookingId, id));
+    expect(events.map((e) => e.type)).toContain('reminder_sent');
+  });
+
+  it('fills the message template', () => {
+    const vars = { name: 'Ali', service: 'Badminton', business: 'Smash Arena PJ', time: '8:00 AM', date: 'Sun, 11 Oct', resource: 'Court 1', ref: 'SA3H' };
+    expect(fillReminder(DEFAULT_REMINDER_TEMPLATE, vars)).toBe(
+      "Hi Ali, a reminder of your Badminton booking at Smash Arena PJ tomorrow, 8:00 AM on Court 1. Can't make it? Reply to this message.",
+    );
+    expect(fillReminder('Hi {name} {unknown} ref {ref}', vars)).toBe('Hi Ali {unknown} ref SA3H');
   });
 });

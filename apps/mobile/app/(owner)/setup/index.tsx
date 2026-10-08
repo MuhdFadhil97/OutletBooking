@@ -166,7 +166,7 @@ function buildSections(sum: SetupSummary, trial: string, online: PaymentAccountV
       rows: [
         { key: 'profile', title: s.profile, subtitle: s.profileSub, href: '/setup/profile' },
         { key: 'staff', title: s.staffRoles, subtitle: s.staffCount(sum.staffCount), href: '/setup/staff' },
-        { key: 'reminders', title: s.reminders, subtitle: s.remindersSub, soon: true },
+        { key: 'reminders', title: s.reminders, subtitle: s.remindersSub, href: '/today/reminders' },
         { key: 'plan', title: s.plan, subtitle: trial, soon: true },
       ],
     },

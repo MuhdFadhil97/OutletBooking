@@ -707,3 +707,16 @@ export async function cancelBooking(
     return getBooking(tx, businessId, id);
   });
 }
+
+/** D5 · the customer was sent a reminder (WhatsApp from the owner's phone). */
+export async function markReminderSent(db: Db, businessId: number, id: number, userId: number, scope: BookingScope): Promise<Booking> {
+  await getBooking(db, businessId, id, scope);
+  return db.transaction(async (tx) => {
+    await tx
+      .update(bookings)
+      .set({ reminderSentAt: new Date() })
+      .where(and(eq(bookings.businessId, businessId), eq(bookings.id, id)));
+    await recordBookingEvent(tx, { businessId, bookingId: id, type: 'reminder_sent', actorUserId: userId, details: { channel: 'whatsapp' } });
+    return getBooking(tx, businessId, id, scope);
+  });
+}

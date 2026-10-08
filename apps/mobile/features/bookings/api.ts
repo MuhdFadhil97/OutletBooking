@@ -48,3 +48,5 @@ export const rescheduleBooking = (id: number, body: BookingRescheduleInput) =>
 
 export const setBookingStatus = (id: number, status: BookingStatus, reason?: string | null) =>
   apiFetch<Booking>(`/bookings/${id}/status`, { method: 'POST', json: { status, reason } });
+/** D5 · reminder sent on WhatsApp */
+export const markReminderSent = (id: number) => apiFetch<Booking>(`/bookings/${id}/reminder-sent`, { method: 'POST' });

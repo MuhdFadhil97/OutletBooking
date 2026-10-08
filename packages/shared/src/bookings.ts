@@ -234,3 +234,14 @@ export interface BookingEvent {
   details: Record<string, unknown>;
   createdAt: string;
 }
+
+/** D5 · default "remind tomorrow's customers" WhatsApp message. Placeholders in {braces}. */
+export const DEFAULT_REMINDER_TEMPLATE =
+  "Hi {name}, a reminder of your {service} booking at {business} tomorrow, {time} on {resource}. Can't make it? Reply to this message.";
+export const REMINDER_PLACEHOLDERS = ['name', 'service', 'business', 'time', 'date', 'resource', 'ref'] as const;
+export type ReminderVars = Record<(typeof REMINDER_PLACEHOLDERS)[number], string>;
+
+/** Fills {name}, {service}… — unknown placeholders are left as typed. */
+export function fillReminder(template: string, vars: ReminderVars): string {
+  return template.replace(/\{(\w+)\}/g, (all, key: string) => (key in vars ? vars[key as keyof ReminderVars] : all));
+}

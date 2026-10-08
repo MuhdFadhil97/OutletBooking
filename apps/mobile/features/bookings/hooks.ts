@@ -102,3 +102,15 @@ export function useCancelBooking(id: number) {
   const onChanged = useOnBookingChanged();
   return useMutation({ mutationFn: (body: BookingCancelInput) => api.cancelBooking(id, body), onSuccess: onChanged });
 }
+
+/** D5 · after WhatsApp opened with the reminder. */
+export function useMarkReminderSent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.markReminderSent(id),
+    onSuccess: (b) => {
+      qc.setQueryData(bookingKeys.detail(b.id), b);
+      void qc.invalidateQueries({ queryKey: ['bookings', 'range'] });
+    },
+  });
+}

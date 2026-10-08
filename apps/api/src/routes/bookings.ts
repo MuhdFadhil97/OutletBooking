@@ -25,6 +25,7 @@ import {
   createBooking,
   getBooking,
   listBookings,
+  markReminderSent,
   rescheduleBooking,
   searchBookings,
   updateBooking,
@@ -64,6 +65,10 @@ export const bookingRoutes = new Hono<AppEnv>()
     await getBooking(c.var.db, businessId, id, await scopeOf(c));
     return c.json(await listBookingEvents(c.var.db, businessId, id));
   })
+  // D5 · reminder sent on WhatsApp
+  .post('/:id/reminder-sent', validate('param', idParam), async (c) =>
+    c.json(await markReminderSent(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.var.userId, await scopeOf(c))),
+  )
   // H7 · payments on this booking (+ the open pay link)
   .get('/:id/payments', validate('param', idParam), async (c) => {
     const { businessId } = c.var.tenant;
