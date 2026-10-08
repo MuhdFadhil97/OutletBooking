@@ -1,13 +1,13 @@
 import { and, eq, inArray, isNull, notExists } from 'drizzle-orm';
 import { verifyPassword } from 'better-auth/crypto';
-import { accounts, bookings, businesses, businessMembers, refunds, users, type Db } from '@outletbooking/db';
+import { accounts, bookings, businesses, businessMembers, payments, refunds, users, type Db } from '@outletbooking/db';
 import type { DeleteAccountInput } from '@outletbooking/shared';
 import { AppError, notFound } from '../errors';
 
 /**
  * H6 · Delete my account and business data (owner only, permanent — decided by the product owner).
  * In one transaction:
- *  1. rows that RESTRICT the business delete: refunds, then bookings (booking_events cascade);
+ *  1. rows that RESTRICT the business delete: refunds, payments, then bookings (booking_events cascade);
  *  2. the business — everything else cascades (customers, services, resources, hours, time off,
  *     booking questions, members, invitations, subscription);
  *  3. logins left without any business: the owner and staff who only worked here
@@ -39,6 +39,7 @@ export async function deleteOwnerAccount(db: Db, businessId: number, ownerUserId
     ).map((m) => m.userId);
 
     await tx.delete(refunds).where(eq(refunds.businessId, businessId));
+    await tx.delete(payments).where(eq(payments.businessId, businessId));
     await tx.delete(bookings).where(eq(bookings.businessId, businessId));
     await tx.delete(businesses).where(eq(businesses.id, businessId));
 

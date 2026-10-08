@@ -19,6 +19,8 @@ export function createTestContext() {
     BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-1234',
     BETTER_AUTH_URL: 'http://localhost:3000',
     TRUSTED_ORIGINS: `${WEB_ORIGIN},outletbooking://`,
+    APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    API_PUBLIC_URL: 'https://api.test',
   });
   const { db, sql } = createDb(url, { max: 5 });
   /** Every email the API "sent" during the test. */

@@ -31,8 +31,26 @@ const envSchema = z.object({
   /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */
   MAIL_FROM: z.string().min(3).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
+  /** 32 bytes, base64 — encrypts each business's ToyyibPay secret key (AES-256-GCM). */
+  APP_ENCRYPTION_KEY: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .refine((v) => Buffer.from(v, 'base64').length === 32, 'must be 32 bytes, base64-encoded')
+      .optional(),
+  ),
+  /** Where ToyyibPay can reach this API (callback). Locally: a tunnel URL. Defaults to BETTER_AUTH_URL. */
+  API_PUBLIC_URL: z.preprocess((v) => (v === '' ? undefined : v), z.url().optional()),
+  TOYYIBPAY_BASE_URL: z.url().default('https://dev.toyyibpay.com'),
+  /** FTech's own account — plan payments only (Phase 7). Never used for bookings. */
+  PLATFORM_TOYYIBPAY_SECRET_KEY: z.string().optional(),
+  PLATFORM_TOYYIBPAY_CATEGORY_CODE: z.string().optional(),
   /** Expo push service; `off` drops push (default in tests). */
   PUSH_TRANSPORT: z.enum(['expo', 'off']).optional(),
+}).superRefine((e, ctx) => {
+  if (e.NODE_ENV === 'production' && !e.APP_ENCRYPTION_KEY) {
+    ctx.addIssue({ code: 'custom', path: ['APP_ENCRYPTION_KEY'], message: 'required in production' });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;

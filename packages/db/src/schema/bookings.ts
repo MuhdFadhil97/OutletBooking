@@ -5,6 +5,7 @@ import { users } from './auth';
 import { businesses } from './tenant';
 import { BOOKING_EVENT_TYPES, type BookingEventType } from '@outletbooking/shared';
 import { branches, resources, services } from './setup';
+import { payments } from './payments';
 
 /** Per-business customer, unique by phone (E.164). PDPA erase anonymises the row (phone → NULL). */
 export const customers = pgTable(
@@ -188,7 +189,7 @@ export const refunds = pgTable(
       .notNull()
       .references(() => businesses.id, { onDelete: 'restrict' }),
     bookingId: integer('booking_id').notNull(),
-    paymentId: integer('payment_id'),
+    paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'restrict' }),
     amountSen: integer('amount_sen').notNull(),
     method: text('method').notNull(),
     reason: text('reason'),
