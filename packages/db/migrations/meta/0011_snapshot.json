@@ -3695,6 +3695,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "test_bill_code": {
+          "name": "test_bill_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "connected_by_user_id": {
           "name": "connected_by_user_id",
           "type": "integer",

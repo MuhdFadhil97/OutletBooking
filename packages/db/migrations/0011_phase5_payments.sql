@@ -8,6 +8,7 @@ CREATE TABLE "payment_accounts" (
 	"status" text DEFAULT 'not_connected' NOT NULL,
 	"last_error" text,
 	"tested_at" timestamp with time zone,
+	"test_bill_code" text,
 	"connected_by_user_id" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,

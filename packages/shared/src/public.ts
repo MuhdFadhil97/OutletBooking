@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { slugSchema } from './schemas';
 import type { AvailableSlot } from './availability';
 import type { BookingStatus, PaymentStatus } from './bookings';
+import type { PublicPayment } from './payments';
 import type { BusinessTemplate } from './templates';
 import type { BookingField, LocationType, PriceUnit, ResourceType } from './setup';
 
@@ -118,6 +119,8 @@ export interface PublicBookingConfirmation {
   answers: { label: string; value: string }[];
   /** Whether the customer may cancel online now, and until when (F5). */
   cancel: { allowed: boolean; until: string | null };
+  /** Online payment (Phase 5, ToyyibPay with the business's own account). */
+  payment: PublicPayment;
   business: Pick<PublicBusiness, 'slug' | 'name' | 'template' | 'address' | 'phone' | 'whatsappPhone' | 'timezone'>;
 }
 

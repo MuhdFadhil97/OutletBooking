@@ -2,6 +2,7 @@ import { and, eq, exists, isNull, sql } from 'drizzle-orm';
 import { bookings, businesses, resources, workingHours, type Db } from '@outletbooking/db';
 import type { ChecklistUpdate, SetupChecklist, SetupStep } from '@outletbooking/shared';
 import { notFound } from '../errors';
+import { isOnlinePaymentAvailable } from './payments';
 
 /** Keys in businesses.settings for what only the app knows (no schema change needed). */
 const LINK_SHARED_KEY = 'checklistLinkSharedAt';
@@ -48,8 +49,8 @@ export async function getSetupChecklist(db: Db, businessId: number): Promise<Set
   const done: Record<SetupStep, boolean> = {
     account: true,
     resources: resourceCount > 0,
-    // Phase 5 (H1): ticks when the business connects its own ToyyibPay account.
-    payments: false,
+    // H1: the business's own ToyyibPay account is connected.
+    payments: await isOnlinePaymentAvailable(db, businessId),
     shareLink: typeof biz.settings[LINK_SHARED_KEY] === 'string',
     testBooking: !!anyBooking,
   };

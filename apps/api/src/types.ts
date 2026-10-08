@@ -2,6 +2,7 @@ import type { Db } from '@outletbooking/db';
 import type { MemberRole } from '@outletbooking/shared';
 import type { Auth, AuthSession } from './auth';
 import type { Env } from './env';
+import type { PaymentDeps } from './services/payments';
 import type { PushSender } from './services/push';
 
 /** Resolved from business_members on every authenticated request — never from the client. */
@@ -22,6 +23,7 @@ export interface AppVariables {
   auth: Auth;
   env: Env;
   push: PushSender;
+  payments: PaymentDeps;
   userId: number;
   session: AuthSession;
   tenant: Tenant;

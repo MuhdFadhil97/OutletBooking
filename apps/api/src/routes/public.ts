@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { availabilityQuerySchema, publicBookingCreateSchema, publicSlugParam, publicTokenParam } from '@outletbooking/shared';
 import { rateLimit } from '../middleware/rate-limit';
 import { Outbox } from '../services/notifications';
+import { bookingByToken, payLinkForBooking, syncBookingBills } from '../services/payments';
 import { cancelPublicBooking, createPublicBooking, getPublicBooking, getPublicBusiness, getPublicSlots } from '../services/public';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
@@ -25,6 +26,31 @@ export const publicRoutes = new Hono<AppEnv>()
       const result = await cancelPublicBooking(c.var.db, c.req.valid('param').token, outbox);
       void outbox.flush(c.var.db, c.var.push);
       return c.json(result);
+    },
+  )
+  // C4 / F4 · "Pay RM x": the ToyyibPay page for this booking (business's own account).
+  .post(
+    '/bookings/:token/pay',
+    rateLimit({ prefix: 'public-pay', windowMs: 10 * 60_000, max: 20 }),
+    validate('param', publicTokenParam),
+    async (c) => {
+      const b = await bookingByToken(c.var.db, c.req.valid('param').token);
+      const { url } = await payLinkForBooking(c.var.db, c.var.payments, b.businessId, b.id);
+      return c.json({ url });
+    },
+  )
+  // Back from the bank: re-check open bills with ToyyibPay, then show the booking.
+  .post(
+    '/bookings/:token/refresh',
+    rateLimit({ prefix: 'public-refresh', windowMs: 60_000, max: 12 }),
+    validate('param', publicTokenParam),
+    async (c) => {
+      const { token } = c.req.valid('param');
+      const b = await bookingByToken(c.var.db, token);
+      const outbox = new Outbox();
+      await syncBookingBills(c.var.db, c.var.payments, b.id, outbox);
+      void outbox.flush(c.var.db, c.var.push);
+      return c.json(await getPublicBooking(c.var.db, token));
     },
   )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>

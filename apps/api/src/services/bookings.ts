@@ -96,6 +96,12 @@ const columns = {
     select coalesce(sum(r.amount_sen), 0)::int from refunds r
     where r.business_id = ${bookings.businessId} and r.booking_id = ${bookings.id}
   )`,
+  paidSen: sql<number>`(
+    select coalesce(sum(p.amount_sen), 0)::int from payments p
+    where p.business_id = ${bookings.businessId} and p.booking_id = ${bookings.id} and p.status in ('paid', 'refunded')
+  )`,
+  expiresAt: bookings.expiresAt,
+  reminderSentAt: bookings.reminderSentAt,
   publicToken: bookings.publicToken,
   priceSen: bookings.priceSen,
   amountDueSen: bookings.amountDueSen,
@@ -141,6 +147,9 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   amountDueSen: r.amountDueSen,
   paymentStatus: r.paymentStatus as PaymentStatus,
   refundedSen: r.refundedSen,
+  paidSen: r.paidSen,
+  expiresAt: r.expiresAt?.toISOString() ?? null,
+  reminderSentAt: r.reminderSentAt?.toISOString() ?? null,
   locationAddress: r.locationAddress,
   customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,

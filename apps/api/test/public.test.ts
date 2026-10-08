@@ -175,7 +175,14 @@ describe('public booking flow', () => {
     expect(owner.find((b) => b.startAt === iso('09:00'))).toMatchObject({ source: 'web', status: 'confirmed', customFields: { players: 4 } });
   });
 
+  it('a prepaid service: confirmed, pay at the venue, while ToyyibPay is not connected', async () => {
+    const c = await json<PublicBookingConfirmation>(await book({ serviceId: paid, startAt: at('16:00'), customer: { name: 'Mei', phone: '+60127778888' } }), 201);
+    expect(c).toMatchObject({ status: 'confirmed', amountDueSen: 3000, paymentStatus: 'unpaid', expiresAt: null });
+    expect(c.payment).toEqual({ required: false, amountSen: 3000, status: 'not_required', onlineAvailable: false, reference: null });
+  });
+
   it('a prepaid service starts pending with an expiry', async () => {
+    await ctx.connectOnlinePayments('arena-a');
     const before = Date.now();
     const c = await json<PublicBookingConfirmation>(await book({ serviceId: paid, startAt: at('10:00') }), 201);
     expect(c).toMatchObject({ status: 'pending', amountDueSen: 3000, paymentStatus: 'unpaid' });

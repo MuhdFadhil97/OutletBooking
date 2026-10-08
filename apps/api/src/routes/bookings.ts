@@ -9,12 +9,15 @@ import {
   bookingUpdateSchema,
   calendarAvailabilityQuery,
   idParam,
+  manualPaymentSchema,
 } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requireRole, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireRole, resolveTenant } from '../middleware/tenant';
 import { getAvailability } from '../services/availability';
 import { listBookingEvents } from '../services/booking-events';
 import { Outbox } from '../services/notifications';
+import { listBookingPayments, payLinkForBooking, recordManualPayment } from '../services/payments';
+import { recordBookingEvent } from '../services/booking-events';
 import {
   bookingScope,
   cancelBooking,
@@ -60,6 +63,38 @@ export const bookingRoutes = new Hono<AppEnv>()
     const { id } = c.req.valid('param');
     await getBooking(c.var.db, businessId, id, await scopeOf(c));
     return c.json(await listBookingEvents(c.var.db, businessId, id));
+  })
+  // H7 · payments on this booking (+ the open pay link)
+  .get('/:id/payments', validate('param', idParam), async (c) => {
+    const { businessId } = c.var.tenant;
+    const { id } = c.req.valid('param');
+    await getBooking(c.var.db, businessId, id, await scopeOf(c));
+    return c.json(await listBookingPayments(c.var.db, c.var.payments, businessId, id));
+  })
+  // H7 · record cash / DuitNow QR / card / bank transfer
+  .post(
+    '/:id/payments',
+    requirePermission('canTakePayments'),
+    validate('param', idParam),
+    validate('json', manualPaymentSchema),
+    async (c) => {
+      const { businessId } = c.var.tenant;
+      const { id } = c.req.valid('param');
+      await getBooking(c.var.db, businessId, id, await scopeOf(c));
+      await recordManualPayment(c.var.db, businessId, id, c.var.userId, c.req.valid('json'));
+      return c.json(await getBooking(c.var.db, businessId, id, await scopeOf(c)), 201);
+    },
+  )
+  // H7 · "Resend pay link": the ToyyibPay page to send on WhatsApp (logged on the timeline).
+  .post('/:id/pay-link', requirePermission('canTakePayments'), validate('param', idParam), async (c) => {
+    const { businessId } = c.var.tenant;
+    const { id } = c.req.valid('param');
+    await getBooking(c.var.db, businessId, id, await scopeOf(c));
+    const link = await payLinkForBooking(c.var.db, c.var.payments, businessId, id);
+    await c.var.db.transaction((tx) =>
+      recordBookingEvent(tx, { businessId, bookingId: id, type: 'pay_link_sent', actorUserId: c.var.userId }),
+    );
+    return c.json({ url: link.url });
   })
   .post('/', requireRole('owner'), validate('json', bookingCreateSchema), async (c) => {
     const outbox = new Outbox();

@@ -36,6 +36,7 @@ import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
 import { recordBookingEvent } from './booking-events';
 import { notifyBooking, Outbox } from './notifications';
+import { isOnlinePaymentAvailable, publicPayment } from './payments';
 import { getPriceQuote, getPriceQuotes } from './pricing';
 
 type Q = Db | Tx;
@@ -287,7 +288,9 @@ export async function createPublicBooking(
 
     const endAt = addMinutes(input.startAt, durationMin);
     const blocked = blockedRange(input.startAt, endAt, svc);
-    const needsPayment = quote.amountDueSen > 0;
+    // Pay online to confirm — only when the business has connected ToyyibPay. Otherwise the booking
+    // is confirmed and the amount is collected at the venue (H7 record payment).
+    const needsPayment = quote.amountDueSen > 0 && (await isOnlinePaymentAvailable(tx, biz.id));
     const status: BookingStatus = needsPayment ? 'pending' : 'confirmed';
     const expiresAt = needsPayment ? addMinutes(now, biz.pendingExpiryMin) : null;
     const branchId = await resourceBranch(tx, biz.id, resourceId);
@@ -415,6 +418,7 @@ async function publicBookingView(q: Q, token: string, now = new Date()): Promise
     expiresAt: row.expiresAt?.toISOString() ?? null,
     answers,
     cancel: { allowed: customersCanCancel && open && now < until, until: customersCanCancel ? until.toISOString() : null },
+    payment: await publicPayment(q, row.businessId, row.bookingId, row),
     business: { ...business, template: business.template as BusinessTemplate },
   };
 }

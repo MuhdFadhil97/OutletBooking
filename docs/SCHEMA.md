@@ -83,7 +83,7 @@ erDiagram
 | Booking | booking_attachments | Inspection photos, documents | booking_id, file_key, content_type |
 | Payment | payments | Online (ToyyibPay) or manual payments for bookings; plan payments | purpose (deposit/full_payment/balance/subscription), provider (toyyibpay/manual), method, bill_code, amount_sen, status, recorded_by_user_id |
 | Payment | refunds | Refunds recorded on cancel (paid outside the app) | booking_id, payment_id, amount_sen, method, reason |
-| Payment | payment_accounts | Each business's own ToyyibPay connection (one per business) | secret_key_encrypted, secret_key_last4, category_code, status, tested_at |
+| Payment | payment_accounts | Each business's own ToyyibPay connection (one per business) | secret_key_encrypted, secret_key_last4, category_code, status, tested_at, test_bill_code |
 | Activity | booking_events | Booking timeline (created, paid, reminder, checked in, completed, cancelled…) | booking_id, event_type, actor_user_id, details |
 | Activity | notifications | In-app notifications per user | user_id, type, title, booking_id, read_at |
 | Platform | platform_admins | FTech staff who can use the admin panel | user_id |

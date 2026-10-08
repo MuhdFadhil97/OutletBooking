@@ -1,12 +1,55 @@
-import { sql as dsql } from 'drizzle-orm';
+import { eq, sql as dsql } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
-import { accounts, createDb, users } from '@outletbooking/db';
+import { accounts, businesses, createDb, paymentAccounts, users } from '@outletbooking/db';
+import { encryptSecret } from '../src/services/crypto';
 import type { SignupInput } from '@outletbooking/shared';
 import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
 import type { MailMessage } from '../src/services/mailer';
 import type { PushMessage } from '../src/services/push';
+import { ToyyibPayError, type BillTransaction, type CreateBillInput, type ToyyibPayClient } from '../src/services/toyyibpay';
+
+/** In-memory ToyyibPay: records categories / bills; tests decide what each bill's transactions say. */
+export class FakeToyyibPay implements ToyyibPayClient {
+  categories: { secretKey: string; name: string }[] = [];
+  bills = new Map<string, CreateBillInput & { secretKey: string; txs: BillTransaction[] }>();
+  /** Keys ToyyibPay rejects. */
+  badKeys = new Set<string>(['bad-key-0000']);
+  down = false;
+  private n = 0;
+
+  async createCategory(secretKey: string, name: string) {
+    if (this.down) throw new ToyyibPayError('Could not reach ToyyibPay. Try again in a minute.');
+    if (this.badKeys.has(secretKey)) throw new ToyyibPayError('ToyyibPay did not accept this key ([KEY-DID-NOT-EXIST])');
+    this.categories.push({ secretKey, name });
+    return `cat${this.categories.length}`;
+  }
+  async createBill(secretKey: string, input: CreateBillInput) {
+    if (this.down) throw new ToyyibPayError('Could not reach ToyyibPay. Try again in a minute.');
+    const code = `bill${++this.n}x`;
+    this.bills.set(code, { ...input, secretKey, txs: [] });
+    return code;
+  }
+  async getBillTransactions(billCode: string) {
+    if (this.down) throw new ToyyibPayError('Could not reach ToyyibPay. Try again in a minute.');
+    return this.bills.get(billCode)?.txs ?? [];
+  }
+  paymentUrl(billCode: string) {
+    return `https://dev.toyyibpay.test/${billCode}`;
+  }
+  /** The customer pays (or fails) at the bank. */
+  pay(billCode: string, amountSen?: number) {
+    const bill = this.bills.get(billCode)!;
+    bill.txs = [{ status: 'paid', amountSen: amountSen ?? bill.amountSen, invoiceNo: `TP${billCode}`, channel: 'FPX', paidAt: null }];
+  }
+  fail(billCode: string) {
+    this.bills.get(billCode)!.txs = [{ status: 'failed', amountSen: this.bills.get(billCode)!.amountSen, invoiceNo: null, channel: 'FPX', paidAt: null }];
+  }
+  lastBill() {
+    return [...this.bills.keys()].at(-1)!;
+  }
+}
 import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
@@ -34,13 +77,15 @@ export function createTestContext() {
       return { deadTokens: messages.filter((m) => m.to.includes('Dead')).map((m) => m.to) };
     },
   };
-  const app = createApp({ db, auth, env, push });
+  const toyyibpay = new FakeToyyibPay();
+  const app = createApp({ db, auth, env, push, toyyibpay });
 
   return {
     db,
     app,
     outbox,
     pushed,
+    toyyibpay,
     async reset() {
       outbox.length = 0;
       pushed.length = 0;
@@ -75,6 +120,19 @@ export function createTestContext() {
         headers: { 'content-type': 'application/json', origin: WEB_ORIGIN, cookie },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
+    },
+    /** Marks a business as having connected ToyyibPay (secret key "sk-<slug>", category "CAT-<slug>"). */
+    async connectOnlinePayments(slug: string) {
+      const [b] = await db.select({ id: businesses.id }).from(businesses).where(eq(businesses.slug, slug));
+      const secretKey = `sk-${slug}`;
+      await db.insert(paymentAccounts).values({
+        businessId: b!.id,
+        status: 'connected',
+        secretKeyEncrypted: encryptSecret(secretKey, Buffer.from(env.APP_ENCRYPTION_KEY!, 'base64')),
+        secretKeyLast4: secretKey.slice(-4),
+        categoryCode: `CAT-${slug}`,
+      });
+      return b!.id;
     },
     /** Creates a login + credential account (no membership). */
     async createUser(name: string, email: string, password = 'password123'): Promise<number> {

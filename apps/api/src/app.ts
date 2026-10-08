@@ -12,6 +12,7 @@ import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
 import { notificationRoutes, pushTokenRoutes } from './routes/notifications';
+import { paymentAccountRoutes, toyyibpayRoutes } from './routes/payments';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
 import { resourceRoutes } from './routes/resources';
@@ -19,7 +20,9 @@ import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
 import { staffRoutes } from './routes/staff';
 import { timeOffRoutes } from './routes/time-off';
+import { createPaymentDeps } from './services/payments';
 import { createPushSender, type PushSender } from './services/push';
+import type { ToyyibPayClient } from './services/toyyibpay';
 import type { AppEnv } from './types';
 
 export interface AppDeps {
@@ -28,9 +31,12 @@ export interface AppDeps {
   env: Env;
   /** Defaults to Expo push (off in tests). */
   push?: PushSender;
+  /** Defaults to the real ToyyibPay API at TOYYIBPAY_BASE_URL. */
+  toyyibpay?: ToyyibPayClient;
 }
 
-export function createApp({ db, auth, env, push = createPushSender(env) }: AppDeps) {
+export function createApp({ db, auth, env, push = createPushSender(env), toyyibpay }: AppDeps) {
+  const payments = createPaymentDeps(env, toyyibpay);
   const app = new Hono<AppEnv>();
 
   if (env.NODE_ENV === 'development') app.use(logger());
@@ -53,6 +59,7 @@ export function createApp({ db, auth, env, push = createPushSender(env) }: AppDe
     c.set('auth', auth);
     c.set('env', env);
     c.set('push', push);
+    c.set('payments', payments);
     await next();
   });
 
@@ -73,6 +80,8 @@ export function createApp({ db, auth, env, push = createPushSender(env) }: AppDe
   app.route('/public', publicRoutes);
   app.route('/notifications', notificationRoutes);
   app.route('/push-tokens', pushTokenRoutes);
+  app.route('/payment-account', paymentAccountRoutes);
+  app.route('/payments/toyyibpay', toyyibpayRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

@@ -211,6 +211,12 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   /** Recorded refunds (paid outside the app). */
   refundedSen: number;
+  /** Payments received (online + recorded by hand). */
+  paidSen: number;
+  /** Unpaid pending bookings are released at this time (H7 countdown). */
+  expiresAt: string | null;
+  /** D5 · reminder sent to the customer. */
+  reminderSentAt: string | null;
   locationAddress: string | null;
   customFields: Record<string, string | number>;
   customerNotes: string | null;

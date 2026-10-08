@@ -127,7 +127,13 @@ export type BookingNotice =
   | { kind: 'web_booking'; customerName: string; awaitingPayment: boolean }
   /** Owner / staff added a booking (walk-in or otherwise). */
   | { kind: 'added'; walkIn: boolean }
-  | { kind: 'cancelled'; byCustomer: boolean };
+  | { kind: 'cancelled'; byCustomer: boolean }
+  /** Online payment confirmed. `released`: paid after the hold ended and the slot was taken — refund. */
+  | { kind: 'paid'; amountSen: number; released?: boolean }
+  /** The bank did not confirm the payment; `heldUntil` = when the slot is released. */
+  | { kind: 'payment_failed'; heldUntil: Date | null }
+  /** Not paid within the hold time — slot released. */
+  | { kind: 'expired' };
 
 /** Writes the notifications for one booking change. Call inside the transaction that made it. */
 export async function notifyBooking(
@@ -172,6 +178,25 @@ export async function notifyBooking(
       body = `${b.customerName} · ${b.resourceName} · ${b.when}`;
       break;
     }
+    case 'paid':
+      type = 'booking_paid';
+      title = notice.released
+        ? `Paid ${rm(notice.amountSen)} after the slot was released — please refund`
+        : `New booking · paid ${rm(notice.amountSen)}`;
+      body = `${b.customerName} · ${b.resourceName} · ${b.when}`;
+      break;
+    case 'payment_failed': {
+      type = 'payment_failed';
+      title = 'Payment not completed';
+      const left = notice.heldUntil ? Math.max(0, Math.round((notice.heldUntil.getTime() - Date.now()) / 60_000)) : 0;
+      body = `${b.customerName} · ${b.resourceName} · ${left ? `slot held ${left} more min` : b.when}`;
+      break;
+    }
+    case 'expired':
+      type = 'booking_cancelled';
+      title = 'Not paid in time — slot released';
+      body = `${b.customerName} · ${b.resourceName} · ${b.when}`;
+      break;
   }
   await outbox.add(tx, businessId, recipients, {
     type,

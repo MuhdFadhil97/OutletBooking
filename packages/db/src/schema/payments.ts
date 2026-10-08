@@ -64,6 +64,8 @@ export const paymentAccounts = pgTable(
     status: text('status').notNull().default('not_connected'),
     lastError: text('last_error'),
     testedAt: timestamp('tested_at', { withTimezone: true }),
+    /** BillCode of the latest RM 1.00 test bill (H1). */
+    testBillCode: text('test_bill_code'),
     connectedByUserId: integer('connected_by_user_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
