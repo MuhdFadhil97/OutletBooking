@@ -5,7 +5,7 @@
 **Niche:** generic engine; pilot templates for real estate viewing, vehicle inspection and sports booking.
 **UI:** 74 screens + 5 flow maps in `docs/wireframes/` (IDs like O2, H1, D4 are listed in `docs/wireframes/README.md`). Each phase below names the screens and tables it builds.
 
-> **Docs updated mid-build (Phase 4).** Phases 1–3 and the Phase 4 public API were built against the earlier docs (21 tables, 18 wireframes). Ticks below carry that progress over; items the updated docs added to already-finished phases are left unchecked and marked *(new in updated docs)* so they can be caught up. Migrated: 0000–0006 (Phase 1–3 tables) and 0007–0008 (catch-up: new columns, `booking_events`, `refunds`), 0009–0010 (Phase 4 `notifications`). Not yet migrated (later phases): `payment_accounts`, `payments` (+ `refunds.payment_id` FK), `platform_admins`, `admin_audit_log`, section 7 (`listings`, `checklist_*`, `inspection_*`, `booking_attachments`).
+> **Docs updated mid-build (Phase 4).** Phases 1–3 and the Phase 4 public API were built against the earlier docs (21 tables, 18 wireframes). Ticks below carry that progress over; items the updated docs added to already-finished phases are left unchecked and marked *(new in updated docs)* so they can be caught up. Migrated: 0000–0006 (Phase 1–3 tables) and 0007–0008 (catch-up: new columns, `booking_events`, `refunds`), 0009–0010 (Phase 4 `notifications`), 0011–0012 (Phase 5 `payment_accounts`, `payments`). Not yet migrated (later phases): `platform_admins`, `admin_audit_log`, section 7 (`listings`, `checklist_*`, `inspection_*`, `booking_attachments`).
 
 ---
 
@@ -79,13 +79,13 @@
 ---
 
 ## Phase 5 — Payments & jobs (Week 5)
-- [ ] Migration: `payment_accounts`, `payments`
-- [ ] **H1** connect own ToyyibPay: encrypt secret key (`APP_ENCRYPTION_KEY`), create category, RM 1.00 test; D8 checklist item ticks when connected
-- [ ] Create bill with the **business's** key → payment URL (deposit or full); callback re-checks `getBillTransactions` → paid → confirmed (idempotent)
-- [ ] Local callback testing through a tunnel (Cloudflare Tunnel / ngrok)
+- [x] Migration: `payment_accounts`, `payments` *(0011–0012, + `refunds.payment_id` FK and `payment_accounts.test_bill_code` (latest RM 1 test bill; added to schema.sql/SCHEMA.md). Account deletion removes payments too)*
+- [x] **H1** connect own ToyyibPay: encrypt secret key (`APP_ENCRYPTION_KEY`), create category, RM 1.00 test; D8 checklist item ticks when connected *(`setup/payments`; owner only. The key is checked by creating the category with it — a rejected key is never stored; AES-256-GCM, last 4 only in responses. Disconnect forgets the key. A business without ToyyibPay gets confirmed bookings paid at the venue. `crypto.test.ts` (4), `payments.test.ts`)*
+- [x] Create bill with the **business's** key → payment URL (deposit or full); callback re-checks `getBillTransactions` → paid → confirmed (idempotent) *(`POST /public/bookings/:token/pay` (reuses the open bill), `/refresh` after the bank, `POST /payments/toyyibpay/callback`. Paid → `paid` + `confirmed` events, booking_paid notification; *auto-confirm paid* off keeps it pending without expiry. Underpaid bills don't count. Late payment revives a released booking if the slot is free, else "please refund". 18 tests in `payments.test.ts` with a fake ToyyibPay. Flow in `docs/PAYMENTS.md`)*
+- [x] Local callback testing through a tunnel (Cloudflare Tunnel / ngrok) *(`API_PUBLIC_URL` + steps in `docs/PAYMENTS.md`. Checked end-to-end here against a local mock ToyyibPay (pay, fail → F4 → retry); the real sandbox is for the product owner to confirm)*
 - [x] **D2** walk-in *(done early in Phase 3: Today → Walk-in opens the booking form in walk-in mode — today only, start now (rounded down to 5 min) or a later free slot, "Any available" = least busy, source `walk_in`)*
-- [ ] Screens: **F4** payment not completed (held-slot countdown) · **H7** unpaid booking (resend pay link, record manual payment) · **D5** remind tomorrow's customers (`reminder_sent_at`)
-- [ ] pg-boss jobs: expire unpaid pending bookings, staff day summary, trial reminders (day 5, day 7)
+- [x] Screens: **F4** payment not completed (held-slot countdown) · **H7** unpaid booking (resend pay link, record manual payment) · **D5** remind tomorrow's customers (`reminder_sent_at`) *(F4 + C4 pay step on `book/[slug]/b/[token]`; H7 = payment card on booking detail (`can_take_payments` for pay link / record payment: cash, DuitNow QR, card, bank transfer; capped at what's left); D5 = `today/reminders` + Today card, editable message (`settings.reminderTemplate`), `POST /bookings/:id/reminder-sent`)*
+- [x] pg-boss jobs: expire unpaid pending bookings, staff day summary, trial reminders (day 5, day 7) *(`src/jobs` + `services/scheduled.ts`: expiry every minute (re-checks ToyyibPay first), 7 AM push summary, trial "ends in 2 days" / "ended" once each. Trial expiry itself (E4 paywall, booking page paused) is Phase 6. 3 tests in `scheduled.test.ts`)*
 
 **Done when:** a sandbox payment goes to the business's own ToyyibPay sandbox account and confirms the booking automatically.
 

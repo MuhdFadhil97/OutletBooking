@@ -85,7 +85,9 @@ export function createTestContext() {
     app,
     outbox,
     pushed,
+    push,
     toyyibpay,
+    env,
     async reset() {
       outbox.length = 0;
       pushed.length = 0;

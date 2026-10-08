@@ -4,6 +4,7 @@ import { createDb } from '@outletbooking/db';
 import { createApp } from './app';
 import { createAuth } from './auth';
 import { loadEnv } from './env';
+import { startJobs } from './jobs';
 
 const env = loadEnv();
 const { db, sql } = createDb(env.DATABASE_URL, { prepare: env.DB_PREPARE });
@@ -20,9 +21,20 @@ const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' }, 
   if (lan.length) console.log(`LAN: ${lan.join('  ')}  (use one as EXPO_PUBLIC_API_URL)`);
 });
 
+// Background jobs: expire unpaid holds, morning summaries, trial reminders.
+const jobs = env.JOBS_ENABLED
+  ? startJobs(db, env).catch((err: unknown) => {
+      console.error('[jobs] not started:', err instanceof Error ? err.message : err);
+      return null;
+    })
+  : Promise.resolve(null);
+
 const shutdown = () => {
   server.close();
-  void sql.end({ timeout: 5 }).then(() => process.exit(0));
+  void jobs
+    .then((boss) => boss?.stop({ graceful: true, timeout: 5000 }))
+    .finally(() => sql.end({ timeout: 5 }))
+    .then(() => process.exit(0));
 };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

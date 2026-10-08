@@ -45,6 +45,13 @@ const envSchema = z.object({
   /** FTech's own account — plan payments only (Phase 7). Never used for bookings. */
   PLATFORM_TOYYIBPAY_SECRET_KEY: z.string().optional(),
   PLATFORM_TOYYIBPAY_CATEGORY_CODE: z.string().optional(),
+  /** Background jobs (pg-boss) in this process. Set false to run the API without them. */
+  JOBS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  /** pg-boss needs a session connection; on Supabase use the Session pooler (port 5432). Defaults to DATABASE_URL. */
+  JOBS_DATABASE_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
   /** Expo push service; `off` drops push (default in tests). */
   PUSH_TRANSPORT: z.enum(['expo', 'off']).optional(),
 }).superRefine((e, ctx) => {
