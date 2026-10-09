@@ -81,13 +81,13 @@
 ---
 
 ## Phase 5 — Payments & jobs (Week 5)
-- [ ] Migration: `payment_accounts`, `payments`
-- [ ] **H1** connect own ToyyibPay: encrypt secret key (`APP_ENCRYPTION_KEY`), create category, RM 1.00 test; D8 checklist item ticks when connected
-- [ ] Create bill with the **business's** key → payment URL (deposit or full); callback re-checks `getBillTransactions` → paid → confirmed (idempotent)
-- [ ] Local callback testing through a tunnel (Cloudflare Tunnel / ngrok)
+- [x] Migration: `payment_accounts`, `payments` *(`payments` in 0009; `payment_accounts` in 0011 (+ `test_bill_code` for the RM 1 test, added to docs/schema.sql) and 0012 trigger)*
+- [x] **H1** connect own ToyyibPay: encrypt secret key (`APP_ENCRYPTION_KEY`), create category, RM 1.00 test; D8 checklist item ticks when connected *(`setup/payments.tsx`. Key checked by creating the category, stored AES-256-GCM (`services/secrets.ts`), only last 4 shown; RM 1.00 test bill + "Check test payment"; disconnect. Setup row + D8 step tick when connected. Owner-only API `/payments/account`)*
+- [x] Create bill with the **business's** key → payment URL (deposit or full); callback re-checks `getBillTransactions` → paid → confirmed (idempotent) *(`services/payments.ts` + `services/toyyibpay.ts`: FPX only, business pays the fee, bill expires with the hold, ref = first 6 of the booking token. `POST /toyyibpay/callback` checks the hash (log only) and always re-checks `getBillTransactions`; idempotent; underpaid bills ignored; `auto_confirm_paid` respected; paid-after-expiry → slot taken back if free, else kept cancelled + "please refund" notification. Return page re-checks too (`/public/bookings/:token/payment-check`), so local testing works without a tunnel. 26 tests in `payments.test.ts` / `toyyibpay.test.ts` with a fake ToyyibPay; not yet run against the real sandbox)*
+- [ ] Local callback testing through a tunnel (Cloudflare Tunnel / ngrok) *(steps in `docs/TOYYIBPAY-SANDBOX.md` (`cloudflared tunnel --url http://localhost:3000` → `API_PUBLIC_URL`); to do on your laptop)*
 - [x] **D2** walk-in *(done early in Phase 3: Today → Walk-in opens the booking form in walk-in mode — today only, start now (rounded down to 5 min) or a later free slot, "Any available" = least busy, source `walk_in`)*
-- [ ] Screens: **F4** payment not completed (held-slot countdown) · **H7** unpaid booking (resend pay link, record manual payment) · **D5** remind tomorrow's customers (`reminder_sent_at`)
-- [ ] pg-boss jobs: expire unpaid pending bookings, staff day summary, trial reminders (day 5, day 7)
+- [x] Screens: **F4** payment not completed (held-slot countdown) · **H7** unpaid booking (resend pay link, record manual payment) · **D5** remind tomorrow's customers (`reminder_sent_at`) *(F4 on `my-booking/[token]` (auto-opens ToyyibPay after booking with `pay=1`, countdown, Try again, failed help with ref); H7 in booking detail (`features/payments/components/PaymentActions.tsx`: hold countdown, resend pay link on WhatsApp, record payment sheet — needs `can_take_payments`); D5 `today/reminders.tsx` (editable message, one-tap WhatsApp, marks `reminder_sent_at`, Send next). Not yet click-tested on a phone)*
+- [x] pg-boss jobs: expire unpaid pending bookings, staff day summary, trial reminders (day 5, day 7) *(`src/jobs/index.ts` started by `server.ts` (`JOBS_ENABLED`): expire unpaid holds every minute (re-checks bills first), staff day summary 7:30 AM, trial reminders 9 AM (once each) — Malaysia time; logic in `services/payments.ts` / `services/daily.ts`, tested directly)*
 
 **Done when:** a sandbox payment goes to the business's own ToyyibPay sandbox account and confirms the booking automatically.
 

@@ -9,9 +9,11 @@ import {
   bookingUpdateSchema,
   calendarAvailabilityQuery,
   idParam,
+  recordPaymentSchema,
+  reminderListQuery,
 } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requireRole, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireRole, resolveTenant } from '../middleware/tenant';
 import { getAvailability } from '../services/availability';
 import { listBookingEvents } from '../services/booking-events';
 import {
@@ -25,7 +27,10 @@ import {
   searchBookings,
   updateBooking,
 } from '../services/bookings';
+import { createBookingPaymentLink, recordManualPayment } from '../services/payments';
+import { listReminders, markReminderSent } from '../services/reminders';
 import type { AppEnv } from '../types';
+import { paymentDeps } from './payments';
 import { validate } from '../validate';
 
 /** The caller's booking scope (linked resources, hidden answers), from the tenant middleware. */
@@ -50,10 +55,41 @@ export const bookingRoutes = new Hono<AppEnv>()
       await getAvailability(c.var.db, c.var.tenant.businessId, query, { ignoreBookingWindow: true, excludeBookingId }),
     );
   })
+  // D5 · Remind tomorrow's customers (before /:id so "reminders" is not read as an id).
+  .get('/reminders', validate('query', reminderListQuery), async (c) =>
+    c.json(await listReminders(c.var.db, c.var.tenant.businessId, c.req.valid('query').date, await scopeOf(c))),
+  )
   .get('/:id', validate('param', idParam), async (c) =>
     c.json(await getBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, await scopeOf(c))),
   )
   // O4 timeline. getBooking first: 404 for bookings outside the business or the staff member's resources.
+  .post('/:id/reminder', validate('param', idParam), async (c) =>
+    c.json(await markReminderSent(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.var.userId, await scopeOf(c))),
+  )
+  // H7 · Resend pay link (ToyyibPay bill on the business's own account) and record a payment taken in person.
+  .post('/:id/pay-link', requirePermission('canTakePayments'), validate('param', idParam), async (c) =>
+    c.json(
+      await createBookingPaymentLink(
+        paymentDeps(c),
+        { businessId: c.var.tenant.businessId, bookingId: c.req.valid('param').id, scope: await scopeOf(c) },
+        { actorUserId: c.var.userId },
+      ),
+    ),
+  )
+  .post(
+    '/:id/payments',
+    requirePermission('canTakePayments'),
+    validate('param', idParam),
+    validate('json', recordPaymentSchema),
+    async (c) =>
+      c.json(
+        await recordManualPayment(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), {
+          userId: c.var.userId,
+          scope: await scopeOf(c),
+        }),
+        201,
+      ),
+  )
   .get('/:id/events', validate('param', idParam), async (c) => {
     const { businessId } = c.var.tenant;
     const { id } = c.req.valid('param');

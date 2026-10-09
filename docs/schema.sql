@@ -470,6 +470,7 @@ CREATE TABLE payment_accounts (
   status                text        NOT NULL DEFAULT 'not_connected'
                         CHECK (status IN ('not_connected','connected','error')),
   last_error            text,
+  test_bill_code        text,                 -- BillCode of the RM 1.00 test payment (H1)
   tested_at             timestamptz,          -- RM 1.00 test payment passed
   connected_by_user_id  integer     REFERENCES users(id) ON DELETE SET NULL,
   created_at            timestamptz NOT NULL DEFAULT now(),

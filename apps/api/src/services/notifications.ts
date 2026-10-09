@@ -45,18 +45,26 @@ export async function notify(db: Db, sender: PushSender, userIds: number[], n: N
     })),
   );
 
+  await pushToUsers(db, sender, userIds, {
+    title: n.title,
+    body: n.body,
+    data: { type: n.type, ...(n.bookingId ? { bookingId: n.bookingId } : {}) },
+  });
+}
+
+/** Expo push only (no D6 row), e.g. the staff day summary. Dead device tokens are removed. */
+export async function pushToUsers(
+  db: Db,
+  sender: PushSender,
+  userIds: number[],
+  m: { title: string; body: string; data?: Record<string, unknown> },
+): Promise<void> {
+  if (!userIds.length) return;
   const rows = await db.select({ token: pushTokens.token }).from(pushTokens).where(inArray(pushTokens.userId, userIds));
   const tokens = [...new Set(rows.map((r) => r.token))];
   if (!tokens.length) return;
   const tickets = await sender.send(
-    tokens.map((to) => ({
-      to,
-      title: n.title,
-      body: n.body,
-      sound: 'default' as const,
-      channelId: 'bookings',
-      data: { type: n.type, ...(n.bookingId ? { bookingId: n.bookingId } : {}) },
-    })),
+    tokens.map((to) => ({ to, title: m.title, body: m.body, sound: 'default' as const, channelId: 'bookings', data: m.data ?? {} })),
   );
   // Uninstalled apps / logged-out devices: stop sending to them.
   const dead = tickets.flatMap((t, i) => (t.status === 'error' && t.details?.error === 'DeviceNotRegistered' ? [tokens[i]!] : []));

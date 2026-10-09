@@ -53,6 +53,7 @@ export default function OwnerTodayScreen() {
   const shareLink = () => router.push('/today/share');
   const onChecklistStep = (step: SetupStep) => {
     if (step === 'resources') router.push('/setup/resources');
+    else if (step === 'payments') router.push('/setup/payments');
     else if (step === 'shareLink') shareLink();
     else if (step === 'testBooking') void Linking.openURL(link);
   };
@@ -184,6 +185,16 @@ export default function OwnerTodayScreen() {
             </Pressable>
           ))}
         </View>
+
+        <Pressable
+          onPress={() => router.push('/today/reminders')}
+          accessibilityRole="button"
+          className="min-h-[52px] flex-row items-center gap-3 rounded-card border border-border bg-card px-3.5 active:bg-pressed"
+        >
+          <Icon name="chat" size={20} color={colors.primary} />
+          <Text className="flex-1 text-[14px] font-bold">{t.reminders.open}</Text>
+          <Icon name="chevron-right" size={18} color={colors.muted} />
+        </Pressable>
 
         <View className="flex-row items-center justify-between pt-1">
           <Text className="text-[17px] font-extrabold">{t.today.upNext}</Text>

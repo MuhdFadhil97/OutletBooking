@@ -45,8 +45,7 @@ export function SetupChecklistCard({
         <View className="h-1.5 bg-primary" style={{ width: `${(checklist.doneCount / checklist.total) * 100}%` }} />
       </View>
       {checklist.steps.map(({ key, done }, i) => {
-        const comingSoon = key === 'payments' && !done;
-        const pressable = !done && !comingSoon;
+        const pressable = !done;
         return (
           <Pressable
             key={key}
@@ -66,7 +65,6 @@ export function SetupChecklistCard({
               {text[key].sub && !done ? <Text className="text-[13px] text-muted">{text[key].sub}</Text> : null}
             </View>
             {done ? <Tag label={s.done} tone="ok" /> : null}
-            {comingSoon ? <Tag label={t.common.comingSoon} /> : null}
             {pressable ? <Icon name="chevron-right" size={18} color={colors.muted} /> : null}
           </Pressable>
         );

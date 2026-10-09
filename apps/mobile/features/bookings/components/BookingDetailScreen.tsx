@@ -27,6 +27,8 @@ import { showToast } from '@/components/ui/Toast';
 import { formatPhone, formatWhen, mapsUrl, statusTone, wazeUrl, whatsappUrl } from '@/features/bookings/format';
 import { useBooking, useBookingEvents, useExtendBooking, useSetBookingStatus } from '@/features/bookings/hooks';
 import { openBookingForm, type BookingsTab } from '@/features/bookings/nav';
+import { useMe } from '@/features/me/hooks';
+import { PaymentActions } from '@/features/payments/components/PaymentActions';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
 import { confirm } from '@/lib/confirm';
 import { formatDuration, formatRM } from '@/lib/format';
@@ -48,6 +50,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const setStatus = useSetBookingStatus(id);
   const extend = useExtendBooking(id);
   const offline = useIsOffline();
+  const { me } = useMe();
   const [cancelling, setCancelling] = useState(false);
 
   if (!booking.data || !business.data) {
@@ -140,6 +143,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
       ) : null}
 
       <PaymentSection b={b} />
+      {me?.permissions.canTakePayments ? <PaymentActions booking={b} events={events.data} tz={tz} disabled={offline} /> : null}
 
       {b.customerNotes || b.internalNotes || b.cancelReason ? (
         <Section title={s.notesTitle}>

@@ -214,6 +214,10 @@ export interface Booking {
   /** Sum of paid payments, and of refunds recorded so far. */
   paidSen: number;
   refundedSen: number;
+  /** Pending (unpaid) bookings: the slot is released at this time (H7 countdown). */
+  expiresAt: string | null;
+  /** D5: WhatsApp reminder sent. */
+  reminderSentAt: string | null;
   locationAddress: string | null;
   customFields: Record<string, string | number>;
   customerNotes: string | null;

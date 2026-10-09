@@ -78,6 +78,20 @@
       "when": 1791467304470,
       "tag": "0010_phase4_updated_at_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791513305222,
+      "tag": "0011_phase5_payment_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791513308052,
+      "tag": "0012_phase5_payment_accounts_trigger",
+      "breakpoints": true
     }
   ]
 }

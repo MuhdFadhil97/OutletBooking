@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
@@ -12,10 +13,12 @@ import { Text } from '@/components/ui/Text';
 import { formatTimeSpan, mapsUrl, whatsappUrl } from '@/features/bookings/format';
 import { calendarFileUrl } from '@/features/public/api';
 import { PublicPage, SummaryRow } from '@/features/public/components/PublicPage';
-import { useCancelPublicBooking, usePublicBooking } from '@/features/public/hooks';
+import { useCancelPublicBooking, useCheckPublicPayment, usePayPublicBooking, usePublicBooking } from '@/features/public/hooks';
 import { ApiError } from '@/lib/api';
 import { confirm } from '@/lib/confirm';
 import { formatRM } from '@/lib/format';
+import { openPaymentPage } from '@/lib/open-payment';
+import { formatMmSs, useCountdown } from '@/lib/use-countdown';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
 
@@ -30,19 +33,43 @@ const badge: Record<BookingStatus, { icon: IconName; bg: string; fg: string }> =
   no_show: { icon: 'x', bg: 'bg-neutral-bg', fg: colors['neutral-fg'] },
 };
 
-/** Short reference customers can quote to the business. */
-const bookingRef = (token: string) => token.slice(0, 6).toUpperCase();
-
 /** "20261010T120000Z" for Google Calendar links. */
 const gcalTime = (iso: string) => iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
+const bookAgain = (slug: string) => router.push({ pathname: '/book/[slug]', params: { slug } });
+
 /**
- * Customer's booking page (FR-08.4/08.5, wireframe C4): opened right after booking and later from
- * the saved link. Summary, add to calendar, WhatsApp the business, directions and the cancel link.
+ * Customer's booking page (FR-08.4/08.5, wireframes C4 / F4 / F5): opened right after booking, on the
+ * way back from ToyyibPay and later from the saved link. Pay (or try again) while the slot is held,
+ * then summary, add to calendar, WhatsApp the business, directions and the cancel link.
  */
 export default function MyBookingPage() {
-  const { token = '' } = useLocalSearchParams<{ token: string }>();
+  // ToyyibPay's return URL adds status_id (1 paid, 2 pending, 3 failed) and billcode; `pay=1` comes from the booking form.
+  const { token = '', pay, status_id: statusId, billcode } = useLocalSearchParams<{
+    token: string;
+    pay?: string;
+    status_id?: string;
+    billcode?: string;
+  }>();
   const { data, isPending, error, refetch } = usePublicBooking(token);
+  const payment = usePayPublicBooking(token);
+  const check = useCheckPublicPayment(token);
+  const started = useRef(false);
+
+  const startPayment = () => payment.mutate(undefined, { onSuccess: (l) => openPaymentPage(l.paymentUrl) });
+
+  useEffect(() => {
+    if (started.current || !data) return;
+    if (billcode) {
+      // Back from ToyyibPay: the API re-checks the bill (works even when the callback can't reach a laptop).
+      started.current = true;
+      check.mutate();
+    } else if (pay === '1' && data.canPayOnline) {
+      started.current = true;
+      startPayment();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, billcode, pay]);
 
   if (isPending) return <LoadingState />;
   if (error) {
@@ -62,18 +89,36 @@ export default function MyBookingPage() {
       <Head>
         <title>{`${b.titles[data.status]} · ${data.business.name}`}</title>
       </Head>
-      <BookingSummary booking={data} />
+      <BookingSummary
+        booking={data}
+        failed={statusId === '3' && !check.isPending}
+        checking={check.isPending}
+        paying={payment.isPending}
+        payError={payment.error}
+        onPay={startPayment}
+        onHoldEnded={() => void refetch()}
+      />
     </>
   );
 }
 
-function BookingSummary({ booking }: { booking: PublicBookingConfirmation }) {
+interface PayProps {
+  failed: boolean;
+  checking: boolean;
+  paying: boolean;
+  payError: unknown;
+  onPay: () => void;
+  onHoldEnded: () => void;
+}
+
+function BookingSummary({ booking, ...pay }: { booking: PublicBookingConfirmation } & PayProps) {
   const cancel = useCancelPublicBooking(booking.token);
   const tz = booking.business.timezone;
   const biz = booking.business;
-  const ref = bookingRef(booking.token);
+  const ref = booking.ref;
   const when = `${formatInTimeZone(new Date(booking.startAt), tz, 'EEE, d MMM')} · ${formatTimeSpan(booking.startAt, booking.endAt, tz)}`;
   const active = booking.status === 'pending' || booking.status === 'confirmed';
+  const holding = booking.status === 'pending' && booking.paymentStatus === 'unpaid' && booking.amountDueSen > 0;
   const place = booking.locationAddress ?? biz.address;
   const { icon, bg, fg } = badge[booking.status];
 
@@ -87,23 +132,32 @@ function BookingSummary({ booking }: { booking: PublicBookingConfirmation }) {
     `&dates=${gcalTime(booking.startAt)}/${gcalTime(booking.endAt)}` +
     (place ? `&location=${encodeURIComponent(place)}` : '');
 
+  let subtitle: string | null = null;
+  if (holding) {
+    subtitle = pay.failed
+      ? b.payFailedBody
+      : booking.canPayOnline
+        ? b.pendingBody(
+            formatRM(booking.amountDueSen),
+            booking.expiresAt ? formatInTimeZone(new Date(booking.expiresAt), tz, 'h:mm a') : '—',
+          )
+        : b.payByBusiness;
+  }
+
   return (
     <PublicPage>
       <View className="items-center gap-3 pt-4">
-        <View className={`h-16 w-16 items-center justify-center rounded-full ${bg}`}>
-          <Icon name={icon} size={32} color={fg} />
+        <View className={`h-16 w-16 items-center justify-center rounded-full ${pay.failed && holding ? 'bg-danger-tint' : bg}`}>
+          <Icon name={pay.failed && holding ? 'x' : icon} size={32} color={pay.failed && holding ? colors.danger : fg} />
         </View>
-        <Text className="text-center text-[24px] font-extrabold">{b.titles[booking.status]}</Text>
-        {booking.status === 'pending' && booking.amountDueSen > 0 ? (
-          <Text className="text-center text-[14px] text-muted">
-            {b.pendingBody(
-              formatRM(booking.amountDueSen),
-              booking.expiresAt ? formatInTimeZone(new Date(booking.expiresAt), tz, 'h:mm a') : '—',
-            )}
-          </Text>
-        ) : null}
-        {active ? <Text className="text-center text-[13px] text-muted">{b.saveLink}</Text> : null}
+        <Text className="text-center text-[24px] font-extrabold">
+          {holding ? (pay.failed ? b.payFailedTitle : b.payTitle) : b.titles[booking.status]}
+        </Text>
+        {subtitle ? <Text className="text-center text-[14px] text-muted">{subtitle}</Text> : null}
+        {active && !holding ? <Text className="text-center text-[13px] text-muted">{b.saveLink}</Text> : null}
       </View>
+
+      {holding ? <PaymentHold booking={booking} {...pay} /> : null}
 
       <Card className="gap-2.5 p-4">
         <SummaryRow label={b.ref} value={ref} />
@@ -123,7 +177,7 @@ function BookingSummary({ booking }: { booking: PublicBookingConfirmation }) {
 
       <FormError message={cancel.error ? errorMessage(cancel.error) : null} />
 
-      {booking.status !== 'cancelled' && booking.status !== 'no_show' ? (
+      {booking.status !== 'cancelled' && booking.status !== 'no_show' && !holding ? (
         <View className="gap-2.5">
           {active ? (
             <>
@@ -166,15 +220,77 @@ function BookingSummary({ booking }: { booking: PublicBookingConfirmation }) {
         ) : active ? (
           <Text className="text-center text-[13px] text-muted">{b.contactToChange}</Text>
         ) : null}
-        <Pressable
-          onPress={() => router.push({ pathname: '/book/[slug]', params: { slug: biz.slug } })}
-          accessibilityRole="link"
-          className="min-h-[44px] justify-center"
-        >
+        <Pressable onPress={() => bookAgain(biz.slug)} accessibilityRole="link" className="min-h-[44px] justify-center">
           <Text className="text-[14px] font-bold text-primary">{b.bookAgain}</Text>
         </Pressable>
         <Text className="text-[12px] text-muted">{b.poweredBy}</Text>
       </View>
     </PublicPage>
+  );
+}
+
+/** F4 · Held slot with countdown; pay (or try again) on the business's own ToyyibPay. */
+function PaymentHold({ booking, failed, checking, paying, payError, onPay, onHoldEnded }: { booking: PublicBookingConfirmation } & PayProps) {
+  const left = useCountdown(booking.expiresAt);
+  const ended = left === 0;
+  const tz = booking.business.timezone;
+  const biz = booking.business;
+  const amount = formatRM(booking.amountDueSen);
+
+  useEffect(() => {
+    if (ended) onHoldEnded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ended]);
+
+  if (ended) {
+    return (
+      <Card className="gap-3 p-4">
+        <Text className="text-[14px]">{b.holdEnded}</Text>
+        <Button title={b.pickDifferentTime} onPress={() => bookAgain(biz.slug)} />
+      </Card>
+    );
+  }
+
+  return (
+    <View className="gap-3">
+      <Card className="flex-row items-center gap-3 p-4">
+        <View className="flex-1 gap-0.5">
+          <Text className="text-[15px] font-bold">
+            {booking.resourceName} · {formatInTimeZone(new Date(booking.startAt), tz, 'EEE, d MMM')}
+          </Text>
+          <Text className="text-[13px] text-muted">{formatTimeSpan(booking.startAt, booking.endAt, tz)}</Text>
+        </View>
+        <View className="items-end">
+          {left !== null ? <Text className="text-[16px] font-extrabold text-pend-fg">{b.timeLeft(formatMmSs(left))}</Text> : null}
+          <Text className="text-[12px] text-muted">
+            {amount} · {b.heldFor}
+          </Text>
+        </View>
+      </Card>
+
+      {checking ? <Text className="text-center text-[14px] text-muted">{b.checkingPayment}</Text> : null}
+      <FormError message={payError ? errorMessage(payError) : null} />
+      {booking.canPayOnline ? (
+        <Button title={failed ? b.tryAgain(amount) : b.payAmount(amount)} loading={paying || checking} onPress={onPay} />
+      ) : null}
+      <Button variant="secondary" title={b.pickDifferentTime} onPress={() => bookAgain(biz.slug)} />
+      {failed ? (
+        <Text className="text-[13px] text-muted">
+          {b.payFailedHelp(booking.ref)}{' '}
+          {biz.whatsappPhone ? (
+            <Text
+              className="text-[13px] font-bold text-primary"
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(whatsappUrl(biz.whatsappPhone!))}
+            >
+              {b.whatsappShort(biz.name)}
+            </Text>
+          ) : (
+            (biz.phone ?? '')
+          )}
+          .
+        </Text>
+      ) : null}
+    </View>
   );
 }

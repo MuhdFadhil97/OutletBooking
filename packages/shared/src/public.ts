@@ -30,6 +30,8 @@ export interface PublicBusiness {
   timezone: string;
   /** False when the owner has switched online booking off. */
   bookingEnabled: boolean;
+  /** The business has connected ToyyibPay: deposits / prepayments are paid online (FPX) right after booking. */
+  payOnline: boolean;
   /** e.g. "Court", "Agent", "Bay" */
   resourceLabel: string;
   /** Booking window: earliest start = now + minAdvanceMin; last date = today + maxDaysAhead. */
@@ -90,5 +92,9 @@ export interface PublicBookingConfirmation {
   paymentStatus: PaymentStatus;
   /** Pending (unpaid) bookings are released at this time. */
   expiresAt: string | null;
+  /** The business has connected ToyyibPay, so the amount due can be paid online now (F4 "Try again"). */
+  canPayOnline: boolean;
+  /** Short booking reference shown to the customer and sent to ToyyibPay (first 6 of the token). */
+  ref: string;
   business: Pick<PublicBusiness, 'slug' | 'name' | 'address' | 'phone' | 'whatsappPhone' | 'timezone'>;
 }

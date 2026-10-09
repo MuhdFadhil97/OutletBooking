@@ -33,6 +33,26 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   /** Only needed when "Enhanced push security" is on in the Expo project. */
   EXPO_ACCESS_TOKEN: z.string().optional(),
+  /**
+   * 32 random bytes, base64. Encrypts each business's ToyyibPay User Secret Key (AES-256-GCM).
+   * Required to connect ToyyibPay; changing it makes stored keys unreadable (owners reconnect).
+   */
+  APP_ENCRYPTION_KEY: z
+    .string()
+    .optional()
+    .refine((v) => v === undefined || Buffer.from(v, 'base64').length === 32, 'APP_ENCRYPTION_KEY must be 32 bytes, base64'),
+  /** https://dev.toyyibpay.com (sandbox) or https://toyyibpay.com (live). */
+  TOYYIBPAY_BASE_URL: z.url().default('https://dev.toyyibpay.com'),
+  /**
+   * Where ToyyibPay can reach this API for payment callbacks. Locally: a tunnel URL
+   * (Cloudflare Tunnel / ngrok). Defaults to BETTER_AUTH_URL.
+   */
+  API_PUBLIC_URL: z.url().optional(),
+  /** Background jobs (pg-boss): pending-payment expiry, staff day summary, trial reminders. */
+  JOBS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

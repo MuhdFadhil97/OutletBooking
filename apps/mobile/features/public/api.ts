@@ -1,5 +1,6 @@
 import type {
   Availability,
+  PaymentLink,
   NextAvailableSlot,
   PriceQuote,
   PublicBookingConfirmation,
@@ -41,3 +42,11 @@ export const cancelPublicBooking = (token: string) =>
 
 /** "Add to calendar" file — opened directly by the browser. */
 export const calendarFileUrl = (token: string) => `${API_URL}/public/bookings/${token}/calendar.ics`;
+
+/** C3 / F4: a ToyyibPay bill for the amount due (reuses the open one). */
+export const payPublicBooking = (token: string) =>
+  apiFetch<PaymentLink>(`/public/bookings/${token}/pay`, { method: 'POST', json: {} });
+
+/** Back from ToyyibPay: the API re-checks the bill, then returns the booking. */
+export const checkPublicPayment = (token: string) =>
+  apiFetch<PublicBookingConfirmation>(`/public/bookings/${token}/payment-check`, { method: 'POST', json: {} });

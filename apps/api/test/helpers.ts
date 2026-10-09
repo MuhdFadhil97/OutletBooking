@@ -7,6 +7,7 @@ import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
 import type { MailMessage } from '../src/services/mailer';
 import type { PushMessage, PushSender, PushTicket } from '../src/services/push';
+import { ToyyibPayError, type BillTransaction, type CreateBillInput, type ToyyibPayClient } from '../src/services/toyyibpay';
 import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
@@ -19,6 +20,9 @@ export function createTestContext() {
     BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-1234',
     BETTER_AUTH_URL: 'http://localhost:3000',
     TRUSTED_ORIGINS: `${WEB_ORIGIN},outletbooking://`,
+    APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    API_PUBLIC_URL: 'https://api.test',
+    JOBS_ENABLED: 'false',
   });
   const { db, sql } = createDb(url, { max: 5 });
   /** Every email the API "sent" during the test. */
@@ -36,7 +40,8 @@ export function createTestContext() {
       });
     },
   };
-  const app = createApp({ db, auth, env, push });
+  const toyyibpay = fakeToyyibPay();
+  const app = createApp({ db, auth, env, push, toyyibpay });
 
   return {
     db,
@@ -44,6 +49,8 @@ export function createTestContext() {
     outbox,
     pushes,
     pushErrors,
+    toyyibpay,
+    env,
     async reset() {
       outbox.length = 0;
       await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);
@@ -100,4 +107,44 @@ export function signupInput(overrides: Partial<SignupInput> = {}): SignupInput {
     template: 'sports',
     ...overrides,
   };
+}
+
+/** ToyyibPay stand-in: keys starting with "bad" are rejected; `pay()` simulates the customer paying a bill. */
+export function fakeToyyibPay() {
+  let seq = 0;
+  const bills = new Map<string, { input: CreateBillInput; txs: BillTransaction[] }>();
+  const categories: { key: string; name: string }[] = [];
+  const client: ToyyibPayClient & {
+    bills: typeof bills;
+    categories: typeof categories;
+    pay: (billCode: string, amountSen?: number, status?: string) => void;
+  } = {
+    bills,
+    categories,
+    async createCategory(key, name) {
+      if (key.startsWith('bad')) throw new ToyyibPayError('[KEY-DID-NOT-EXIST]');
+      categories.push({ key, name });
+      return `cat${++seq}`;
+    },
+    async createBill(input) {
+      const code = `bill${++seq}`;
+      bills.set(code, { input, txs: [] });
+      return code;
+    },
+    async getBillTransactions(billCode) {
+      return bills.get(billCode)?.txs ?? [];
+    },
+    paymentUrl: (code) => `https://dev.toyyibpay.test/${code}`,
+    pay(billCode, amountSen, status = '1') {
+      const bill = bills.get(billCode);
+      if (!bill) throw new Error(`no bill ${billCode}`);
+      bill.txs.push({
+        billpaymentStatus: status,
+        billpaymentAmount: ((amountSen ?? bill.input.amountSen) / 100).toFixed(2),
+        billpaymentInvoiceNo: `TP${seq}`,
+        billpaymentChannel: 'FPX',
+      });
+    },
+  };
+  return client;
 }

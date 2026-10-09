@@ -653,7 +653,12 @@ function DetailsStep({
     if (!check.success) return setFormError(check.error.issues[0]?.message ?? t.common.genericError);
     setFormError(null);
     create.mutate(body, {
-      onSuccess: (booking) => router.replace({ pathname: '/my-booking/[token]', params: { token: booking.token } }),
+      // Deposit / prepayment: the booking page opens ToyyibPay straight away (pay=1).
+      onSuccess: (booking) =>
+        router.replace({
+          pathname: '/my-booking/[token]',
+          params: booking.canPayOnline ? { token: booking.token, pay: '1' } : { token: booking.token },
+        }),
       onError: (err) => {
         if (err instanceof ApiError && err.code === 'slot_taken') onSlotTaken();
       },
@@ -722,7 +727,9 @@ function DetailsStep({
             <>
               <SummaryRow label={b.payNow(q.paymentMode === 'deposit' ? 'deposit' : 'full')} value={formatRM(q.amountDueSen)} strong />
               {q.priceSen > q.amountDueSen ? <Text className="text-[13px] text-muted">{b.balanceLater(formatRM(q.priceSen - q.amountDueSen))}</Text> : null}
-              <Text className="text-[13px] text-muted">{b.payNote}</Text>
+              <Text className="text-[13px] text-muted">
+                {biz.payOnline ? b.payOnlineNote : b.payNote}
+              </Text>
             </>
           ) : q.priceSen > 0 ? (
             <SummaryRow label={b.payLater} value={formatRM(q.priceSen)} strong />

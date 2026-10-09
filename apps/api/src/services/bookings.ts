@@ -99,6 +99,8 @@ const columns = {
   resultNotes: bookings.resultNotes,
   cancelReason: bookings.cancelReason,
   createdAt: bookings.createdAt,
+  expiresAt: bookings.expiresAt,
+  reminderSentAt: bookings.reminderSentAt,
   paidSen: sql<number>`(select coalesce(sum(${payments.amountSen}), 0)::int from ${payments}
     where ${payments.businessId} = ${bookings.businessId} and ${payments.bookingId} = ${bookings.id} and ${payments.status} = 'paid')`,
   refundedSen: sql<number>`(select coalesce(sum(${refunds.amountSen}), 0)::int from ${refunds}
@@ -131,6 +133,8 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   paymentStatus: r.paymentStatus as PaymentStatus,
   paidSen: Number(r.paidSen),
   refundedSen: Number(r.refundedSen),
+  expiresAt: r.expiresAt?.toISOString() ?? null,
+  reminderSentAt: r.reminderSentAt?.toISOString() ?? null,
   locationAddress: r.locationAddress,
   customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,

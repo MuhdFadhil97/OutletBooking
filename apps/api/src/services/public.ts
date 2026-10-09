@@ -6,6 +6,7 @@ import {
   bookings,
   businesses,
   customers,
+  paymentAccounts,
   resources,
   resourceServices,
   services,
@@ -29,6 +30,7 @@ import type {
   ResourceType,
 } from '@outletbooking/shared';
 import { AppError, notFound } from '../errors';
+import { bookingRef } from './payments';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
 import { recordBookingEvent } from './booking-events';
@@ -160,7 +162,14 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
     .where(and(eq(bookingFields.businessId, id), eq(bookingFields.isActive, true)))
     .orderBy(asc(bookingFields.sortOrder), asc(bookingFields.id));
 
+  const [account] = await db
+    .select({ status: paymentAccounts.status })
+    .from(paymentAccounts)
+    .where(eq(paymentAccounts.businessId, id))
+    .limit(1);
+
   return {
+    payOnline: account?.status === 'connected',
     ...info,
     services: svcRows.map((s) => ({ ...s, priceUnit: s.priceUnit as PriceUnit, locationType: s.locationType as LocationType })),
     resources: [...byResource.values()],
@@ -349,6 +358,7 @@ async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
       serviceName: services.name,
       resourceName: resources.name,
       cancelCutoffMin: businesses.cancelCutoffMin,
+      accountStatus: paymentAccounts.status,
       business: {
         slug: businesses.slug,
         name: businesses.name,
@@ -362,6 +372,7 @@ async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
     .innerJoin(businesses, eq(businesses.id, bookings.businessId))
     .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
     .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
+    .leftJoin(paymentAccounts, eq(paymentAccounts.businessId, bookings.businessId))
     .where(and(eq(bookings.publicToken, token), isNull(businesses.deletedAt)));
   const [row] = opts.lock ? await query.for('update', { of: bookings }) : await query;
   if (!row) throw notFound('Booking');
@@ -369,10 +380,13 @@ async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
 }
 
 async function loadPublicBooking(q: Q, token: string, now: Date): Promise<PublicBookingConfirmation> {
-  const { id: _id, businessId: _b, cancelCutoffMin, ...b } = await findByToken(q, token);
+  const { id: _id, businessId: _b, cancelCutoffMin, accountStatus, ...b } = await findByToken(q, token);
   const status = b.status as BookingStatus;
+  const holding = status === 'pending' && b.paymentStatus === 'unpaid' && b.amountDueSen > 0;
   return {
     ...b,
+    ref: bookingRef(b.token),
+    canPayOnline: holding && accountStatus === 'connected' && (!b.expiresAt || b.expiresAt > now),
     status,
     startAt: b.startAt.toISOString(),
     endAt: b.endAt.toISOString(),
@@ -381,6 +395,11 @@ async function loadPublicBooking(q: Q, token: string, now: Date): Promise<Public
     paymentStatus: b.paymentStatus as PaymentStatus,
     expiresAt: b.expiresAt?.toISOString() ?? null,
   };
+}
+
+/** Internal id behind a public token (never returned to the client). */
+export async function publicBookingId(q: Q, token: string): Promise<number> {
+  return (await findByToken(q, token)).id;
 }
 
 /** Confirmation page (`/my-booking/:token`): only this booking, no customer details. */

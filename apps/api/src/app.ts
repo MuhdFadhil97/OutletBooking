@@ -19,7 +19,9 @@ import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
 import { staffRoutes } from './routes/staff';
 import { timeOffRoutes } from './routes/time-off';
+import { paymentRoutes, toyyibPayRoutes } from './routes/payments';
 import { expoPushSender, type PushSender } from './services/push';
+import { toyyibPayClient, type ToyyibPayClient } from './services/toyyibpay';
 import type { AppEnv } from './types';
 
 export interface AppDeps {
@@ -28,9 +30,17 @@ export interface AppDeps {
   env: Env;
   /** Push notifications; tests pass a fake. */
   push?: PushSender;
+  /** ToyyibPay API; tests pass a fake. */
+  toyyibpay?: ToyyibPayClient;
 }
 
-export function createApp({ db, auth, env, push = expoPushSender(env.EXPO_ACCESS_TOKEN) }: AppDeps) {
+export function createApp({
+  db,
+  auth,
+  env,
+  push = expoPushSender(env.EXPO_ACCESS_TOKEN),
+  toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL),
+}: AppDeps) {
   const app = new Hono<AppEnv>();
 
   if (env.NODE_ENV === 'development') app.use(logger());
@@ -53,6 +63,7 @@ export function createApp({ db, auth, env, push = expoPushSender(env.EXPO_ACCESS
     c.set('auth', auth);
     c.set('env', env);
     c.set('push', push);
+    c.set('toyyibpay', toyyibpay);
     await next();
   });
 
@@ -71,6 +82,8 @@ export function createApp({ db, auth, env, push = expoPushSender(env.EXPO_ACCESS
   app.route('/invitations', invitationRoutes);
   app.route('/bookings', bookingRoutes);
   app.route('/notifications', notificationRoutes);
+  app.route('/payments', paymentRoutes);
+  app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);
 
   app.onError(errorHandler);

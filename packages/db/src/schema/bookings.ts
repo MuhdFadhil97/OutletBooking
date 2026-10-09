@@ -293,3 +293,36 @@ export const notifications = pgTable(
     ),
   ],
 );
+
+/**
+ * H1: each business connects its OWN ToyyibPay account, so customer money goes straight to them.
+ * The User Secret Key is AES-256-GCM encrypted by the API (APP_ENCRYPTION_KEY) and never returned.
+ */
+export const paymentAccounts = pgTable(
+  'payment_accounts',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .unique()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull().default('toyyibpay'),
+    secretKeyEncrypted: text('secret_key_encrypted'),
+    secretKeyLast4: text('secret_key_last4'),
+    /** Created automatically on connect. */
+    categoryCode: text('category_code'),
+    status: text('status').notNull().default('not_connected'),
+    lastError: text('last_error'),
+    /** BillCode of the RM 1.00 test payment (H1 step 3). */
+    testBillCode: text('test_bill_code'),
+    /** RM 1.00 test payment passed. */
+    testedAt: timestamp('tested_at', { withTimezone: true }),
+    connectedByUserId: integer('connected_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check('payment_accounts_provider_check', sql`${t.provider} IN ('toyyibpay')`),
+    check('payment_accounts_status_check', sql`${t.status} IN ('not_connected','connected','error')`),
+  ],
+);

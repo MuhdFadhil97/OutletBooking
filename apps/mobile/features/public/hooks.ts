@@ -64,3 +64,15 @@ export function useCancelPublicBooking(token: string) {
       qc.setQueryData<PublicBookingConfirmation>(['public-booking', token], (old) => ({ ...b, customerName: old?.customerName ?? null })),
   });
 }
+
+export const usePayPublicBooking = (token: string) => useMutation({ mutationFn: () => api.payPublicBooking(token) });
+
+/** Re-check the payment (return from ToyyibPay), keeping the name typed in this session. */
+export function useCheckPublicPayment(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.checkPublicPayment(token),
+    onSuccess: (b) =>
+      qc.setQueryData<PublicBookingConfirmation>(['public-booking', token], (old) => ({ ...b, customerName: old?.customerName ?? null })),
+  });
+}

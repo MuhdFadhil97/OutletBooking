@@ -15,11 +15,14 @@ import {
   createPublicBooking,
   getPublicBooking,
   getPublicBusiness,
+  publicBookingId,
   getPublicNextAvailable,
   getPublicQuote,
   getPublicSlots,
 } from '../services/public';
+import { createBookingPaymentLink, notifyPayment, syncBookingBills } from '../services/payments';
 import { notifyBooking } from '../services/push';
+import { paymentDeps } from './payments';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
@@ -49,6 +52,26 @@ export const publicRoutes = new Hono<AppEnv>()
       const { booking, id, businessId } = await cancelPublicBooking(c.var.db, c.req.valid('param').token);
       runInBackground('push cancelled booking', () => notifyBooking(c.var.db, c.var.push, 'cancelled', businessId, id));
       return c.json(booking);
+    },
+  )
+  // C3 / F4 · Pay the amount due on the business's own ToyyibPay (also "Try again").
+  .post(
+    '/bookings/:token/pay',
+    rateLimit({ prefix: 'public-pay', windowMs: 10 * 60_000, max: 20 }),
+    validate('param', publicTokenParam),
+    async (c) => c.json(await createBookingPaymentLink(paymentDeps(c), { token: c.req.valid('param').token })),
+  )
+  // Back from ToyyibPay (or "I've paid"): re-check the bill with ToyyibPay, then show the booking.
+  .post(
+    '/bookings/:token/payment-check',
+    rateLimit({ prefix: 'public-pay-check', windowMs: 60_000, max: 20 }),
+    validate('param', publicTokenParam),
+    async (c) => {
+      const { token } = c.req.valid('param');
+      const id = await publicBookingId(c.var.db, token);
+      const result = await syncBookingBills(paymentDeps(c), id);
+      if (result) runInBackground('notify payment', () => notifyPayment(paymentDeps(c), result));
+      return c.json(await getPublicBooking(c.var.db, token));
     },
   )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>
