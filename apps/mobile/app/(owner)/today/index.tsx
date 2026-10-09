@@ -13,6 +13,7 @@ import { shiftDate, todayIn } from '@/features/bookings/format';
 import { useDayBookingsAll } from '@/features/bookings/hooks';
 import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { useMe } from '@/features/me/hooks';
+import { useNotifications } from '@/features/notifications/hooks';
 import { SetupChecklistCard } from '@/features/onboarding/components/SetupChecklistCard';
 import { useSetupChecklist, useUpdateChecklist } from '@/features/onboarding/hooks';
 import { confirm } from '@/lib/confirm';
@@ -31,12 +32,15 @@ export default function OwnerTodayScreen() {
   const day = useDayBookingsAll(date, shiftDate(date, 1));
   const checklist = useSetupChecklist();
   const updateChecklist = useUpdateChecklist();
+  const notifications = useNotifications();
+  const unread = notifications.data?.unreadCount ?? 0;
 
   useFocusEffect(
     useCallback(() => {
       void day.refetch();
       void checklist.refetch(); // steps done on other screens (hours, first booking)
-    }, [day.refetch, checklist.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
+      void notifications.refetch();
+    }, [day.refetch, checklist.refetch, notifications.refetch]), // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (isLoading) return <LoadingState />;
@@ -115,9 +119,24 @@ export default function OwnerTodayScreen() {
         contentContainerClassName="gap-4 px-4 pb-8 pt-3"
         refreshControl={<RefreshControl refreshing={isRefetching || day.isRefetching} onRefresh={refresh} tintColor={colors.primary} />}
       >
-        <View className="gap-0.5">
-          <Text className="text-[13px] font-semibold text-muted">{todayLabel}</Text>
-          <Text className="text-[24px] font-extrabold">{business.name}</Text>
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 gap-0.5">
+            <Text className="text-[13px] font-semibold text-muted">{todayLabel}</Text>
+            <Text className="text-[24px] font-extrabold">{business.name}</Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/today/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel={t.today.notifications(unread)}
+            className="h-11 w-11 items-center justify-center rounded-button border border-border bg-card active:bg-pressed"
+          >
+            <Icon name="bell" color={colors.text} />
+            {unread > 0 ? (
+              <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1">
+                <Text className="text-[11px] font-extrabold text-white">{unread > 9 ? '9+' : unread}</Text>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
 
         <View

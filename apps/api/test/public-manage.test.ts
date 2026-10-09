@@ -210,7 +210,7 @@ describe('push notifications (FR-10.1)', () => {
     ctx.pushes.length = 0;
     await json(await ctx.post(`/public/bookings/${created.token}/cancel`, {}));
     await settleBackground();
-    expect(ctx.pushes.map((p) => p.title)).toEqual(['Booking cancelled', 'Booking cancelled']);
+    expect(ctx.pushes.map((p) => p.title)).toEqual(['Cancelled by customer', 'Cancelled by customer']);
   });
 
   it('deactivated staff stop receiving notifications', async () => {

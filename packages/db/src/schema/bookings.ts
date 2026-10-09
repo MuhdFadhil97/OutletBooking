@@ -2,7 +2,7 @@ import { check, foreignKey, index, integer, jsonb, pgTable, text, timestamp, uni
 import { sql } from 'drizzle-orm';
 import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
-import { businesses } from './tenant';
+import { businesses, subscriptions } from './tenant';
 import { BOOKING_EVENT_TYPES, type BookingEventType } from '@outletbooking/shared';
 import { branches, resources, services } from './setup';
 
@@ -177,6 +177,54 @@ export const bookingEvents = pgTable(
 );
 
 /**
+ * Booking deposits / full payments (ToyyibPay) and payments recorded by hand (`provider = 'manual'`).
+ * Table only for now; the ToyyibPay flow is Phase 5.
+ */
+export const payments = pgTable(
+  'payments',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'restrict' }),
+    bookingId: integer('booking_id'),
+    subscriptionId: integer('subscription_id').references(() => subscriptions.id, { onDelete: 'restrict' }),
+    purpose: text('purpose').notNull(),
+    provider: text('provider').notNull().default('toyyibpay'),
+    method: text('method'),
+    recordedByUserId: integer('recorded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    /** ToyyibPay BillCode. */
+    billCode: text('bill_code').unique(),
+    amountSen: integer('amount_sen').notNull(),
+    status: text('status').notNull().default('pending'),
+    /** ToyyibPay transaction id. */
+    transactionRef: text('transaction_ref'),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    rawCallback: jsonb('raw_callback'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'payments_business_id_booking_id_fkey',
+      columns: [t.businessId, t.bookingId],
+      foreignColumns: [bookings.businessId, bookings.id],
+    }).onDelete('restrict'),
+    index('payments_booking_idx').on(t.bookingId),
+    index('payments_business_idx').on(t.businessId, t.createdAt),
+    check('payments_purpose_check', sql`${t.purpose} IN ('deposit','full_payment','balance','subscription')`),
+    check('payments_provider_check', sql`${t.provider} IN ('toyyibpay','manual')`),
+    check(
+      'payments_method_check',
+      sql`${t.method} IN ('fpx','duitnow','card','cash','duitnow_qr','bank_transfer')`,
+    ),
+    check('payments_amount_sen_check', sql`${t.amountSen} > 0`),
+    check('payments_status_check', sql`${t.status} IN ('pending','paid','failed','expired','refunded')`),
+    check('payments_target_check', sql`(${t.bookingId} IS NOT NULL) <> (${t.subscriptionId} IS NOT NULL)`),
+  ],
+);
+
+/**
  * D4: refunds are paid outside the app (bank transfer / DuitNow / cash) and only recorded here.
  * `payment_id` gets its FK to `payments` in the Phase 5 migration that creates that table.
  */
@@ -188,7 +236,7 @@ export const refunds = pgTable(
       .notNull()
       .references(() => businesses.id, { onDelete: 'restrict' }),
     bookingId: integer('booking_id').notNull(),
-    paymentId: integer('payment_id'),
+    paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'restrict' }),
     amountSen: integer('amount_sen').notNull(),
     method: text('method').notNull(),
     reason: text('reason'),
@@ -206,5 +254,42 @@ export const refunds = pgTable(
     index('refunds_business_id_idx').on(t.businessId),
     check('refunds_amount_sen_check', sql`${t.amountSen} > 0`),
     check('refunds_method_check', sql`${t.method} IN ('bank_transfer','duitnow','cash')`),
+  ],
+);
+
+/** In-app notifications (D6), one row per recipient. */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    bookingId: integer('booking_id'),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'notifications_business_id_booking_id_fkey',
+      columns: [t.businessId, t.bookingId],
+      foreignColumns: [bookings.businessId, bookings.id],
+    }).onDelete('cascade'),
+    index('notifications_user_unread_idx')
+      .on(t.userId, t.createdAt.desc())
+      .where(sql`${t.readAt} IS NULL`),
+    index('notifications_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('notifications_business_id_idx').on(t.businessId),
+    check(
+      'notifications_type_check',
+      sql`${t.type} IN ('booking_new','booking_paid','payment_failed','booking_cancelled','walk_in','staff_joined','reminders_sent','trial_ending','trial_ended')`,
+    ),
   ],
 );

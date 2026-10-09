@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { acceptInviteNewAccountSchema, acceptInviteSchema, inviteTokenParam } from '@outletbooking/shared';
+import { runInBackground } from '../background';
 import { rateLimit } from '../middleware/rate-limit';
+import { notifyStaffJoined } from '../services/push';
 import { acceptInvitation, getInvitation } from '../services/staff';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
@@ -19,10 +21,11 @@ export const invitationRoutes = new Hono<AppEnv>()
     const session = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
     const sessionUserId = session ? Number(session.user.id) : undefined;
     const body = acceptInviteNewAccountSchema.safeParse(c.req.valid('json'));
-    const result = await acceptInvitation(c.var.db, c.req.valid('param').token, {
+    const { businessId, userId, ...result } = await acceptInvitation(c.var.db, c.req.valid('param').token, {
       sessionUserId,
       newAccount: body.success ? body.data : undefined,
     });
+    runInBackground('notify staff joined', () => notifyStaffJoined(c.var.db, c.var.push, businessId, userId));
     // New accounts sign in through Better Auth right after (same as owner sign-up).
     return c.json(result);
   });

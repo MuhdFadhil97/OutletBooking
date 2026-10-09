@@ -8,6 +8,7 @@ import {
   normalizeMyPhone,
   publicBookingCreateSchema,
   type AvailableSlot,
+  type NextAvailableSlot,
   type PublicBookingCreateInput,
   type PublicBusiness,
   type PublicService,
@@ -23,7 +24,13 @@ import { TextField } from '@/components/ui/TextField';
 import { ChipGroup, FieldInput, fieldAnswers } from '@/features/bookings/components/FieldInput';
 import { formatTimeSpan, todayIn, whatsappUrl } from '@/features/bookings/format';
 import { Progress, PublicPage, SummaryRow } from '@/features/public/components/PublicPage';
-import { useCreatePublicBooking, usePublicBusiness, usePublicQuote, usePublicSlots } from '@/features/public/hooks';
+import {
+  useCreatePublicBooking,
+  usePublicBusiness,
+  usePublicNextAvailable,
+  usePublicQuote,
+  usePublicSlots,
+} from '@/features/public/hooks';
 import { ApiError } from '@/lib/api';
 import { formatDuration, formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -112,6 +119,18 @@ function BookingFlow({ biz }: { biz: PublicBusiness }) {
         slot={slot}
         setSlot={(s) => {
           setSlot(s);
+          setNotice(null);
+        }}
+        pickCell={(id, s) => {
+          // C2 grid: choose court and time together (no slot reset).
+          setResourceId(id);
+          setSlot(s);
+          setNotice(null);
+        }}
+        pickNext={(n) => {
+          // F2 "Next available": jump to that day and time.
+          setDate(formatInTimeZone(new Date(n.startAt), tz, 'yyyy-MM-dd'));
+          setSlot({ startAt: n.startAt, endAt: n.endAt, resourceIds: [n.resourceId] });
           setNotice(null);
         }}
         notice={notice}
@@ -285,6 +304,8 @@ function TimeStep({
   setDate,
   slot,
   setSlot,
+  pickCell,
+  pickNext,
   notice,
   onBack,
   onNext,
@@ -299,6 +320,8 @@ function TimeStep({
   setDate: (d: string) => void;
   slot: AvailableSlot | null;
   setSlot: (s: AvailableSlot) => void;
+  pickCell: (resourceId: number, s: AvailableSlot) => void;
+  pickNext: (n: NextAvailableSlot) => void;
   notice: string | null;
   onBack: () => void;
   onNext: () => void;
@@ -310,8 +333,14 @@ function TimeStep({
     const first = parseISO(todayIn(tz));
     return Array.from({ length: biz.maxDaysAhead + 1 }, (_, i) => format(addDays(first, i), 'yyyy-MM-dd'));
   }, [tz, biz.maxDaysAhead]);
-  const slots = usePublicSlots(biz.slug, { serviceId: service.id, date, durationMin, resourceId: resourceId ?? undefined });
+  // C2: courts are picked in a court × time grid (always queried as "any" so every court shows).
+  const grid = offered.length > 1 && offered.every((r) => r.resourceType === 'court');
+  const query = { serviceId: service.id, date, durationMin, resourceId: grid ? undefined : (resourceId ?? undefined) };
+  const slots = usePublicSlots(biz.slug, query);
+  const fullyBooked = !!slots.data && slots.data.slots.length === 0;
+  const next = usePublicNextAvailable(biz.slug, fullyBooked ? query : null);
   const resourceName = (id: number) => offered.find((r) => r.id === id)?.name ?? '';
+  const shorter = durations.filter((d) => d < durationMin);
 
   return (
     <PublicPage
@@ -368,7 +397,7 @@ function TimeStep({
         </ChipGroup>
       ) : null}
 
-      {offered.length > 1 ? (
+      {offered.length > 1 && !grid ? (
         <ChipGroup label={biz.resourceLabel}>
           <Chip role="radio" label={b.any} selected={resourceId === null} onPress={() => setResourceId(null)} />
           {offered.map((r) => (
@@ -386,10 +415,26 @@ function TimeStep({
             <FormError message={`${b.slotsError} ${errorMessage(slots.error)}`} />
             <Button variant="secondary" title={t.common.retry} onPress={() => void slots.refetch()} />
           </View>
-        ) : slots.data.slots.length === 0 ? (
-          <Card className="p-4">
-            <Text className="text-[14px] text-muted">{b.noSlots}</Text>
-          </Card>
+        ) : fullyBooked ? (
+          <FullyBooked
+            biz={biz}
+            date={date}
+            durationMin={durationMin}
+            shorter={shorter.length ? shorter[shorter.length - 1]! : null}
+            onShorter={setDurationMin}
+            next={next.data}
+            loadingNext={next.isPending}
+            onPickNext={pickNext}
+          />
+        ) : grid ? (
+          <CourtGrid
+            courts={offered}
+            slots={slots.data.slots}
+            tz={tz}
+            selected={slot && resourceId !== null ? { resourceId, startAt: slot.startAt } : null}
+            onPick={pickCell}
+            hint={b.gridHint(formatDuration(durationMin))}
+          />
         ) : (
           <View className="flex-row flex-wrap gap-2">
             {slots.data.slots.map((s) => (
@@ -405,6 +450,152 @@ function TimeStep({
         )}
       </View>
     </PublicPage>
+  );
+}
+
+// ─── C2 court × time grid (sports) ──────────────────────────────────────────────
+
+function CourtGrid({
+  courts,
+  slots,
+  tz,
+  selected,
+  onPick,
+  hint,
+}: {
+  courts: PublicBusiness['resources'];
+  slots: AvailableSlot[];
+  tz: string;
+  selected: { resourceId: number; startAt: string } | null;
+  onPick: (resourceId: number, s: AvailableSlot) => void;
+  hint: string;
+}) {
+  return (
+    <View className="gap-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="gap-1.5">
+          <View className="flex-row gap-1.5">
+            <View className="w-[64px]" />
+            {courts.map((c) => (
+              <Text key={c.id} className="w-[76px] text-center text-[12px] font-bold text-label" numberOfLines={1}>
+                {c.name}
+              </Text>
+            ))}
+          </View>
+          {slots.map((s) => {
+            const time = formatInTimeZone(new Date(s.startAt), tz, 'h:mm a');
+            return (
+              <View key={s.startAt} className="flex-row items-center gap-1.5">
+                <Text className="w-[64px] text-[12px] font-semibold text-muted">{time}</Text>
+                {courts.map((c) => {
+                  const free = s.resourceIds.includes(c.id);
+                  const on = selected?.resourceId === c.id && selected.startAt === s.startAt;
+                  return (
+                    <Pressable
+                      key={c.id}
+                      disabled={!free}
+                      onPress={() => onPick(c.id, s)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: on, disabled: !free }}
+                      accessibilityLabel={`${c.name} ${time} ${free ? '' : b.booked}`}
+                      className={`h-11 w-[76px] items-center justify-center rounded-input border ${
+                        on
+                          ? 'border-primary bg-primary'
+                          : free
+                            ? 'border-input-border bg-card active:bg-pressed'
+                            : 'border-border bg-neutral-bg'
+                      }`}
+                    >
+                      {on ? (
+                        <Icon name="check" size={18} color="#FFFFFF" />
+                      ) : free ? null : (
+                        <Text className="text-[11px] font-semibold text-neutral-fg">{b.booked}</Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+      <Text className="text-[12px] text-muted">{hint}</Text>
+    </View>
+  );
+}
+
+// ─── F2 fully booked ────────────────────────────────────────────────────────────
+
+function FullyBooked({
+  biz,
+  date,
+  durationMin,
+  shorter,
+  onShorter,
+  next,
+  loadingNext,
+  onPickNext,
+}: {
+  biz: PublicBusiness;
+  date: string;
+  durationMin: number;
+  shorter: number | null;
+  onShorter: (d: number) => void;
+  next: NextAvailableSlot[] | undefined;
+  loadingNext: boolean;
+  onPickNext: (n: NextAvailableSlot) => void;
+}) {
+  const tz = biz.timezone;
+  return (
+    <View className="gap-3">
+      <Card className="gap-2 p-4">
+        <Text className="text-[16px] font-extrabold">{b.fullyBooked(format(parseISO(date), 'EEE, d MMM'))}</Text>
+        <Text className="text-[14px] text-muted">{b.fullyBookedBody(biz.resourceLabel, formatDuration(durationMin), shorter !== null)}</Text>
+        {shorter !== null ? (
+          <View className="flex-row">
+            <Chip role="radio" label={formatDuration(shorter)} selected={false} onPress={() => onShorter(shorter)} />
+          </View>
+        ) : null}
+      </Card>
+
+      <Text className="text-[13px] font-bold text-label">
+        {b.nextAvailable} · {formatDuration(durationMin)}
+      </Text>
+      {loadingNext ? (
+        <LoadingState />
+      ) : next && next.length ? (
+        <Card className="overflow-hidden">
+          {next.map((n, i) => (
+            <Pressable
+              key={`${n.startAt}-${n.resourceId}`}
+              onPress={() => onPickNext(n)}
+              accessibilityRole="button"
+              className={`min-h-[56px] flex-row items-center gap-3 px-3.5 py-3 active:bg-pressed ${i ? 'border-t border-border' : ''}`}
+            >
+              <View className="flex-1">
+                <Text className="text-[15px] font-bold">
+                  {formatInTimeZone(new Date(n.startAt), tz, 'EEE, d MMM')} · {formatInTimeZone(new Date(n.startAt), tz, 'h:mm a')}
+                </Text>
+                <Text className="text-[13px] text-muted">{n.resourceName}</Text>
+              </View>
+              <Icon name="chevron-right" size={18} color={colors.muted} />
+            </Pressable>
+          ))}
+        </Card>
+      ) : (
+        <Card className="p-4">
+          <Text className="text-[14px] text-muted">{b.nothingSoon}</Text>
+        </Card>
+      )}
+
+      {biz.whatsappPhone ? (
+        <Button
+          variant="secondary"
+          title={b.askCancellations(biz.name)}
+          onPress={() => void Linking.openURL(whatsappUrl(biz.whatsappPhone!))}
+        />
+      ) : null}
+    </View>
   );
 }
 

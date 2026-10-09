@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   availabilityQuerySchema,
+  nextAvailableQuerySchema,
   publicBookingCreateSchema,
   publicQuoteQuery,
   publicSlugParam,
@@ -14,6 +15,7 @@ import {
   createPublicBooking,
   getPublicBooking,
   getPublicBusiness,
+  getPublicNextAvailable,
   getPublicQuote,
   getPublicSlots,
 } from '../services/public';
@@ -54,6 +56,9 @@ export const publicRoutes = new Hono<AppEnv>()
   )
   .get('/:slug/slots', validate('param', publicSlugParam), validate('query', availabilityQuerySchema), async (c) =>
     c.json(await getPublicSlots(c.var.db, c.req.valid('param').slug, c.req.valid('query'))),
+  )
+  .get('/:slug/next-available', validate('param', publicSlugParam), validate('query', nextAvailableQuerySchema), async (c) =>
+    c.json(await getPublicNextAvailable(c.var.db, c.req.valid('param').slug, c.req.valid('query'))),
   )
   .get('/:slug/quote', validate('param', publicSlugParam), validate('query', publicQuoteQuery), async (c) =>
     c.json(await getPublicQuote(c.var.db, c.req.valid('param').slug, c.req.valid('query'))),

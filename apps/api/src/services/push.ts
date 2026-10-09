@@ -1,16 +1,8 @@
 import { formatInTimeZone } from 'date-fns-tz';
-import { and, eq, inArray, or } from 'drizzle-orm';
-import {
-  bookings,
-  businesses,
-  businessMembers,
-  customers,
-  pushTokens,
-  resources,
-  services,
-  type Db,
-} from '@outletbooking/db';
+import { and, eq } from 'drizzle-orm';
+import { bookings, businesses, customers, pushTokens, resources, services, users, type Db } from '@outletbooking/db';
 import type { PushTokenInput } from '@outletbooking/shared';
+import { notify, recipientsFor } from './notifications';
 
 /** One Expo push message (https://docs.expo.dev/push-notifications/sending-notifications/). */
 export interface PushMessage {
@@ -72,8 +64,8 @@ export async function deletePushToken(db: Db, userId: number, token: string): Pr
 export type BookingEvent = 'new' | 'cancelled';
 
 /**
- * FR-10.1: tell the owner(s) and the staff member linked to the booked resource.
- * Only active members of the booking's business receive it.
+ * FR-10.1: tell the owner(s) and the staff member linked to the booked resource —
+ * stored for the D6 notifications screen and pushed to their devices.
  */
 export async function notifyBooking(db: Db, sender: PushSender, event: BookingEvent, businessId: number, bookingId: number) {
   const [b] = await db
@@ -93,37 +85,24 @@ export async function notifyBooking(db: Db, sender: PushSender, event: BookingEv
     .where(and(eq(bookings.businessId, businessId), eq(bookings.id, bookingId)));
   if (!b) return;
 
-  const recipients = await db
-    .select({ token: pushTokens.token })
-    .from(pushTokens)
-    .innerJoin(businessMembers, eq(businessMembers.userId, pushTokens.userId))
-    .where(
-      and(
-        eq(businessMembers.businessId, businessId),
-        eq(businessMembers.isActive, true),
-        b.resourceUserId === null
-          ? eq(businessMembers.role, 'owner')
-          : or(eq(businessMembers.role, 'owner'), eq(businessMembers.userId, b.resourceUserId)),
-      ),
-    );
-  const tokens = [...new Set(recipients.map((r) => r.token))];
-  if (!tokens.length) return;
-
   const when = formatInTimeZone(b.startAt, b.timezone, 'EEE d MMM, h:mm a');
-  const title = event === 'new' ? 'New booking' : 'Booking cancelled';
-  const body = `${b.customerName} · ${b.serviceName} · ${when} · ${b.resourceName}`;
-  const messages = tokens.map((to) => ({
-    to,
-    title,
-    body,
-    sound: 'default' as const,
-    channelId: 'bookings',
-    data: { type: `booking_${event}`, bookingId },
-  }));
-
-  const tickets = await sender.send(messages);
-  // Uninstalled apps / logged-out devices: stop sending to them.
-  const dead = tickets.flatMap((t, i) => (t.status === 'error' && t.details?.error === 'DeviceNotRegistered' ? [tokens[i]!] : []));
-  if (dead.length) await db.delete(pushTokens).where(inArray(pushTokens.token, dead));
+  await notify(db, sender, await recipientsFor(db, businessId, b.resourceUserId), {
+    businessId,
+    type: event === 'new' ? 'booking_new' : 'booking_cancelled',
+    title: event === 'new' ? 'New booking' : 'Cancelled by customer',
+    body: `${b.customerName} · ${b.serviceName} · ${when} · ${b.resourceName}`,
+    bookingId,
+  });
 }
 
+/** D6 "Kevin Lim joined your team": tells the owner(s) when an invitation is accepted. */
+export async function notifyStaffJoined(db: Db, sender: PushSender, businessId: number, staffUserId: number) {
+  const [u] = await db.select({ name: users.name }).from(users).where(eq(users.id, staffUserId));
+  if (!u) return;
+  await notify(db, sender, await recipientsFor(db, businessId), {
+    businessId,
+    type: 'staff_joined',
+    title: `${u.name} joined your team`,
+    body: 'Accepted invite · Staff',
+  });
+}

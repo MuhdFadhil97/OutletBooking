@@ -1,5 +1,6 @@
 import type {
   Availability,
+  NextAvailableSlot,
   PriceQuote,
   PublicBookingConfirmation,
   PublicBookingCreateInput,
@@ -20,6 +21,12 @@ export const getPublicBusiness = (slug: string) => apiFetch<PublicBusiness>(slug
 
 export const getPublicSlots = (slug: string, p: { serviceId: number; date: string; durationMin?: number; resourceId?: number }) =>
   apiFetch<Availability>(`${slugPath(slug)}/slots?${qs(p)}`);
+
+/** F2: first free times after `date`. */
+export const getPublicNextAvailable = (
+  slug: string,
+  p: { serviceId: number; date: string; durationMin?: number; resourceId?: number },
+) => apiFetch<NextAvailableSlot[]>(`${slugPath(slug)}/next-available?${qs(p)}`);
 
 export const getPublicQuote = (slug: string, p: { serviceId: number; startAt: string; durationMin?: number }) =>
   apiFetch<PriceQuote>(`${slugPath(slug)}/quote?${qs(p)}`);

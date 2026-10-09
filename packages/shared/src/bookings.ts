@@ -121,11 +121,35 @@ export const bookingRescheduleSchema = z.object({
 export type BookingRescheduleInput = z.input<typeof bookingRescheduleSchema>;
 export type BookingReschedule = z.infer<typeof bookingRescheduleSchema>;
 
-export const bookingStatusSchema = z.object({
-  status: z.enum(BOOKING_STATUSES),
-  /** Shown on cancelled bookings. */
-  reason: text(300).optional(),
+export const REFUND_METHODS = ['bank_transfer', 'duitnow', 'cash'] as const;
+export type RefundMethod = (typeof REFUND_METHODS)[number];
+
+/** D4: refunds are paid by the business outside the app; the app only records them. */
+export const refundSchema = z.object({
+  amountSen: z.number().int().positive('Enter the refund amount'),
+  method: z.enum(REFUND_METHODS),
 });
+export type RefundInput = z.infer<typeof refundSchema>;
+
+export const bookingStatusSchema = z
+  .object({
+    status: z.enum(BOOKING_STATUSES),
+    /** Shown on cancelled bookings. */
+    reason: text(300).optional(),
+    /** Only when cancelling a paid booking; omit to keep the deposit / payment. */
+    refund: refundSchema.optional(),
+  })
+  .refine((v) => !v.refund || v.status === 'cancelled', {
+    message: 'A refund can only be recorded when cancelling',
+    path: ['refund'],
+  });
+
+/** H8 "Extend": add one block of the service duration to a confirmed / checked-in booking. */
+export const bookingExtendSchema = z.object({
+  /** Owner override: run past working hours (double booking is still impossible). */
+  allowOutsideHours: z.boolean().default(true),
+});
+export type BookingExtend = z.infer<typeof bookingExtendSchema>;
 export type BookingStatusChange = z.infer<typeof bookingStatusSchema>;
 
 const MAX_RANGE_DAYS = 42;
@@ -187,6 +211,9 @@ export interface Booking {
   priceSen: number;
   amountDueSen: number;
   paymentStatus: PaymentStatus;
+  /** Sum of paid payments, and of refunds recorded so far. */
+  paidSen: number;
+  refundedSen: number;
   locationAddress: string | null;
   customFields: Record<string, string | number>;
   customerNotes: string | null;

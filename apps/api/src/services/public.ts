@@ -1,4 +1,4 @@
-import { addMinutes } from 'date-fns';
+import { addDays, addMinutes, format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { and, asc, count, eq, gt, inArray, isNull } from 'drizzle-orm';
 import {
@@ -16,6 +16,8 @@ import type {
   Availability,
   AvailabilityQuery,
   BookingStatus,
+  NextAvailableQuery,
+  NextAvailableSlot,
   PriceQuote,
   PublicQuoteQuery,
   LocationType,
@@ -275,6 +277,41 @@ export async function createPublicBooking(
     // What the customer typed — never the name already stored for this phone.
     return { booking: { ...booking, customerName: input.customer.name }, id: row!.id, businessId: biz.id };
   });
+}
+
+/** Days searched for F2 "Next available" (also capped by the business's booking window). */
+const NEXT_AVAILABLE_MAX_DAYS = 30;
+
+/**
+ * F2: the first free times on the days after `query.date`, within the booking window.
+ * "Any" picks the least busy resource, like booking does.
+ */
+export async function getPublicNextAvailable(
+  db: Db,
+  slug: string,
+  query: NextAvailableQuery,
+  now = new Date(),
+): Promise<NextAvailableSlot[]> {
+  const biz = await findBusiness(db, slug);
+  assertBookingOpen(biz);
+  await visibleService(db, biz.id, query.serviceId);
+  const { limit, ...slotQuery } = query;
+  const found: { startAt: string; endAt: string; resourceId: number }[] = [];
+  const days = Math.min(biz.maxDaysAhead, NEXT_AVAILABLE_MAX_DAYS);
+  for (let i = 1; i <= days && found.length < limit; i++) {
+    const date = format(addDays(parseISO(query.date), i), 'yyyy-MM-dd');
+    const { slots } = await getAvailability(db, biz.id, { ...slotQuery, date }, { now });
+    for (const s of slots.slice(0, limit - found.length)) {
+      found.push({ startAt: s.startAt, endAt: s.endAt, resourceId: slotQuery.resourceId ?? s.resourceIds[0]! });
+    }
+  }
+  if (!found.length) return [];
+  const names = await db
+    .select({ id: resources.id, name: resources.name })
+    .from(resources)
+    .where(and(eq(resources.businessId, biz.id), inArray(resources.id, [...new Set(found.map((f) => f.resourceId))])));
+  const nameOf = new Map(names.map((r) => [r.id, r.name]));
+  return found.map((f) => ({ ...f, resourceName: nameOf.get(f.resourceId) ?? '' }));
 }
 
 /** Price for the details step (same engine as the booking itself). */

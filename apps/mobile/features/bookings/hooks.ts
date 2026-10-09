@@ -1,5 +1,12 @@
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Booking, BookingCreateInput, BookingRescheduleInput, BookingSearchFilter, BookingStatus } from '@outletbooking/shared';
+import type {
+  Booking,
+  BookingCreateInput,
+  BookingRescheduleInput,
+  BookingSearchFilter,
+  BookingStatus,
+  RefundInput,
+} from '@outletbooking/shared';
 import { getWorkingHours } from '@/features/setup/api';
 import { setupKeys } from '@/features/setup/hooks';
 import * as api from './api';
@@ -8,6 +15,7 @@ export const bookingKeys = {
   all: ['bookings'] as const,
   range: (from: string, to: string) => ['bookings', 'range', from, to] as const,
   detail: (id: number) => ['bookings', 'detail', id] as const,
+  events: (id: number) => ['bookings', 'events', id] as const,
   search: (q: string, filter: string) => ['bookings', 'search', q, filter] as const,
   availability: (p: object) => ['bookings', 'availability', p] as const,
 };
@@ -36,6 +44,9 @@ export const useBookingSearch = (q: string, filter: BookingSearchFilter) =>
 export const useBooking = (id: number) =>
   useQuery({ queryKey: bookingKeys.detail(id), queryFn: () => api.getBooking(id), enabled: id > 0 });
 
+export const useBookingEvents = (id: number) =>
+  useQuery({ queryKey: bookingKeys.events(id), queryFn: () => api.getBookingEvents(id), enabled: id > 0 });
+
 export function useCalendarAvailability(p: Parameters<typeof api.getCalendarAvailability>[0] | null) {
   return useQuery({
     queryKey: bookingKeys.availability(p ?? {}),
@@ -56,6 +67,7 @@ function useOnBookingChanged() {
   const qc = useQueryClient();
   return (b: Booking) => {
     qc.setQueryData(bookingKeys.detail(b.id), b);
+    void qc.invalidateQueries({ queryKey: bookingKeys.events(b.id) });
     void qc.invalidateQueries({ queryKey: ['bookings', 'range'] });
     void qc.invalidateQueries({ queryKey: ['bookings', 'search'] });
     void qc.invalidateQueries({ queryKey: ['bookings', 'availability'] });
@@ -78,8 +90,13 @@ export function useRescheduleBooking(id: number) {
 export function useSetBookingStatus(id: number) {
   const onChanged = useOnBookingChanged();
   return useMutation({
-    mutationFn: ({ status, reason }: { status: BookingStatus; reason?: string | null }) =>
-      api.setBookingStatus(id, status, reason),
+    mutationFn: ({ status, reason, refund }: { status: BookingStatus; reason?: string | null; refund?: RefundInput }) =>
+      api.setBookingStatus(id, status, reason, refund),
     onSuccess: onChanged,
   });
+}
+
+export function useExtendBooking(id: number) {
+  const onChanged = useOnBookingChanged();
+  return useMutation({ mutationFn: () => api.extendBooking(id), onSuccess: onChanged });
 }

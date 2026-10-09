@@ -115,6 +115,21 @@ const paths = {
       <Circle cx={12} cy={10} r={2.5} />
     </>
   ),
+  bell: <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10.3 20a2 2 0 0 0 3.4 0" />,
+  lock: (
+    <>
+      <Rect x={4} y={10.5} width={16} height={10.5} rx={2} />
+      <Path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+    </>
+  ),
+  'wifi-off': <Path d="M3 3l18 18M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 4.2-2.4M19 12.9a10 10 0 0 0-2.7-1.9M2 9a15 15 0 0 1 4.4-2.8M22 9a15 15 0 0 0-10-4M12 20h.01" />,
+  logout: <Path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4" />,
+  help: (
+    <>
+      <Circle cx={12} cy={12} r={9} />
+      <Path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;

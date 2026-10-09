@@ -6,6 +6,8 @@ import {
   bookings,
   businesses,
   customers,
+  payments,
+  refunds,
   resources,
   services,
   type Db,
@@ -16,6 +18,7 @@ import {
   STAFF_STATUS_CHANGES,
   type Booking,
   type BookingCreate,
+  type BookingExtend,
   type BookingListQuery,
   type BookingReschedule,
   type BookingSearchQuery,
@@ -25,6 +28,7 @@ import {
   type BookingUpdate,
   type MemberRole,
   type PaymentStatus,
+  type RefundInput,
 } from '@outletbooking/shared';
 import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
 import {
@@ -95,6 +99,10 @@ const columns = {
   resultNotes: bookings.resultNotes,
   cancelReason: bookings.cancelReason,
   createdAt: bookings.createdAt,
+  paidSen: sql<number>`(select coalesce(sum(${payments.amountSen}), 0)::int from ${payments}
+    where ${payments.businessId} = ${bookings.businessId} and ${payments.bookingId} = ${bookings.id} and ${payments.status} = 'paid')`,
+  refundedSen: sql<number>`(select coalesce(sum(${refunds.amountSen}), 0)::int from ${refunds}
+    where ${refunds.businessId} = ${bookings.businessId} and ${refunds.bookingId} = ${bookings.id})`,
 };
 
 function selectBookings(q: Q) {
@@ -121,6 +129,8 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   priceSen: r.priceSen,
   amountDueSen: r.amountDueSen,
   paymentStatus: r.paymentStatus as PaymentStatus,
+  paidSen: Number(r.paidSen),
+  refundedSen: Number(r.refundedSen),
   locationAddress: r.locationAddress,
   customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,
@@ -549,6 +559,66 @@ export async function rescheduleBooking(
   });
 }
 
+/**
+ * H8 "Extend": add one block of the service duration to a confirmed / checked-in booking.
+ * The new length must be one of the service's duration options. Re-priced unless already paid.
+ */
+export async function extendBooking(
+  db: Db,
+  businessId: number,
+  id: number,
+  input: BookingExtend,
+  actorUserId: number,
+): Promise<Booking> {
+  return db.transaction(async (tx) => {
+    const current = await lockBooking(tx, businessId, id);
+    if (current.status !== 'confirmed' && current.status !== 'checked_in') {
+      throw new AppError(409, 'not_extendable', 'Only confirmed or checked-in bookings can be extended');
+    }
+    const tz = await businessTimezone(tx, businessId);
+    const svc = await loadService(tx, businessId, current.serviceId);
+    const durationMin = current.durationMin + svc.durationMin;
+    if (!allowedDurations(svc).includes(durationMin)) {
+      throw new AppError(409, 'not_extendable', 'This booking is already at the longest length offered');
+    }
+    const timing = timingFor(svc, durationMin);
+    await assertBookable(tx, businessId, {
+      resourceId: current.resourceId,
+      start: current.startAt,
+      timing,
+      timezone: tz,
+      allowOutsideHours: input.allowOutsideHours,
+      excludeBookingId: id,
+    });
+
+    const endAt = addMinutes(current.startAt, durationMin);
+    const blocked = blockedRange(current.startAt, endAt, timing);
+    const paid = current.paymentStatus === 'paid' || current.paymentStatus === 'refunded';
+    const quote = await getPriceQuote(tx, businessId, { serviceId: current.serviceId, startAt: current.startAt, durationMin });
+    await guardOverlap(() =>
+      tx
+        .update(bookings)
+        .set({
+          endAt,
+          blockedStartAt: blocked.start,
+          blockedEndAt: blocked.end,
+          durationMin,
+          priceSen: quote.priceSen,
+          ...(paid ? {} : { amountDueSen: quote.amountDueSen, paymentStatus: quote.paymentStatus }),
+        })
+        .where(eq(bookings.id, id)),
+    );
+    await recordBookingEvent(tx, {
+      businessId,
+      bookingId: id,
+      type: 'extended',
+      actorUserId,
+      details: { fromDurationMin: current.durationMin, toDurationMin: durationMin },
+    });
+    return getBooking(tx, businessId, id);
+  });
+}
+
 export interface StatusActor {
   userId: number;
   role: MemberRole;
@@ -580,6 +650,9 @@ export async function changeBookingStatus(
     if (!canTransition(from, input.status)) {
       throw new AppError(409, 'invalid_status_change', `A ${from.replace('_', ' ')} booking cannot become ${input.status.replace('_', ' ')}`);
     }
+    const refundedAll = input.refund
+      ? await recordRefund(tx, businessId, id, input.refund, actor.userId, input.reason)
+      : false;
     const stamp = STATUS_TIMESTAMP[input.status];
     await tx
       .update(bookings)
@@ -587,6 +660,7 @@ export async function changeBookingStatus(
         status: input.status,
         ...(stamp ? { [stamp]: new Date() } : {}),
         ...(input.status === 'cancelled' ? { cancelReason: input.reason ?? null } : {}),
+        ...(refundedAll ? { paymentStatus: 'refunded' } : {}),
       })
       .where(eq(bookings.id, id));
     await recordBookingEvent(tx, {
@@ -601,4 +675,53 @@ export async function changeBookingStatus(
     });
     return getBooking(tx, businessId, id, actor.scope);
   });
+}
+
+/**
+ * D4: record money paid back outside the app. At most what was paid minus earlier refunds.
+ * Returns true when everything paid has now been refunded.
+ */
+async function recordRefund(
+  tx: Tx,
+  businessId: number,
+  bookingId: number,
+  refund: RefundInput,
+  userId: number,
+  reason: string | null | undefined,
+): Promise<boolean> {
+  const paidRows = await tx
+    .select({ id: payments.id, amountSen: payments.amountSen })
+    .from(payments)
+    .where(and(eq(payments.businessId, businessId), eq(payments.bookingId, bookingId), eq(payments.status, 'paid')))
+    .orderBy(desc(payments.id));
+  const paidSen = paidRows.reduce((sum, p) => sum + p.amountSen, 0);
+  const [prev] = await tx
+    .select({ n: sql<number>`coalesce(sum(${refunds.amountSen}), 0)::int` })
+    .from(refunds)
+    .where(and(eq(refunds.businessId, businessId), eq(refunds.bookingId, bookingId)));
+  const refundable = paidSen - Number(prev?.n ?? 0);
+  if (refund.amountSen > refundable) {
+    throw new AppError(
+      400,
+      'refund_too_large',
+      refundable > 0 ? 'The refund is more than the customer paid' : 'Nothing has been paid for this booking',
+    );
+  }
+  await tx.insert(refunds).values({
+    businessId,
+    bookingId,
+    paymentId: paidRows[0]?.id ?? null,
+    amountSen: refund.amountSen,
+    method: refund.method,
+    reason: reason ?? null,
+    recordedByUserId: userId,
+  });
+  await recordBookingEvent(tx, {
+    businessId,
+    bookingId,
+    type: 'refunded',
+    actorUserId: userId,
+    details: { amountSen: refund.amountSen, method: refund.method },
+  });
+  return refund.amountSen === refundable;
 }

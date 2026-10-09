@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import {
   bookingCreateSchema,
+  bookingExtendSchema,
   bookingListQuery,
   bookingRescheduleSchema,
   bookingSearchQuery,
@@ -17,6 +18,7 @@ import {
   bookingScope,
   changeBookingStatus,
   createBooking,
+  extendBooking,
   getBooking,
   listBookings,
   rescheduleBooking,
@@ -73,6 +75,9 @@ export const bookingRoutes = new Hono<AppEnv>()
       c.json(
         await rescheduleBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId),
       ),
+  )
+  .post('/:id/extend', requireRole('owner'), validate('param', idParam), validate('json', bookingExtendSchema), async (c) =>
+    c.json(await extendBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId)),
   )
   .post('/:id/status', validate('param', idParam), validate('json', bookingStatusSchema), async (c) =>
     c.json(

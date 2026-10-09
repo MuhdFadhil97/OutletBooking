@@ -14,6 +14,19 @@ export const availabilityQuerySchema = z.object({
 });
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
 
+/** F2 "Fully booked": the first free times after `date` (same service, duration, resource choice). */
+export const nextAvailableQuerySchema = availabilityQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(5).default(3),
+});
+export type NextAvailableQuery = z.infer<typeof nextAvailableQuerySchema>;
+
+export interface NextAvailableSlot {
+  startAt: string;
+  endAt: string;
+  resourceId: number;
+  resourceName: string;
+}
+
 export interface AvailableSlot {
   /** ISO timestamps (UTC). Display in the business timezone. */
   startAt: string;

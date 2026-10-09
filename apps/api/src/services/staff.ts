@@ -264,7 +264,7 @@ export async function acceptInvitation(
   token: string,
   opts: { sessionUserId?: number; newAccount?: AcceptInviteNewAccount },
   now = new Date(),
-): Promise<{ email: string; businessName: string }> {
+): Promise<{ email: string; businessName: string; businessId: number; userId: number }> {
   const passwordHash = opts.newAccount ? await hashPassword(opts.newAccount.password) : null;
   try {
     return await db.transaction(async (tx) => {
@@ -320,7 +320,7 @@ export async function acceptInvitation(
       }
 
       await tx.update(staffInvitations).set({ acceptedAt: now }).where(eq(staffInvitations.id, inv.id));
-      return { email: inv.email, businessName: inv.businessName };
+      return { email: inv.email, businessName: inv.businessName, businessId: inv.businessId, userId };
     });
   } catch (err) {
     const { code, constraint } = pgErrorInfo(err);

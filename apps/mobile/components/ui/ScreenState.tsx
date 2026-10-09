@@ -45,6 +45,17 @@ export function EmptyState({ title, body, icon, action }: { title: string; body?
   );
 }
 
+/** D9 "That slot was just taken": someone booked the same time a moment ago. */
+export function SlotTaken({ onPickAnother }: { onPickAnother: () => void }) {
+  return (
+    <View className="gap-2 rounded-input bg-danger-tint px-3.5 py-3" accessibilityRole="alert">
+      <Text className="text-[15px] font-extrabold text-danger">{t.booking.slotTakenTitle}</Text>
+      <Text className="text-[14px] text-danger">{t.booking.slotTakenBody}</Text>
+      <Button variant="secondary" title={t.booking.otherTime} onPress={onPickAnother} />
+    </View>
+  );
+}
+
 /** Inline error banner for forms */
 export function FormError({ message }: { message?: string | null }) {
   if (!message) return null;

@@ -17,6 +17,17 @@ export const usePublicSlots = (
     staleTime: 30_000,
   });
 
+export const usePublicNextAvailable = (
+  slug: string,
+  p: { serviceId: number; date: string; durationMin?: number; resourceId?: number } | null,
+) =>
+  useQuery({
+    queryKey: ['public-slots', slug, 'next', p],
+    queryFn: () => api.getPublicNextAvailable(slug, p!),
+    enabled: !!p,
+    staleTime: 30_000,
+  });
+
 export const usePublicQuote = (slug: string, p: { serviceId: number; startAt: string; durationMin?: number } | null) =>
   useQuery({ queryKey: ['public-quote', slug, p], queryFn: () => api.getPublicQuote(slug, p!), enabled: !!p });
 

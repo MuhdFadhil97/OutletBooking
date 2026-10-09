@@ -64,6 +64,20 @@
       "when": 1791348989190,
       "tag": "0008_phase3_catchup_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791467284502,
+      "tag": "0009_phase4_payments_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791467304470,
+      "tag": "0010_phase4_updated_at_triggers",
+      "breakpoints": true
     }
   ]
 }

@@ -2,10 +2,12 @@ import type {
   Availability,
   Booking,
   BookingCreateInput,
+  BookingEvent,
   BookingRescheduleInput,
   BookingSearchFilter,
   BookingStatus,
   BookingUpdate,
+  RefundInput,
 } from '@outletbooking/shared';
 import { apiFetch } from '@/lib/api';
 
@@ -41,5 +43,11 @@ export const updateBooking = (id: number, body: BookingUpdate) =>
 export const rescheduleBooking = (id: number, body: BookingRescheduleInput) =>
   apiFetch<Booking>(`/bookings/${id}/reschedule`, { method: 'POST', json: body });
 
-export const setBookingStatus = (id: number, status: BookingStatus, reason?: string | null) =>
-  apiFetch<Booking>(`/bookings/${id}/status`, { method: 'POST', json: { status, reason } });
+export const setBookingStatus = (id: number, status: BookingStatus, reason?: string | null, refund?: RefundInput) =>
+  apiFetch<Booking>(`/bookings/${id}/status`, { method: 'POST', json: { status, reason, refund } });
+
+/** H8: add one block of the service duration. */
+export const extendBooking = (id: number) => apiFetch<Booking>(`/bookings/${id}/extend`, { method: 'POST', json: {} });
+
+/** H8 timeline, oldest first. */
+export const getBookingEvents = (id: number) => apiFetch<BookingEvent[]>(`/bookings/${id}/events`);

@@ -13,6 +13,8 @@ import {
   Manrope_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/manrope';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { ToastHost } from '@/components/ui/Toast';
 import { queryClient } from '@/lib/query-client';
 import { colors } from '@/theme';
 
@@ -39,6 +41,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        <OfflineBanner />
+        <ToastHost />
       </SafeAreaProvider>
     </QueryClientProvider>
   );

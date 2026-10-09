@@ -11,6 +11,7 @@ import { businessRoutes } from './routes/businesses';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { notificationRoutes } from './routes/notifications';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
 import { resourceRoutes } from './routes/resources';
@@ -69,6 +70,7 @@ export function createApp({ db, auth, env, push = expoPushSender(env.EXPO_ACCESS
   app.route('/staff', staffRoutes);
   app.route('/invitations', invitationRoutes);
   app.route('/bookings', bookingRoutes);
+  app.route('/notifications', notificationRoutes);
   app.route('/public', publicRoutes);
 
   app.onError(errorHandler);

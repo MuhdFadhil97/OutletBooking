@@ -10,3 +10,4 @@ export * from './bookings';
 export * from './account';
 export * from './onboarding';
 export * from './hours';
+export * from './notifications';

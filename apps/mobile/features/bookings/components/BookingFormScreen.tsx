@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { DateSelect } from '@/components/ui/DateSelect';
 import { SectionLabel, SwitchRow } from '@/components/ui/Rows';
-import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/ui/ScreenState';
+import { ErrorState, FormError, LoadingState, SlotTaken, errorMessage } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { TimeSelect } from '@/components/ui/TimeSelect';
@@ -24,6 +24,7 @@ import { todayIn } from '@/features/bookings/format';
 import { useBooking, useCalendarAvailability, useCreateBooking, useRescheduleBooking } from '@/features/bookings/hooks';
 import { openBooking, type BookingFormParams, type BookingsTab } from '@/features/bookings/nav';
 import { useBookingFields, useBusiness, useResources, useServices } from '@/features/setup/hooks';
+import { ApiError } from '@/lib/api';
 import { formatDuration, formatTime } from '@/lib/format';
 import { t } from '@/strings/en';
 
@@ -186,6 +187,7 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
 
   const mutation = editing ? move : create;
   const label = business.resourceLabel;
+  const slotTaken = mutation.error instanceof ApiError && mutation.error.code === 'slot_taken';
 
   return (
     <StackScreen
@@ -195,7 +197,17 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
         <Button title={editing ? s.reschedule : s.create} loading={mutation.isPending} disabled={!pick} onPress={submit} />
       }
     >
-      <FormError message={formError ?? (mutation.error ? errorMessage(mutation.error) : null)} />
+      {slotTaken && !formError ? (
+        <SlotTaken
+          onPickAnother={() => {
+            mutation.reset();
+            setPick(null);
+            void availability.refetch();
+          }}
+        />
+      ) : (
+        <FormError message={formError ?? (mutation.error ? errorMessage(mutation.error) : null)} />
+      )}
 
       <Card className="gap-3 p-3.5">
         {!editing ? (
