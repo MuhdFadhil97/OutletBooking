@@ -142,6 +142,33 @@ export const bookings = pgTable(
   ],
 );
 
+/** S2 job photos (inspection result, etc.). Files live in S3-compatible storage under `file_key`. */
+export const bookingAttachments = pgTable(
+  'booking_attachments',
+  {
+    id: idPk(),
+    businessId: integer('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    bookingId: integer('booking_id').notNull(),
+    fileKey: text('file_key').notNull(),
+    contentType: text('content_type').notNull(),
+    caption: text('caption'),
+    uploadedByUserId: integer('uploaded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'booking_attachments_business_id_booking_id_fkey',
+      columns: [t.businessId, t.bookingId],
+      foreignColumns: [bookings.businessId, bookings.id],
+    }).onDelete('cascade'),
+    index('booking_attachments_booking_idx').on(t.bookingId),
+    index('booking_attachments_business_id_idx').on(t.businessId),
+  ],
+);
+
 /** Booking timeline. Every status change writes a row in the same transaction. */
 export const bookingEvents = pgTable(
   'booking_events',

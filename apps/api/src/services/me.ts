@@ -1,6 +1,13 @@
-import { eq } from 'drizzle-orm';
-import { businesses, subscriptions, users, type Db } from '@outletbooking/db';
-import type { BusinessTemplate, MeResponse, SubscriptionStatus } from '@outletbooking/shared';
+import { eq, sql } from 'drizzle-orm';
+import { businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
+import {
+  resolveNotificationPrefs,
+  type BusinessTemplate,
+  type MeResponse,
+  type NotificationPrefs,
+  type NotificationPrefsUpdate,
+  type SubscriptionStatus,
+} from '@outletbooking/shared';
 import { notFound } from '../errors';
 import type { Tenant } from '../types';
 
@@ -58,4 +65,23 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
       isTrialActive: status === 'trialing' && daysLeft > 0,
     },
   };
+}
+
+/** G3: the caller's push switches in their current business (missing = on). */
+export async function getNotificationPrefs(db: Db, tenant: Tenant): Promise<NotificationPrefs> {
+  const [row] = await db
+    .select({ prefs: businessMembers.notificationPrefs })
+    .from(businessMembers)
+    .where(eq(businessMembers.id, tenant.memberId));
+  return resolveNotificationPrefs(row?.prefs);
+}
+
+/** Merges the changed switches into the stored prefs. */
+export async function updateNotificationPrefs(db: Db, tenant: Tenant, input: NotificationPrefsUpdate): Promise<NotificationPrefs> {
+  const [row] = await db
+    .update(businessMembers)
+    .set({ notificationPrefs: sql`${businessMembers.notificationPrefs} || ${JSON.stringify(input)}::jsonb` })
+    .where(eq(businessMembers.id, tenant.memberId))
+    .returning({ prefs: businessMembers.notificationPrefs });
+  return resolveNotificationPrefs(row?.prefs);
 }

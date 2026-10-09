@@ -109,6 +109,12 @@ const paths = {
       <Path d="M16 16l4.5 4.5" />
     </>
   ),
+  camera: (
+    <>
+      <Path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+      <Circle cx={12} cy={13} r={3.5} />
+    </>
+  ),
   pin: (
     <>
       <Path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />

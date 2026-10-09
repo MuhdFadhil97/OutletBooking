@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { colors } from '@/theme';
 import { Icon } from './ui/Icon';
 import { Text } from './ui/Text';
@@ -15,12 +15,15 @@ export function StackScreen({
   subtitle,
   right,
   footer,
+  backHref = '/setup',
   children,
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
   footer?: ReactNode;
+  /** Where Back goes when there is no history (deep link, web reload). */
+  backHref?: Href;
   children: ReactNode;
 }) {
   return (
@@ -28,7 +31,7 @@ export function StackScreen({
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View className="flex-row items-center gap-3 px-4 pb-2 pt-3">
           <Pressable
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/setup'))}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace(backHref))}
             accessibilityRole="button"
             accessibilityLabel="Back"
             className="h-11 w-11 items-center justify-center rounded-button border border-border bg-card active:bg-pressed"

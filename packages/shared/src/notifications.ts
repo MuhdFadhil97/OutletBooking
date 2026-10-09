@@ -39,3 +39,32 @@ export const notificationReadSchema = z.object({
   ids: z.array(z.number().int().positive()).max(100).optional(),
 });
 export type NotificationRead = z.infer<typeof notificationReadSchema>;
+
+/**
+ * G3 push switches. Off = no push for those types (the D6 list still keeps them).
+ * Types not listed here (trial, staff joined, …) always push.
+ */
+export const NOTIFICATION_PREF_KEYS = ['newBookings', 'changes', 'daySummary'] as const;
+export type NotificationPrefKey = (typeof NOTIFICATION_PREF_KEYS)[number];
+export type NotificationPrefs = Record<NotificationPrefKey, boolean>;
+
+export const NOTIFICATION_PREF_FOR_TYPE: Partial<Record<NotificationType, NotificationPrefKey>> = {
+  booking_new: 'newBookings',
+  booking_paid: 'newBookings',
+  walk_in: 'newBookings',
+  booking_cancelled: 'changes',
+  payment_failed: 'changes',
+};
+
+/** Stored prefs → every switch (missing = on). */
+export const resolveNotificationPrefs = (stored: Partial<Record<string, boolean>> | null | undefined): NotificationPrefs => ({
+  newBookings: stored?.newBookings ?? true,
+  changes: stored?.changes ?? true,
+  daySummary: stored?.daySummary ?? true,
+});
+
+export const notificationPrefsSchema = z
+  .object({ newBookings: z.boolean(), changes: z.boolean(), daySummary: z.boolean() })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to change');
+export type NotificationPrefsUpdate = z.infer<typeof notificationPrefsSchema>;

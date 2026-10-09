@@ -21,6 +21,7 @@ import { staffRoutes } from './routes/staff';
 import { timeOffRoutes } from './routes/time-off';
 import { paymentRoutes, toyyibPayRoutes } from './routes/payments';
 import { expoPushSender, type PushSender } from './services/push';
+import { s3Storage, type ObjectStorage } from './services/storage';
 import { toyyibPayClient, type ToyyibPayClient } from './services/toyyibpay';
 import type { AppEnv } from './types';
 
@@ -32,6 +33,8 @@ export interface AppDeps {
   push?: PushSender;
   /** ToyyibPay API; tests pass a fake. */
   toyyibpay?: ToyyibPayClient;
+  /** S2 photo storage; tests pass a fake. */
+  storage?: ObjectStorage | null;
 }
 
 export function createApp({
@@ -40,6 +43,7 @@ export function createApp({
   env,
   push = expoPushSender(env.EXPO_ACCESS_TOKEN),
   toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL),
+  storage = s3Storage(env),
 }: AppDeps) {
   const app = new Hono<AppEnv>();
 
@@ -64,6 +68,7 @@ export function createApp({
     c.set('env', env);
     c.set('push', push);
     c.set('toyyibpay', toyyibpay);
+    c.set('storage', storage);
     await next();
   });
 

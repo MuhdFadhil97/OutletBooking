@@ -35,6 +35,14 @@
         {
           "color": "#0F7B55"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Take photos of a job to add to the booking.",
+          "photosPermission": "Choose photos of a job to add to the booking.",
+          "microphonePermission": false
+        }
       ]
     ],
     "scheme": "outletbooking",

@@ -1,6 +1,10 @@
 import { Hono, type Context } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import {
+  ATTACHMENT_MAX_BYTES,
+  attachmentParam,
   bookingCreateSchema,
+  bookingResultSchema,
   bookingExtendSchema,
   bookingListQuery,
   bookingRescheduleSchema,
@@ -27,7 +31,9 @@ import {
   searchBookings,
   updateBooking,
 } from '../services/bookings';
+import { AppError } from '../errors';
 import { createBookingPaymentLink, recordManualPayment } from '../services/payments';
+import { addAttachment, deleteAttachment, listAttachments, setResultNotes } from '../services/staff-app';
 import { listReminders, markReminderSent } from '../services/reminders';
 import type { AppEnv } from '../types';
 import { paymentDeps } from './payments';
@@ -115,6 +121,62 @@ export const bookingRoutes = new Hono<AppEnv>()
   .post('/:id/extend', requireRole('owner'), validate('param', idParam), validate('json', bookingExtendSchema), async (c) =>
     c.json(await extendBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId)),
   )
+  // S2 · Result notes and photos: owner, or staff on their own bookings.
+  .put('/:id/result', validate('param', idParam), validate('json', bookingResultSchema), async (c) =>
+    c.json(
+      await setResultNotes(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), await scopeOf(c)),
+    ),
+  )
+  .get('/:id/attachments', validate('param', idParam), async (c) =>
+    c.json(
+      await listAttachments(c.var.db, c.var.storage, c.var.tenant.businessId, c.req.valid('param').id, await scopeOf(c)),
+    ),
+  )
+  .post(
+    '/:id/attachments',
+    bodyLimit({
+      maxSize: ATTACHMENT_MAX_BYTES + 64 * 1024,
+      onError: () => {
+        throw new AppError(400, 'file_too_large', 'Photos must be smaller than 10 MB');
+      },
+    }),
+    validate('param', idParam),
+    async (c) => {
+      const body = await c.req.parseBody();
+      const file = body['file'];
+      if (!(file instanceof File)) throw new AppError(400, 'file_missing', 'Choose a photo to upload');
+      return c.json(
+        await addAttachment(
+          c.var.db,
+          c.var.storage,
+          {
+            businessId: c.var.tenant.businessId,
+            bookingId: c.req.valid('param').id,
+            userId: c.var.userId,
+            scope: await scopeOf(c),
+          },
+          { bytes: new Uint8Array(await file.arrayBuffer()), contentType: file.type },
+        ),
+        201,
+      );
+    },
+  )
+  .delete('/:id/attachments/:attachmentId', validate('param', attachmentParam), async (c) => {
+    const { id, attachmentId } = c.req.valid('param');
+    await deleteAttachment(
+      c.var.db,
+      c.var.storage,
+      {
+        businessId: c.var.tenant.businessId,
+        bookingId: id,
+        userId: c.var.userId,
+        isOwner: c.var.tenant.role === 'owner',
+        scope: await scopeOf(c),
+      },
+      attachmentId,
+    );
+    return c.body(null, 204);
+  })
   .post('/:id/status', validate('param', idParam), validate('json', bookingStatusSchema), async (c) =>
     c.json(
       await changeBookingStatus(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), {

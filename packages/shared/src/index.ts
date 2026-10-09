@@ -12,3 +12,4 @@ export * from './onboarding';
 export * from './hours';
 export * from './notifications';
 export * from './payments';
+export * from './schedule';

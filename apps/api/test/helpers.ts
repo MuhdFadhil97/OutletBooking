@@ -7,6 +7,7 @@ import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
 import type { MailMessage } from '../src/services/mailer';
 import type { PushMessage, PushSender, PushTicket } from '../src/services/push';
+import type { ObjectStorage } from '../src/services/storage';
 import { ToyyibPayError, type BillTransaction, type CreateBillInput, type ToyyibPayClient } from '../src/services/toyyibpay';
 import { testDatabaseUrl } from './test-db-url';
 
@@ -41,7 +42,8 @@ export function createTestContext() {
     },
   };
   const toyyibpay = fakeToyyibPay();
-  const app = createApp({ db, auth, env, push, toyyibpay });
+  const storage = fakeStorage();
+  const app = createApp({ db, auth, env, push, toyyibpay, storage });
 
   return {
     db,
@@ -50,9 +52,11 @@ export function createTestContext() {
     pushes,
     pushErrors,
     toyyibpay,
+    storage,
     env,
     async reset() {
       outbox.length = 0;
+      storage.objects.clear();
       await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);
     },
     async close() {
@@ -147,4 +151,23 @@ export function fakeToyyibPay() {
     },
   };
   return client;
+}
+
+/** S3 stand-in: objects kept in memory; signed links are fake URLs naming the key. */
+export function fakeStorage() {
+  const objects = new Map<string, { body: Uint8Array; contentType: string }>();
+  const storage: ObjectStorage & { objects: typeof objects } = {
+    objects,
+    async put(key, body, contentType) {
+      objects.set(key, { body, contentType });
+    },
+    signedUrl: async (key, expiresInSec) => `https://s3.test/${key}?expires=${expiresInSec}`,
+    async remove(key) {
+      objects.delete(key);
+    },
+    async removePrefix(prefix) {
+      for (const key of [...objects.keys()]) if (key.startsWith(prefix)) objects.delete(key);
+    },
+  };
+  return storage;
 }

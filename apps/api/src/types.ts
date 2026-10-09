@@ -3,6 +3,7 @@ import type { MemberRole } from '@outletbooking/shared';
 import type { Auth, AuthSession } from './auth';
 import type { Env } from './env';
 import type { PushSender } from './services/push';
+import type { ObjectStorage } from './services/storage';
 import type { ToyyibPayClient } from './services/toyyibpay';
 
 /** Resolved from business_members on every authenticated request — never from the client. */
@@ -24,6 +25,8 @@ export interface AppVariables {
   env: Env;
   push: PushSender;
   toyyibpay: ToyyibPayClient;
+  /** null when S3_* is not configured. */
+  storage: ObjectStorage | null;
   userId: number;
   session: AuthSession;
   tenant: Tenant;

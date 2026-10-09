@@ -98,6 +98,9 @@ const columns = {
   internalNotes: bookings.internalNotes,
   resultNotes: bookings.resultNotes,
   cancelReason: bookings.cancelReason,
+  checkedInAt: bookings.checkedInAt,
+  completedAt: bookings.completedAt,
+  travelBufferMin: services.travelBufferMin,
   createdAt: bookings.createdAt,
   expiresAt: bookings.expiresAt,
   reminderSentAt: bookings.reminderSentAt,
@@ -141,6 +144,9 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   internalNotes: r.internalNotes,
   resultNotes: r.resultNotes,
   cancelReason: r.cancelReason,
+  checkedInAt: r.checkedInAt?.toISOString() ?? null,
+  completedAt: r.completedAt?.toISOString() ?? null,
+  travelBufferMin: r.travelBufferMin,
   createdAt: r.createdAt.toISOString(),
 });
 

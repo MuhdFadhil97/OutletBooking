@@ -67,7 +67,7 @@ erDiagram
 | Auth | sessions, accounts, verifications | Managed by Better Auth | user_id |
 | Auth | push_tokens | Expo push tokens per device | user_id, token, platform |
 | Tenant | businesses | One row per business; booking rules | id, slug, template, resource_label, slot_interval_min, min_advance_min, max_days_ahead, cancel_cutoff_min, pending_expiry_min, booking_enabled, auto_confirm_paid, customers_can_cancel, late_cancel_keeps_deposit, settings (jsonb, template-specific) |
-| Tenant | business_members | User ↔ business with role and permissions | business_id, user_id, role (owner/staff), can_view_all, can_take_payments, can_edit_setup |
+| Tenant | business_members | User ↔ business with role and permissions | business_id, user_id, role (owner/staff), can_view_all, can_take_payments, can_edit_setup, notification_prefs (G3 push switches) |
 | Tenant | staff_invitations | Email invites for staff, with role and permissions | business_id, email, role, resource_id, permissions, token, expires_at |
 | Tenant | subscriptions | 7-day trial and paid plan | business_id, plan, status, trial_ends_at, current_period_end |
 | Setup | branches | Outlets/locations | business_id, name, address, lat/long |

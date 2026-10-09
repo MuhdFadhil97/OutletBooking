@@ -138,6 +138,7 @@ CREATE TABLE business_members (
   can_take_payments boolean NOT NULL DEFAULT true,   -- record cash / DuitNow / card (D12, S2, H7)
   can_edit_setup boolean    NOT NULL DEFAULT false,  -- services, prices, hours (D12)
   is_active    boolean     NOT NULL DEFAULT true,
+  notification_prefs jsonb NOT NULL DEFAULT '{}'::jsonb,  -- G3 push switches {"newBookings","changes","daySummary"}; missing = on
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (business_id, user_id)

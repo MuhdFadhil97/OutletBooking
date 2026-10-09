@@ -2,6 +2,7 @@ import { boolean, char, check, index, integer, jsonb, pgTable, text, timestamp, 
 import { sql } from 'drizzle-orm';
 import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
+import type { NotificationPrefKey } from '@outletbooking/shared';
 
 export const businesses = pgTable(
   'businesses',
@@ -73,6 +74,11 @@ export const businessMembers = pgTable(
     /** Edit services, prices, hours (D12). */
     canEditSetup: boolean('can_edit_setup').notNull().default(false),
     isActive: boolean('is_active').notNull().default(true),
+    /** G3 push switches, e.g. {"daySummary": false}. A missing key means on. */
+    notificationPrefs: jsonb('notification_prefs')
+      .$type<Partial<Record<NotificationPrefKey, boolean>>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

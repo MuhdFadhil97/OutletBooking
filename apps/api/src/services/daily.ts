@@ -1,6 +1,7 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { and, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
 import { bookings, businesses, businessMembers, notifications, resources, subscriptions, type Db } from '@outletbooking/db';
+import { resolveNotificationPrefs } from '@outletbooking/shared';
 import { localDayRange } from './availability';
 import { notify, pushToUsers, recipientsFor } from './notifications';
 import type { PushSender } from './push';
@@ -34,10 +35,16 @@ export async function staffDaySummary(db: Db, sender: PushSender, now = new Date
       );
     if (!day.length) continue;
     const members = await db
-      .select({ userId: businessMembers.userId, role: businessMembers.role, canViewAll: businessMembers.canViewAll })
+      .select({
+        userId: businessMembers.userId,
+        role: businessMembers.role,
+        canViewAll: businessMembers.canViewAll,
+        prefs: businessMembers.notificationPrefs,
+      })
       .from(businessMembers)
       .where(and(eq(businessMembers.businessId, biz.id), eq(businessMembers.isActive, true)));
     for (const m of members) {
+      if (!resolveNotificationPrefs(m.prefs).daySummary) continue; // G3 switch
       const mine = m.role === 'owner' || m.canViewAll ? day : day.filter((b) => b.resourceUserId === m.userId);
       if (!mine.length) continue;
       const first = mine.reduce((a, b) => (a.startAt < b.startAt ? a : b)).startAt;

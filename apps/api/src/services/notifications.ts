@@ -1,6 +1,13 @@
 import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { businessMembers, notifications, pushTokens, type Db } from '@outletbooking/db';
-import type { AppNotification, NotificationList, NotificationRead, NotificationType } from '@outletbooking/shared';
+import {
+  NOTIFICATION_PREF_FOR_TYPE,
+  resolveNotificationPrefs,
+  type AppNotification,
+  type NotificationList,
+  type NotificationRead,
+  type NotificationType,
+} from '@outletbooking/shared';
 import type { PushSender } from './push';
 
 export interface NewNotification {
@@ -45,11 +52,23 @@ export async function notify(db: Db, sender: PushSender, userIds: number[], n: N
     })),
   );
 
-  await pushToUsers(db, sender, userIds, {
+  await pushToUsers(db, sender, await wantsPush(db, n.businessId, userIds, n.type), {
     title: n.title,
     body: n.body,
     data: { type: n.type, ...(n.bookingId ? { bookingId: n.bookingId } : {}) },
   });
+}
+
+/** Recipients whose G3 switch for this type is on (types without a switch always push). */
+export async function wantsPush(db: Db, businessId: number, userIds: number[], type: NotificationType): Promise<number[]> {
+  const key = NOTIFICATION_PREF_FOR_TYPE[type];
+  if (!key || !userIds.length) return userIds;
+  const rows = await db
+    .select({ userId: businessMembers.userId, prefs: businessMembers.notificationPrefs })
+    .from(businessMembers)
+    .where(and(eq(businessMembers.businessId, businessId), inArray(businessMembers.userId, userIds)));
+  const off = new Set(rows.filter((r) => !resolveNotificationPrefs(r.prefs)[key]).map((r) => r.userId));
+  return userIds.filter((id) => !off.has(id));
 }
 
 /** Expo push only (no D6 row), e.g. the staff day summary. Dead device tokens are removed. */

@@ -13,6 +13,8 @@ export default function StaffLayout() {
         <Tabs.Screen name="today" options={{ title: t.tabs.today, tabBarIcon: tabIcon('home') }} />
         <Tabs.Screen name="schedule" options={{ title: t.tabs.schedule, tabBarIcon: tabIcon('calendar') }} />
         <Tabs.Screen name="profile" options={{ title: t.tabs.profile, tabBarIcon: tabIcon('user') }} />
+        {/* S2 job screen: opened from Today / Schedule, not a tab. */}
+        <Tabs.Screen name="job/[id]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
     </RoleGate>
   );

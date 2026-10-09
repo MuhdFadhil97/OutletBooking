@@ -224,6 +224,11 @@ export interface Booking {
   internalNotes: string | null;
   resultNotes: string | null;
   cancelReason: string | null;
+  /** S1 / S2: when the customer was checked in, and the job completed. */
+  checkedInAt: string | null;
+  completedAt: string | null;
+  /** S1: travel time the service blocks before and after the booking (real estate, mobile jobs). */
+  travelBufferMin: number;
   createdAt: string;
 }
 

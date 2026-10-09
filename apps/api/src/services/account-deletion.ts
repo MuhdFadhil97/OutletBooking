@@ -3,6 +3,7 @@ import { verifyPassword } from 'better-auth/crypto';
 import { accounts, bookings, businesses, businessMembers, refunds, users, type Db } from '@outletbooking/db';
 import type { DeleteAccountInput } from '@outletbooking/shared';
 import { AppError, notFound } from '../errors';
+import { businessPrefix, type ObjectStorage } from './storage';
 
 /**
  * H6 · Delete my account and business data (owner only, permanent — decided by the product owner).
@@ -14,8 +15,15 @@ import { AppError, notFound } from '../errors';
  *     (sessions and credentials cascade).
  * Tables added later with ON DELETE RESTRICT to businesses / bookings (e.g. Phase 5 `payments`)
  * must be deleted in step 1 too.
+ * Afterwards the business's files (S2 photos) are removed from storage.
  */
-export async function deleteOwnerAccount(db: Db, businessId: number, ownerUserId: number, input: DeleteAccountInput) {
+export async function deleteOwnerAccount(
+  db: Db,
+  businessId: number,
+  ownerUserId: number,
+  input: DeleteAccountInput,
+  storage: ObjectStorage | null = null,
+) {
   const [biz] = await db
     .select({ name: businesses.name })
     .from(businesses)
@@ -52,6 +60,11 @@ export async function deleteOwnerAccount(db: Db, businessId: number, ownerUserId
           notExists(tx.select({ id: businessMembers.id }).from(businessMembers).where(eq(businessMembers.userId, users.id))),
         ),
       );
+  });
+
+  // The rows are gone already; a storage hiccup must not fail the delete (files are unreachable without them).
+  await storage?.removePrefix(businessPrefix(businessId)).catch((err: unknown) => {
+    console.error(`[account-deletion] could not remove files of business ${businessId}`, err);
   });
 }
 

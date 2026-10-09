@@ -13,6 +13,9 @@ const csv = z
       .filter(Boolean),
   );
 
+/** `KEY=` left empty in .env counts as not set. */
+const optionalUrl = z.preprocess((v) => (v === '' ? undefined : v), z.url().optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().default(3000),
@@ -48,6 +51,14 @@ const envSchema = z.object({
    * (Cloudflare Tunnel / ngrok). Defaults to BETTER_AUTH_URL.
    */
   API_PUBLIC_URL: z.url().optional(),
+  /** S3-compatible file storage for S2 photos (RustFS / MinIO locally). Photos are off when unset. */
+  S3_ENDPOINT: optionalUrl,
+  S3_REGION: z.string().default('us-east-1'),
+  S3_BUCKET: z.string().min(3).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  /** Host used in signed photo links when the phone can't reach S3_ENDPOINT (e.g. http://192.168.x.x:9000). */
+  S3_PUBLIC_URL: optionalUrl,
   /** Background jobs (pg-boss): pending-payment expiry, staff day summary, trial reminders. */
   JOBS_ENABLED: z
     .enum(['true', 'false'])

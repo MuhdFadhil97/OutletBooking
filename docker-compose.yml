@@ -20,18 +20,20 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
+  # S3-compatible file storage (booking photos). RustFS replaces MinIO, whose Docker images are
+  # no longer published; the API only speaks S3, so any S3 server (MinIO, R2, Supabase) works.
+  s3:
+    image: rustfs/rustfs:latest
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: outlet
-      MINIO_ROOT_PASSWORD: outletminio
+      RUSTFS_ACCESS_KEY: outlet
+      RUSTFS_SECRET_KEY: outletminio
+      RUSTFS_CONSOLE_ENABLE: "true"
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # web console
     volumes:
-      - miniodata:/data
+      - s3data:/data
 
   # Optional: `docker compose --profile tools up -d` (or use pgAdmin installed on Windows)
   pgadmin:
@@ -47,4 +49,4 @@ services:
 
 volumes:
   pgdata:
-  miniodata:
+  s3data:
