@@ -5,6 +5,7 @@ const colors = {
   primary: '#0F7B55',
   'primary-pressed': '#0A5C40',
   'primary-tint': '#DDF3E8',
+  'primary-light': '#9FD5BB',
   soft: '#F0F7F3',
   bg: '#F6F7F5',
   card: '#FFFFFF',

@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tokens = require('./tokens.js') as {
   colors: Record<
-    | 'primary' | 'primary-pressed' | 'primary-tint' | 'soft' | 'bg' | 'card' | 'border' | 'input-border'
+    | 'primary' | 'primary-pressed' | 'primary-tint' | 'primary-light' | 'soft' | 'bg' | 'card' | 'border' | 'input-border'
     | 'pressed' | 'text' | 'muted' | 'label' | 'danger' | 'danger-tint'
     | 'ok-bg' | 'ok-fg' | 'pend-bg' | 'pend-fg' | 'neutral-bg' | 'neutral-fg' | 'info-bg' | 'info-fg',
     string

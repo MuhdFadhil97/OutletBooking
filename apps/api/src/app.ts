@@ -15,6 +15,7 @@ import { meRoutes } from './routes/me';
 import { notificationRoutes } from './routes/notifications';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
+import { reportRoutes } from './routes/reports';
 import { resourceRoutes } from './routes/resources';
 import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
@@ -88,6 +89,7 @@ export function createApp({
   app.route('/invitations', invitationRoutes);
   app.route('/bookings', bookingRoutes);
   app.route('/customers', customerRoutes);
+  app.route('/reports', reportRoutes);
   app.route('/notifications', notificationRoutes);
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);
