@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { accounts, businesses, businessMembers, subscriptions, users } from '@outletbooking/db';
-import type { MeResponse } from '@outletbooking/shared';
+import { LEGAL_VERSION, type MeResponse } from '@outletbooking/shared';
 import { createTestContext, signupInput } from './helpers';
 
 const ctx = createTestContext();
@@ -18,6 +18,8 @@ describe('POST /signup', () => {
     const [user] = await ctx.db.select().from(users).where(eq(users.email, 'ali@example.com'));
     expect(user).toBeDefined();
     expect(user!.phone).toBe('+60123456789');
+    expect(user!.termsVersion).toBe(LEGAL_VERSION); // PDPA consent recorded
+    expect(user!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
 
     const accs = await ctx.db.select().from(accounts).where(eq(accounts.userId, user!.id));
     expect(accs).toHaveLength(1);
@@ -35,6 +37,13 @@ describe('POST /signup', () => {
     const days = (sub!.trialEndsAt.getTime() - before) / 86_400_000;
     expect(days).toBeGreaterThan(6.99);
     expect(days).toBeLessThan(7.01);
+  });
+
+  it('refuses sign-up without agreeing to the Terms and Privacy Notice', async () => {
+    const { acceptTerms: _omit, ...noConsent } = signupInput();
+    expect((await ctx.post('/signup', noConsent)).status).toBe(400);
+    expect((await ctx.post('/signup', { ...noConsent, acceptTerms: false })).status).toBe(400);
+    expect(await ctx.db.select().from(users)).toHaveLength(0);
   });
 
   it('lets the new owner log in and GET /me shows 7 trial days left', async () => {

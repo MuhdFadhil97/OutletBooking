@@ -5,6 +5,7 @@ import {
   attachmentParam,
   bookingCreateSchema,
   bookingResultSchema,
+  inspectionSaveSchema,
   bookingExtendSchema,
   bookingListQuery,
   bookingRescheduleSchema,
@@ -35,6 +36,7 @@ import { AppError } from '../errors';
 import { createBookingPaymentLink, recordManualPayment } from '../services/payments';
 import { addAttachment, deleteAttachment, listAttachments, setResultNotes } from '../services/staff-app';
 import { listReminders, markReminderSent } from '../services/reminders';
+import { createReportLink, getInspection, saveInspection } from '../services/inspections';
 import type { AppEnv } from '../types';
 import { paymentDeps } from './payments';
 import { validate } from '../validate';
@@ -120,6 +122,20 @@ export const bookingRoutes = new Hono<AppEnv>()
   )
   .post('/:id/extend', requireRole('owner'), validate('param', idParam), validate('json', bookingExtendSchema), async (c) =>
     c.json(await extendBooking(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), c.var.userId)),
+  )
+  // S2 · Inspection result per check and the report link: owner, or staff on their own bookings.
+  .get('/:id/inspection', validate('param', idParam), async (c) =>
+    c.json(await getInspection(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, await scopeOf(c))),
+  )
+  .put('/:id/inspection', validate('param', idParam), validate('json', inspectionSaveSchema), async (c) =>
+    c.json(
+      await saveInspection(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, c.req.valid('json'), await scopeOf(c)),
+    ),
+  )
+  .post('/:id/inspection/report-link', validate('param', idParam), async (c) =>
+    c.json(
+      await createReportLink(c.var.db, c.var.tenant.businessId, c.req.valid('param').id, await scopeOf(c), c.var.env.APP_PUBLIC_URL),
+    ),
   )
   // S2 · Result notes and photos: owner, or staff on their own bookings.
   .put('/:id/result', validate('param', idParam), validate('json', bookingResultSchema), async (c) =>

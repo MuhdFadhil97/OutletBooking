@@ -4,7 +4,7 @@ import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
 import { businesses, subscriptions } from './tenant';
 import { BOOKING_EVENT_TYPES, type BookingEventType } from '@outletbooking/shared';
-import { branches, resources, services } from './setup';
+import { branches, listings, resources, services } from './setup';
 
 /** Per-business customer, unique by phone (E.164). PDPA erase anonymises the row (phone → NULL). */
 export const customers = pgTable(
@@ -69,6 +69,8 @@ export const bookings = pgTable(
     amountDueSen: integer('amount_due_sen').notNull().default(0),
     paymentStatus: text('payment_status').notNull().default('not_required'),
 
+    /** Real estate: the listing being viewed (ST-RE-L). */
+    listingId: integer('listing_id'),
     /** Property viewing / mobile inspection address. */
     locationAddress: text('location_address'),
     /** Answers to booking_fields, e.g. {"plate_number":"WXY1234"}. */
@@ -117,6 +119,12 @@ export const bookings = pgTable(
       columns: [t.businessId, t.customerId],
       foreignColumns: [customers.businessId, customers.id],
     }),
+    foreignKey({
+      name: 'bookings_business_id_listing_id_fkey',
+      columns: [t.businessId, t.listingId],
+      foreignColumns: [listings.businessId, listings.id],
+    }),
+    index('bookings_listing_idx').on(t.listingId).where(sql`${t.listingId} IS NOT NULL`),
     index('bookings_business_start_idx').on(t.businessId, t.startAt),
     index('bookings_resource_start_idx').on(t.resourceId, t.startAt),
     index('bookings_customer_idx').on(t.customerId),

@@ -6,6 +6,7 @@ import {
   bookings,
   businesses,
   customers,
+  listings,
   payments,
   refunds,
   resources,
@@ -44,6 +45,7 @@ import {
   type ServiceTiming,
 } from './availability';
 import { recordBookingEvent, STATUS_EVENT } from './booking-events';
+import { resolveListing } from './listings';
 import { getPriceQuote } from './pricing';
 import { resourceScope } from './resources';
 import type { Tenant } from '../types';
@@ -92,6 +94,9 @@ const columns = {
   priceSen: bookings.priceSen,
   amountDueSen: bookings.amountDueSen,
   paymentStatus: bookings.paymentStatus,
+  listingId: listings.id,
+  listingRef: listings.ref,
+  listingTitle: listings.title,
   locationAddress: bookings.locationAddress,
   customFields: bookings.customFields,
   customerNotes: bookings.customerNotes,
@@ -116,7 +121,8 @@ function selectBookings(q: Q) {
     .from(bookings)
     .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
     .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
-    .innerJoin(customers, and(eq(customers.businessId, bookings.businessId), eq(customers.id, bookings.customerId)));
+    .innerJoin(customers, and(eq(customers.businessId, bookings.businessId), eq(customers.id, bookings.customerId)))
+    .leftJoin(listings, and(eq(listings.businessId, bookings.businessId), eq(listings.id, bookings.listingId)));
 }
 
 type Row = Awaited<ReturnType<ReturnType<typeof selectBookings>['execute']>>[number];
@@ -138,6 +144,7 @@ const toDto = (r: Row, scope: BookingScope = {}): Booking => ({
   refundedSen: Number(r.refundedSen),
   expiresAt: r.expiresAt?.toISOString() ?? null,
   reminderSentAt: r.reminderSentAt?.toISOString() ?? null,
+  listing: r.listingId !== null ? { id: r.listingId, ref: r.listingRef!, title: r.listingTitle! } : null,
   locationAddress: r.locationAddress,
   customFields: withoutKeys(r.customFields as Record<string, string | number>, scope.hiddenFieldKeys),
   customerNotes: r.customerNotes,
@@ -213,6 +220,8 @@ async function searchCondition(q: Q, businessId: number, term: string, hidden: s
   for (const { key } of fields) {
     conds.push(sql`replace(${bookings.customFields} ->> ${key}, ' ', '') ilike ${compact}`);
   }
+  // Real estate: listing ref ("LR-0231") or title.
+  conds.push(ilike(listings.ref, `%${escapeLike(term)}%`), ilike(listings.title, `%${escapeLike(term)}%`));
   return or(...conds);
 }
 
@@ -427,7 +436,9 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
       resourceId = await pickResource(tx, businessId, input.serviceId, input.startAt, timing, tz, input.allowOutsideHours);
     }
 
-    if (input.customFields) await assertCustomFields(tx, businessId, input.serviceId, input.customFields);
+    const listing = input.listingId ? await resolveListing(tx, businessId, { listingId: input.listingId, serviceId: input.serviceId, customFields: input.customFields }) : null;
+    const customFields = listing?.customFields ?? input.customFields;
+    if (customFields) await assertCustomFields(tx, businessId, input.serviceId, customFields);
     const quote = await getPriceQuote(tx, businessId, {
       serviceId: input.serviceId,
       startAt: input.startAt,
@@ -460,8 +471,9 @@ export async function createBooking(db: Db, businessId: number, userId: number, 
           priceSen: quote.priceSen,
           amountDueSen: quote.amountDueSen,
           paymentStatus: quote.paymentStatus,
-          locationAddress: input.locationAddress ?? null,
-          customFields: input.customFields ?? {},
+          listingId: input.listingId ?? null,
+          locationAddress: input.locationAddress ?? listing?.address ?? null,
+          customFields: customFields ?? {},
           customerNotes: input.customerNotes ?? null,
           internalNotes: input.internalNotes ?? null,
           createdByUserId: userId,

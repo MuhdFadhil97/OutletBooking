@@ -119,7 +119,7 @@ beforeAll(async () => {
     await ctx.send('POST', '/staff/invitations', ownerA, { email: 'staff@example.com', resourceId: court1, canTakePayments: false }),
     201,
   );
-  await json(await ctx.post(`/invitations/${inv.inviteUrl.split('/invite/')[1]}/accept`, { name: 'Staff Siti', phone: '+60111222333', password: 'password123' }));
+  await json(await ctx.post(`/invitations/${inv.inviteUrl.split('/invite/')[1]}/accept`, { name: 'Staff Siti', phone: '+60111222333', password: 'password123', acceptTerms: true }));
   staff = await ctx.login('staff@example.com', 'password123');
 });
 afterAll(() => ctx.close());

@@ -109,6 +109,7 @@ export function signupInput(overrides: Partial<SignupInput> = {}): SignupInput {
     businessName: 'Ali Courts',
     slug: 'ali-courts',
     template: 'sports',
+    acceptTerms: true,
     ...overrides,
   };
 }

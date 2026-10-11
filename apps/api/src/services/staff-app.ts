@@ -84,7 +84,7 @@ export async function getMySchedule(
   };
 }
 
-const NOTES_STATUSES = ['confirmed', 'checked_in', 'completed'];
+export const NOTES_STATUSES = ['confirmed', 'checked_in', 'completed'];
 
 /** S2: result notes. Anyone who can see the booking (staff: their own resources). */
 export async function setResultNotes(
@@ -115,7 +115,7 @@ const EXT: Record<AttachmentContentType, string> = {
   'image/heic': 'heic',
 };
 
-function requireStorage(storage: ObjectStorage | null): ObjectStorage {
+export function requireStorage(storage: ObjectStorage | null): ObjectStorage {
   if (!storage) throw new AppError(503, 'storage_unavailable', 'Photo storage is not set up yet');
   return storage;
 }

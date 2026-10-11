@@ -50,11 +50,15 @@ export const passwordSchema = z.string().min(8, 'At least 8 characters').max(128
 export const templateSchema = z.enum(BUSINESS_TEMPLATES);
 
 /** Sign-up step 1: owner account */
+/** PDPA consent: sign-up and accept-invite must send `acceptTerms: true` (stored with `LEGAL_VERSION`). */
+export const acceptTermsSchema = z.literal(true, { error: 'Please agree to the Terms and Privacy Notice' });
+
 export const signupAccountSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name').max(100),
   email: emailSchema,
   password: passwordSchema,
   phone: phoneE164,
+  acceptTerms: acceptTermsSchema,
 });
 
 /** Sign-up step 2: business */

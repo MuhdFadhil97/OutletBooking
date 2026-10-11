@@ -125,5 +125,9 @@ export interface SetupSummary {
   staffCount: number;
   rules: { minAdvanceMin: number; maxDaysAhead: number; cancelCutoffMin: number; customersCanCancel: boolean };
   mobileServiceVisible: boolean | null;
+  /** Real estate (ST-RE-L): listings taking viewings, and under offer. */
+  listings: { open: number; underOffer: number };
+  /** Vehicle inspection (ST-VI-C): active checks on the checklist. */
+  checklistChecks: number;
   settings: Record<string, string | number | boolean | null>;
 }

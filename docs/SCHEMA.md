@@ -63,7 +63,7 @@ erDiagram
 ## Tables
 | Group | Table | Purpose | Key columns |
 |---|---|---|---|
-| Auth | users | Login accounts (owner, staff) | id, name, email, phone |
+| Auth | users | Login accounts (owner, staff) | id, name, email, phone, terms_accepted_at + terms_version (PDPA consent) |
 | Auth | sessions, accounts, verifications | Managed by Better Auth | user_id |
 | Auth | push_tokens | Expo push tokens per device | user_id, token, platform |
 | Tenant | businesses | One row per business; booking rules | id, slug, template, resource_label, slot_interval_min, min_advance_min, max_days_ahead, cancel_cutoff_min, pending_expiry_min, booking_enabled, auto_confirm_paid, customers_can_cancel, late_cancel_keeps_deposit, settings (jsonb, template-specific) |
@@ -123,4 +123,4 @@ erDiagram
 - **Manual payments** (cash, DuitNow QR, card, bank transfer) use `provider = 'manual'` and `recorded_by_user_id`; only members with `can_take_payments` may record them.
 - **booking_events** is written by the API on every status change; the H8 timeline reads it.
 - **Platform admin** routes check `platform_admins` and write `admin_audit_log` in the same transaction as the change.
-- **Section 7 (listings, inspection checklist)** is designed but marked *confirm before migrating* — decide whether they are in the MVP before Phase 6.
+- **Section 7 (listings, inspection checklist)** confirmed for the MVP by the product owner and migrated in Phase 6 (0016/0017).

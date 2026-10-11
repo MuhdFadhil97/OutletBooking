@@ -12,6 +12,9 @@ export const users = pgTable('users', {
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   phone: text('phone'),
+  /** PDPA: when this person agreed to the Terms + Privacy Notice, and which version (`LEGAL_VERSION`). */
+  termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }),
+  termsVersion: text('terms_version'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

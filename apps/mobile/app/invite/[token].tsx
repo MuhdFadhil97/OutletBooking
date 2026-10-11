@@ -10,6 +10,7 @@ import {
   type AcceptInviteNewAccount,
   type InvitationInfo,
 } from '@outletbooking/shared';
+import { ConsentCheckbox } from '@/components/ConsentCheckbox';
 import { Brand } from '@/components/Brand';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -203,6 +204,13 @@ function AcceptNew({ token, info }: { token: string; info: InvitationInfo }) {
             secureTextEntry
             autoComplete="new-password"
           />
+        )}
+      />
+      <Controller
+        control={control}
+        name="acceptTerms"
+        render={({ field }) => (
+          <ConsentCheckbox checked={!!field.value} onChange={field.onChange} error={errors.acceptTerms?.message} />
         )}
       />
       <Button title={i.join} loading={accept.isPending} onPress={onSubmit} />

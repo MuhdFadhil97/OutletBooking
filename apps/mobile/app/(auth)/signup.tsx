@@ -12,6 +12,7 @@ import {
   type SignupInput,
 } from '@outletbooking/shared';
 import { Brand } from '@/components/Brand';
+import { ConsentCheckbox } from '@/components/ConsentCheckbox';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { FormError, errorMessage } from '@/components/ui/ScreenState';
@@ -33,7 +34,7 @@ const TEMPLATE_CHOICES: { value: BusinessTemplate; icon: IconName }[] = [
   { value: 'other', icon: 'grid' },
 ];
 
-const STEP1_FIELDS = ['name', 'email', 'phone', 'password'] as const;
+const STEP1_FIELDS = ['name', 'email', 'phone', 'password', 'acceptTerms'] as const;
 const linkPrefix = `${PUBLIC_BOOKING_BASE.replace(/^https?:\/\//, '')}/book/`;
 
 /** O1 · Sign-up: step 1 account, step 2 business + template. Step 3 (review services) is `/welcome`. */
@@ -148,6 +149,13 @@ export default function SignupScreen() {
                 name="password"
                 render={({ field }) => (
                   <TextField compact label={t.signup.password} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.password?.message} hint={t.signup.passwordHint} secureTextEntry autoComplete="new-password" />
+                )}
+              />
+              <Controller
+                control={control}
+                name="acceptTerms"
+                render={({ field }) => (
+                  <ConsentCheckbox checked={!!field.value} onChange={field.onChange} error={errors.acceptTerms?.message} />
                 )}
               />
               <Button title={t.common.continue} onPress={() => void goNext()} />

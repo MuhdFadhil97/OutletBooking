@@ -5,7 +5,7 @@ import { groupWeeklyHours, type NotificationPrefKey } from '@outletbooking/share
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { SwitchRow } from '@/components/ui/Rows';
+import { ListRow, SwitchRow } from '@/components/ui/Rows';
 import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/ui/ScreenState';
 import { Tag } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
@@ -110,6 +110,11 @@ export default function StaffProfileScreen() {
         <FormError message={updatePrefs.error ? errorMessage(updatePrefs.error) : null} />
         <Text className="text-[12px] text-muted">{s.notifyNote}</Text>
       </View>
+
+      <Card className="overflow-hidden">
+        <ListRow title={t.legal.privacyRow} onPress={() => router.push('/privacy')} />
+        <ListRow title={t.legal.termsRow} onPress={() => router.push('/terms')} last />
+      </Card>
 
       <Button
         variant="secondary"

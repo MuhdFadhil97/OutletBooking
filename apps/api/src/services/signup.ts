@@ -1,6 +1,6 @@
 import { hashPassword } from 'better-auth/crypto';
 import { accounts, applyTemplate, businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
-import { TEMPLATE_INFO, type SignupInput } from '@outletbooking/shared';
+import { LEGAL_VERSION, TEMPLATE_INFO, type SignupInput } from '@outletbooking/shared';
 import { AppError, pgErrorInfo } from '../errors';
 import { isReservedSlug } from './slugs';
 
@@ -32,7 +32,7 @@ export async function signupOwner(db: Db, input: SignupInput, now: Date = new Da
     return await db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
-        .values({ name: input.name, email: input.email, phone: input.phone })
+        .values({ name: input.name, email: input.email, phone: input.phone, termsAcceptedAt: now, termsVersion: LEGAL_VERSION })
         .returning({ id: users.id });
       if (!user) throw new Error('user insert returned no row');
 

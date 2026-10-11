@@ -255,7 +255,7 @@ The first three templates are built and tested in depth with pilot businesses:
 | FR-17.7 | Inspection checklist: sections with checks, result labels (pass / needs attention / fail), report options (WhatsApp PDF, photos, inspector name, review request) | Should |
 | FR-17.8 | Workshop: quotes before work, pick-up & drop-off; Salon: stylist schedules, walk-in queue; Other: rename resource label, group bookings | Later |
 
-> Tables: `listings`, `checklist_sections`, `checklist_items`, `inspection_results`, `inspection_item_results` are in `docs/schema.sql` section 7, marked *confirm before migrating* (see open questions).
+> Tables: `listings`, `checklist_sections`, `checklist_items`, `inspection_results`, `inspection_item_results` are in `docs/schema.sql` section 7 — confirmed for the MVP and migrated in Phase 6.
 
 ### FR-18 Added from wireframe review
 | ID | Requirement | Priority |
@@ -340,7 +340,7 @@ The complete navigation is drawn in five flow maps on the design canvas (`docs/w
 | Observability | Error tracking (Sentry); webhook and payment logs |
 
 ## 11. Data model (summary)
-See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. 32 tables. Main entities: businesses, business_members, staff_invitations, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments, refunds, payment_accounts, booking_events, notifications, platform_admins, admin_audit_log; pilot extras (confirm first): listings, checklist_sections, checklist_items, inspection_results, inspection_item_results.
+See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. 32 tables. Main entities: businesses, business_members, staff_invitations, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments, refunds, payment_accounts, booking_events, notifications, platform_admins, admin_audit_log; pilot extras (Phase 6): listings, checklist_sections, checklist_items, inspection_results, inspection_item_results.
 
 ## 12. Pricing (draft, post-pilot)
 | Plan | Price | Limits |
@@ -382,9 +382,9 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 | Free offering | 7-day free trial (no permanent free plan at launch) |
 | Pilot niches | Real estate viewing, vehicle inspection, sports booking |
 | Customer payments | Each business connects its **own ToyyibPay account**; money goes straight to them. OutletBooking never holds customer money |
+| Listings & inspection checklist | In the MVP (confirmed 2026-10-11): real estate listings customers pick when booking; vehicle inspection checklist with a report link sent on WhatsApp |
 
 **Still open**
-- Listings (real estate) and inspection checklist & report: in the MVP? Tables are designed (`schema.sql` section 7); if not, real estate uses a "property ref" booking question and inspection uses result notes + photos only.
 - Plan renewal: automatic recurring charge or manual renewal with reminder? (Web billing page shows a placeholder.)
 - Domain: check and register (e.g. outletbooking.my / outletbooking.com) and secure the app name on Play Store
 - Pilot businesses: identify 1–2 per niche (agency, inspection centre, sports centre)

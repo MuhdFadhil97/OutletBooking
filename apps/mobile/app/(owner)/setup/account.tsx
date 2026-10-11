@@ -49,6 +49,8 @@ export default function AccountScreen() {
       <SectionLabel label={s.app} />
       <Card className="overflow-hidden">
         <ListRow title={s.language} subtitle={s.english} />
+        <ListRow title={t.legal.privacyRow} onPress={() => router.push('/privacy')} />
+        <ListRow title={t.legal.termsRow} onPress={() => router.push('/terms')} />
         <ListRow
           title={s.help}
           subtitle={s.helpHint}

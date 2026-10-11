@@ -29,7 +29,15 @@
       "expo-status-bar",
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F7B55"
+        }
+      ],
       [
         "expo-notifications",
         {

@@ -23,6 +23,7 @@ import {
 import { createBookingPaymentLink, notifyPayment, syncBookingBills } from '../services/payments';
 import { notifyBooking } from '../services/push';
 import { paymentDeps } from './payments';
+import { getPublicReport } from '../services/inspections';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
@@ -35,6 +36,10 @@ export const publicRoutes = new Hono<AppEnv>()
   .use(rateLimit({ prefix: 'public', windowMs: 60_000, max: 60 }))
   .get('/bookings/:token', validate('param', publicTokenParam), async (c) =>
     c.json(await getPublicBooking(c.var.db, c.req.valid('param').token)),
+  )
+  // Inspection report (vehicle inspection), sent to the customer on WhatsApp.
+  .get('/bookings/:token/report', validate('param', publicTokenParam), async (c) =>
+    c.json(await getPublicReport(c.var.db, c.var.storage, c.req.valid('param').token)),
   )
   .get('/bookings/:token/calendar.ics', validate('param', publicTokenParam), async (c) => {
     const booking = await getPublicBooking(c.var.db, c.req.valid('param').token);

@@ -59,7 +59,7 @@ async function staffFor(email: string, resourceId: number, perms: Record<string,
     201,
   );
   const token = inv.inviteUrl.split('/invite/')[1]!;
-  await json(await ctx.post(`/invitations/${token}/accept`, { name: email, phone: '+60111222333', password: 'password123' }));
+  await json(await ctx.post(`/invitations/${token}/accept`, { name: email, phone: '+60111222333', password: 'password123', acceptTerms: true }));
   return ctx.login(email, 'password123');
 }
 

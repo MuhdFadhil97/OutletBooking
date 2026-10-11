@@ -27,6 +27,7 @@ import { showToast } from '@/components/ui/Toast';
 import { formatPhone, formatWhen, mapsUrl, statusTone, wazeUrl, whatsappUrl } from '@/features/bookings/format';
 import { useBooking, useBookingEvents, useExtendBooking, useSetBookingStatus } from '@/features/bookings/hooks';
 import { openBookingForm, type BookingsTab } from '@/features/bookings/nav';
+import { InspectionCard } from '@/features/inspections/components/InspectionCard';
 import { useMe } from '@/features/me/hooks';
 import { PaymentActions } from '@/features/payments/components/PaymentActions';
 import { useBookingFields, useBusiness, useServices } from '@/features/setup/hooks';
@@ -128,6 +129,7 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
       <Section title={s.appointment}>
         <Row label={s.when} value={formatWhen(b, tz)} />
         <Row label={business.data.resourceLabel} value={b.resource.name} />
+        {b.listing ? <Row label={t.listings.property} value={`${b.listing.title} · ${b.listing.ref}`} /> : null}
         <Row label={s.where} value={atCustomer ? s.atCustomer : s.atBusiness} />
         {b.locationAddress ? (
           <View className="gap-1">
@@ -146,6 +148,10 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
             <Row key={k} label={labels.get(k) ?? k} value={String(v)} />
           ))}
         </Section>
+      ) : null}
+
+      {me?.business.template === 'vehicle_inspection' && ['confirmed', 'checked_in', 'completed'].includes(b.status) ? (
+        <InspectionCard booking={b} businessName={business.data.name} tz={tz} disabled={offline} />
       ) : null}
 
       <PaymentSection b={b} />

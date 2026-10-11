@@ -292,3 +292,35 @@ export const staffInvitations = pgTable(
     check('staff_invitations_role_check', sql`${t.role} IN ('owner','staff')`),
   ],
 );
+
+/** Real estate listings (ST-RE-L). Customers pick one when booking a viewing (`bookings.listing_id`). */
+export const listings = pgTable(
+  'listings',
+  {
+    id: idPk(),
+    businessId: businessId(),
+    /** e.g. LR-0231 — unique per business. */
+    ref: text('ref').notNull(),
+    title: text('title').notNull(),
+    area: text('area'),
+    address: text('address'),
+    agentResourceId: integer('agent_resource_id'),
+    status: text('status').notNull().default('available'),
+    openForViewings: boolean('open_for_viewings').notNull().default(true),
+    photoKey: text('photo_key'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('listings_business_id_ref_key').on(t.businessId, t.ref),
+    unique('listings_business_id_id_key').on(t.businessId, t.id),
+    foreignKey({
+      name: 'listings_business_id_agent_resource_id_fkey',
+      columns: [t.businessId, t.agentResourceId],
+      foreignColumns: [resources.businessId, resources.id],
+    }),
+    index('listings_business_id_idx').on(t.businessId),
+    check('listings_status_check', sql`${t.status} IN ('available','under_offer','closed')`),
+  ],
+);

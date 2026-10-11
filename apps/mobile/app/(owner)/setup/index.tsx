@@ -94,7 +94,21 @@ function extraRow(key: SetupExtraRow, sum: SetupSummary): Row {
       return { ...base, title: x.resource_schedules.title(label), subtitle: x.resource_schedules.sub(label), href: '/setup/resources' };
     case 'resource_label':
       return { ...base, title: x.resource_label.title, subtitle: x.resource_label.sub(label), href: '/setup/profile' };
-    // Listings / checklist need the PRD go-ahead; the rest come after MVP.
+    case 'listings':
+      return {
+        ...base,
+        title: x.listings.title,
+        subtitle: t.listings.summary(sum.listings.open, sum.listings.underOffer),
+        href: '/setup/listings',
+      };
+    case 'checklist':
+      return {
+        ...base,
+        title: x.checklist.title,
+        subtitle: t.inspection.summary(sum.checklistChecks, sum.settings.reportWhatsapp !== false),
+        href: '/setup/checklist',
+      };
+    // The rest come after MVP.
     default:
       return { ...base, title: x[key].title, soon: true };
   }

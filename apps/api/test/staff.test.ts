@@ -21,7 +21,7 @@ const tokenOf = (inv: StaffInvitation) => inv.inviteUrl.split('/invite/')[1]!;
 const invite = (cookie: string, email: string, resourceId: number | null = null) =>
   ctx.send('POST', '/staff/invitations', cookie, { email, resourceId });
 const accept = (token: string, body: object = {}, cookie = '') => ctx.send('POST', `/invitations/${token}/accept`, cookie, body);
-const newAccount = { name: 'Siti Aminah', phone: '+60111222333', password: 'password123' };
+const newAccount = { name: 'Siti Aminah', phone: '+60111222333', password: 'password123', acceptTerms: true };
 
 beforeAll(async () => {
   await ctx.reset();
@@ -63,6 +63,7 @@ describe('invite → accept (new account)', () => {
 
   it('accepting creates the login, staff membership and resource link in one go', async () => {
     expect((await accept(tokenOf(inv), {})).status).toBe(400); // needs account details
+    expect((await accept(tokenOf(inv), { ...newAccount, acceptTerms: false })).status).toBe(400); // needs PDPA consent
     expect(await json(await accept(tokenOf(inv), newAccount))).toEqual({ email: 'siti@example.com', businessName: 'Arena A' });
 
     staffCookie = await ctx.login('siti@example.com', 'password123');

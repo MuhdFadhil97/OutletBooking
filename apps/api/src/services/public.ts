@@ -6,6 +6,7 @@ import {
   bookings,
   businesses,
   customers,
+  listings,
   paymentAccounts,
   resources,
   resourceServices,
@@ -35,6 +36,7 @@ import { AppError, notFound } from '../errors';
 import { bookingRef } from './payments';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
+import { publicListings, resolveListing } from './listings';
 import { recordBookingEvent } from './booking-events';
 import { getPriceQuote } from './pricing';
 
@@ -184,6 +186,7 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
     bookingFields: fields
       .filter((f) => f.serviceId === null || serviceIds.includes(f.serviceId))
       .map((f) => ({ ...f, fieldType: f.fieldType as PublicBusiness['bookingFields'][number]['fieldType'] })),
+    listings: await publicListings(db, id),
   };
 }
 
@@ -210,7 +213,10 @@ export async function createPublicBooking(
     const biz = await findBusiness(tx, slug);
     assertBookingOpen(biz);
     const svc = await visibleService(tx, biz.id, input.serviceId);
-    if (svc.locationType === 'at_customer_location' && !input.locationAddress) {
+    const listing = input.listingId ? await resolveListing(tx, biz.id, { listingId: input.listingId, serviceId: input.serviceId, customFields: input.customFields }) : null;
+    const customFields = listing?.customFields ?? input.customFields ?? {};
+    const locationAddress = input.locationAddress ?? listing?.address ?? null;
+    if (svc.locationType === 'at_customer_location' && !locationAddress) {
       throw new AppError(400, 'address_required', 'Please enter the address');
     }
     const durationMin = input.durationMin ?? svc.durationMin;
@@ -226,7 +232,7 @@ export async function createPublicBooking(
     if (!slot) throw unbookable('slot_taken');
     const resourceId = input.resourceId ?? slot.resourceIds[0]!;
 
-    await assertCustomFields(tx, biz.id, input.serviceId, input.customFields ?? {}, { enforceRequired: true });
+    await assertCustomFields(tx, biz.id, input.serviceId, customFields, { enforceRequired: true });
 
     const [recent] = await tx
       .select({ n: count() })
@@ -276,8 +282,9 @@ export async function createPublicBooking(
           priceSen: quote.priceSen,
           amountDueSen: quote.amountDueSen,
           paymentStatus: quote.paymentStatus,
-          locationAddress: input.locationAddress ?? null,
-          customFields: input.customFields ?? {},
+          listingId: input.listingId ?? null,
+          locationAddress,
+          customFields,
           customerNotes: input.customerNotes ?? null,
         })
         .returning({ id: bookings.id, token: bookings.publicToken }),
@@ -365,6 +372,7 @@ async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
       expiresAt: bookings.expiresAt,
       serviceName: services.name,
       resourceName: resources.name,
+      listingTitle: listings.title,
       cancelCutoffMin: businesses.cancelCutoffMin,
       accountStatus: paymentAccounts.status,
       business: {
@@ -381,6 +389,7 @@ async function findByToken(q: Q, token: string, opts: { lock?: boolean } = {}) {
     .innerJoin(services, and(eq(services.businessId, bookings.businessId), eq(services.id, bookings.serviceId)))
     .innerJoin(resources, and(eq(resources.businessId, bookings.businessId), eq(resources.id, bookings.resourceId)))
     .leftJoin(paymentAccounts, eq(paymentAccounts.businessId, bookings.businessId))
+    .leftJoin(listings, and(eq(listings.businessId, bookings.businessId), eq(listings.id, bookings.listingId)))
     .where(and(eq(bookings.publicToken, token), isNull(businesses.deletedAt)));
   const [row] = opts.lock ? await query.for('update', { of: bookings }) : await query;
   if (!row) throw notFound('Booking');

@@ -19,6 +19,7 @@ import type {
   StaffListResponse,
   StaffMember,
 } from '@outletbooking/shared';
+import { LEGAL_VERSION } from '@outletbooking/shared';
 import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
 import { assertResourcesInBusiness } from './ownership';
 
@@ -286,7 +287,13 @@ export async function acceptInvitation(
         }
         const [user] = await tx
           .insert(users)
-          .values({ name: opts.newAccount.name, email: inv.email, phone: opts.newAccount.phone })
+          .values({
+            name: opts.newAccount.name,
+            email: inv.email,
+            phone: opts.newAccount.phone,
+            termsAcceptedAt: now,
+            termsVersion: LEGAL_VERSION,
+          })
           .returning({ id: users.id });
         userId = user!.id;
         await tx

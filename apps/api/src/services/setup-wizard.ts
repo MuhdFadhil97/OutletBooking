@@ -3,6 +3,8 @@ import {
   bookingFields,
   businesses,
   businessMembers,
+  checklistItems,
+  listings,
   resources,
   resourceServices,
   servicePriceRules,
@@ -67,7 +69,7 @@ const asPayment = (s: ServiceRow) => ({ ...s, priceUnit: s.priceUnit as 'per_boo
 /** ST · Setup tab: everything the template-driven rows summarise, in one call. */
 export async function getSetupSummary(db: Db, businessId: number): Promise<SetupSummary> {
   const biz = await loadBusiness(db, businessId);
-  const [svcRows, resRows, hourRows, [peak], fieldRows, [staff]] = await Promise.all([
+  const [svcRows, resRows, hourRows, [peak], fieldRows, [staff], [listingCounts], [checks]] = await Promise.all([
     activeServices(db, businessId),
     db
       .select({ id: resources.id, userId: resources.userId })
@@ -100,6 +102,17 @@ export async function getSetupSummary(db: Db, businessId: number): Promise<Setup
       .where(
         and(eq(businessMembers.businessId, businessId), eq(businessMembers.role, 'staff'), eq(businessMembers.isActive, true)),
       ),
+    db
+      .select({
+        open: sql<number>`count(*) filter (where ${listings.openForViewings} and ${listings.status} <> 'closed')::int`,
+        underOffer: sql<number>`count(*) filter (where ${listings.status} = 'under_offer')::int`,
+      })
+      .from(listings)
+      .where(and(eq(listings.businessId, businessId), isNull(listings.deletedAt))),
+    db
+      .select({ n: count() })
+      .from(checklistItems)
+      .where(and(eq(checklistItems.businessId, businessId), eq(checklistItems.isActive, true))),
   ]);
 
   // Hours shared by every resource → show them; different per resource → "varies".
@@ -150,6 +163,8 @@ export async function getSetupSummary(db: Db, businessId: number): Promise<Setup
       customersCanCancel: biz.customersCanCancel,
     },
     mobileServiceVisible: mobile ? mobile.isVisible : null,
+    listings: { open: Number(listingCounts?.open ?? 0), underOffer: Number(listingCounts?.underOffer ?? 0) },
+    checklistChecks: checks?.n ?? 0,
     settings: biz.settings,
   };
 }

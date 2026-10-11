@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { slugSchema } from './schemas';
 import type { BookingStatus, PaymentStatus } from './bookings';
+import type { PublicListing } from './listings';
 import type { BookingField, LocationType, PriceUnit, ResourceType } from './setup';
 
 /** `/public/:slug` — the business slug from the shared booking link. */
@@ -44,6 +45,8 @@ export interface PublicBusiness {
   resources: PublicResource[];
   /** Booking questions (serviceId null = asked for every service). */
   bookingFields: PublicBookingField[];
+  /** Real estate: listings open for viewings (empty for other types). */
+  listings: PublicListing[];
 }
 
 export interface PublicResource {
@@ -79,6 +82,8 @@ export interface PublicBookingConfirmation {
   durationMin: number;
   serviceName: string;
   resourceName: string;
+  /** Real estate: the property being viewed. */
+  listingTitle: string | null;
   /**
    * What the customer typed — only in the booking response. Null when opened from the link,
    * so a phone number never reveals the name the business has stored for it.

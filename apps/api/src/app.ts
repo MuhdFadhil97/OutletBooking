@@ -20,6 +20,8 @@ import { resourceRoutes } from './routes/resources';
 import { serviceRoutes } from './routes/services';
 import { signupRoutes } from './routes/signup';
 import { staffRoutes } from './routes/staff';
+import { checklistRoutes } from './routes/checklist';
+import { listingRoutes } from './routes/listings';
 import { timeOffRoutes } from './routes/time-off';
 import { paymentRoutes, toyyibPayRoutes } from './routes/payments';
 import { expoPushSender, type PushSender } from './services/push';
@@ -84,6 +86,8 @@ export function createApp({
   app.route('/services', serviceRoutes);
   app.route('/resources', resourceRoutes);
   app.route('/time-off', timeOffRoutes);
+  app.route('/listings', listingRoutes);
+  app.route('/checklist', checklistRoutes);
   app.route('/booking-fields', bookingFieldRoutes);
   app.route('/staff', staffRoutes);
   app.route('/invitations', invitationRoutes);

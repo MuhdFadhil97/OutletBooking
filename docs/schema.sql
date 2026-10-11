@@ -41,6 +41,8 @@ CREATE TABLE users (
   email_verified  boolean     NOT NULL DEFAULT false,
   image           text,
   phone           text,
+  terms_accepted_at timestamptz,         -- PDPA consent at sign-up / accept invite
+  terms_version   text,                  -- LEGAL_VERSION agreed to (re-ask when it changes)
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -535,7 +537,7 @@ CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
 CREATE INDEX admin_audit_log_business_idx ON admin_audit_log(business_id, created_at DESC);
 
 -- =====================================================================
--- 7. PILOT NICHE EXTRAS (Phase 6 — confirm before migrating)
+-- 7. PILOT NICHE EXTRAS (Phase 6 — confirmed by the product owner, migrations 0016/0017)
 -- =====================================================================
 -- Real estate listings (ST-RE-L). Customers pick a listing when booking a viewing.
 CREATE TABLE listings (
@@ -557,8 +559,10 @@ CREATE TABLE listings (
   UNIQUE (business_id, id),
   FOREIGN KEY (business_id, agent_resource_id) REFERENCES resources(business_id, id)
 );
+CREATE INDEX listings_business_id_idx ON listings(business_id);
 ALTER TABLE bookings ADD COLUMN listing_id integer;
 ALTER TABLE bookings ADD FOREIGN KEY (business_id, listing_id) REFERENCES listings(business_id, id);
+CREATE INDEX bookings_listing_idx ON bookings(listing_id) WHERE listing_id IS NOT NULL;
 
 -- Vehicle inspection checklist & report (ST-VI-C, S2)
 CREATE TABLE checklist_sections (
@@ -570,6 +574,7 @@ CREATE TABLE checklist_sections (
   updated_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (business_id, id)
 );
+CREATE INDEX checklist_sections_business_id_idx ON checklist_sections(business_id);
 CREATE TABLE checklist_items (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -582,6 +587,8 @@ CREATE TABLE checklist_items (
   UNIQUE (business_id, id),
   FOREIGN KEY (business_id, section_id) REFERENCES checklist_sections(business_id, id) ON DELETE CASCADE
 );
+CREATE INDEX checklist_items_business_id_idx ON checklist_items(business_id);
+CREATE INDEX checklist_items_section_idx ON checklist_items(section_id);
 CREATE TABLE inspection_results (
   id              integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   business_id     integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -595,6 +602,7 @@ CREATE TABLE inspection_results (
   UNIQUE (business_id, id),
   FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE CASCADE
 );
+CREATE INDEX inspection_results_business_id_idx ON inspection_results(business_id);
 CREATE TABLE inspection_item_results (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   business_id  integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -608,6 +616,7 @@ CREATE TABLE inspection_item_results (
   FOREIGN KEY (business_id, result_id) REFERENCES inspection_results(business_id, id) ON DELETE CASCADE,
   FOREIGN KEY (business_id, item_id)   REFERENCES checklist_items(business_id, id)
 );
+CREATE INDEX inspection_item_results_business_id_idx ON inspection_item_results(business_id);
 
 -- =====================================================================
 -- 8. updated_at triggers

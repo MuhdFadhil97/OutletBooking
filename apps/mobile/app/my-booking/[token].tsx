@@ -165,6 +165,7 @@ function BookingSummary({ booking, ...pay }: { booking: PublicBookingConfirmatio
         <SummaryRow label={b.where} value={`${biz.name} · ${booking.resourceName}`} />
         <SummaryRow label={b.when} value={when} />
         <SummaryRow label={t.booking.service} value={booking.serviceName} />
+        {booking.listingTitle ? <SummaryRow label={t.listings.property} value={booking.listingTitle} /> : null}
         {booking.locationAddress ? <SummaryRow label={b.address2} value={booking.locationAddress} /> : null}
         <SummaryRow label={b.price} value={booking.priceSen ? formatRM(booking.priceSen) : b.free} />
         {booking.paymentStatus === 'paid' ? (

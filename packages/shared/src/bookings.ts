@@ -78,6 +78,8 @@ export const bookingCreateSchema = z.object({
   /** One of the service's duration options; defaults to the service duration. */
   durationMin: z.number().int().positive().optional(),
   customer: bookingCustomerSchema,
+  /** Real estate: the listing being viewed (must be open for viewings). */
+  listingId: z.number().int().positive().optional(),
   locationAddress: text(500).optional(),
   customFields: customFieldsSchema.optional(),
   customerNotes: text(1000).optional(),
@@ -93,6 +95,7 @@ export const publicBookingCreateSchema = bookingCreateSchema.pick({
   startAt: true,
   durationMin: true,
   customer: true,
+  listingId: true,
   locationAddress: true,
   customFields: true,
   customerNotes: true,
@@ -218,6 +221,8 @@ export interface Booking {
   expiresAt: string | null;
   /** D5: WhatsApp reminder sent. */
   reminderSentAt: string | null;
+  /** Real estate: the listing being viewed. */
+  listing: { id: number; ref: string; title: string } | null;
   locationAddress: string | null;
   customFields: Record<string, string | number>;
   customerNotes: string | null;

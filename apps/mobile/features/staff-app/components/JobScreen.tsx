@@ -15,6 +15,7 @@ import { Text } from '@/components/ui/Text';
 import { showToast } from '@/components/ui/Toast';
 import { formatPhone, mapsUrl, statusTone, wazeUrl, whatsappUrl } from '@/features/bookings/format';
 import { useBooking, useBookingEvents, useSetBookingStatus } from '@/features/bookings/hooks';
+import { InspectionCard } from '@/features/inspections/components/InspectionCard';
 import { useMe } from '@/features/me/hooks';
 import { PaymentActions, balanceDue } from '@/features/payments/components/PaymentActions';
 import { useBookingFields, useBusiness } from '@/features/setup/hooks';
@@ -105,6 +106,9 @@ export function JobScreen() {
 
       {b.locationAddress ? (
         <Section title={s.location}>
+          {b.listing ? (
+            <Text className="text-[13px] text-muted">{`${b.listing.title} · ${b.listing.ref}`}</Text>
+          ) : null}
           <Text className="text-[14px] font-semibold">{b.locationAddress}</Text>
           <View className="flex-row gap-2">
             <OutlineLink label={s.waze} url={wazeUrl(b.locationAddress)} />
@@ -125,6 +129,9 @@ export function JobScreen() {
         </Section>
       ) : null}
 
+      {NOTES_STATUSES.includes(b.status) && me?.business.template === 'vehicle_inspection' ? (
+        <InspectionCard booking={b} businessName={business.data.name} tz={tz} disabled={offline} />
+      ) : null}
       {NOTES_STATUSES.includes(b.status) ? <ResultNotes booking={b} disabled={offline} /> : null}
       {b.status !== 'cancelled' && b.status !== 'no_show' ? (
         <Photos bookingId={b.id} myUserId={me?.user.id ?? 0} isOwner={me?.role === 'owner'} disabled={offline} />

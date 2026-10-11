@@ -41,6 +41,7 @@ async function setupWrites(cookie: string) {
         fieldType: 'text',
       })
     ).status,
+    listing: (await ctx.send('POST', '/listings', cookie, { ref: `LR-${Math.floor(Math.random() * 1e6)}`, title: 'Condo' })).status,
   };
 }
 
@@ -75,13 +76,13 @@ describe('defaults', () => {
     expect((await me(staffA)).permissions).toEqual({ canViewAll: false, canTakePayments: true, canEditSetup: false });
   });
 
-  it('staff without "can change setup" cannot write services, hours, time off or questions', async () => {
-    expect(await setupWrites(staffA)).toEqual({ service: 403, hours: 403, timeOff: 403, field: 403 });
+  it('staff without "can change setup" cannot write services, hours, time off, questions or listings', async () => {
+    expect(await setupWrites(staffA)).toEqual({ service: 403, hours: 403, timeOff: 403, field: 403, listing: 403 });
     expect((await ctx.get('/time-off', staffA)).status).toBe(403);
   });
 
   it('owner can', async () => {
-    expect(await setupWrites(ownerA)).toEqual({ service: 201, hours: 200, timeOff: 201, field: 201 });
+    expect(await setupWrites(ownerA)).toEqual({ service: 201, hours: 200, timeOff: 201, field: 201, listing: 201 });
   });
 });
 
@@ -90,7 +91,7 @@ describe('"can change setup"', () => {
     const updated = await json<StaffMember>(await setAccess(ownerA, staffMemberId, { canEditSetup: true }));
     expect(updated).toMatchObject({ canEditSetup: true, canTakePayments: true, canViewAll: false });
     expect((await me(staffA)).permissions.canEditSetup).toBe(true);
-    expect(await setupWrites(staffA)).toEqual({ service: 201, hours: 200, timeOff: 201, field: 201 });
+    expect(await setupWrites(staffA)).toEqual({ service: 201, hours: 200, timeOff: 201, field: 201, listing: 201 });
   });
 
   it('still owner-only: resources, business profile, staff management', async () => {
@@ -140,7 +141,7 @@ describe('invitations carry permissions', () => {
     });
 
     const token = inv.inviteUrl.split('/invite/')[1]!;
-    const body = { name: 'Lead Hafiz', phone: '+60111222444', password: 'password123' };
+    const body = { name: 'Lead Hafiz', phone: '+60111222444', password: 'password123', acceptTerms: true };
     expect((await ctx.send('POST', `/invitations/${token}/accept`, '', body)).status).toBe(200);
     const lead = await ctx.login('lead@example.com', 'password123');
     expect((await me(lead)).permissions).toEqual({ canViewAll: true, canTakePayments: false, canEditSetup: true });

@@ -16,3 +16,6 @@ export * from './schedule';
 export * from './customers';
 export * from './reports';
 export * from './plans';
+export * from './legal';
+export * from './listings';
+export * from './inspections';

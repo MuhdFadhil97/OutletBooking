@@ -54,7 +54,7 @@ const book = (startAt: string, resourceId = court1, phone = `+6012300${String(++
 async function staffFor(email: string, resourceId: number) {
   const inv = await json<StaffInvitation>(await ctx.send('POST', '/staff/invitations', ownerA, { email, resourceId }), 201);
   const token = inv.inviteUrl.split('/invite/')[1]!;
-  await json(await ctx.post(`/invitations/${token}/accept`, { name: email, phone: '+60111222333', password: 'password123' }));
+  await json(await ctx.post(`/invitations/${token}/accept`, { name: email, phone: '+60111222333', password: 'password123', acceptTerms: true }));
   return ctx.login(email, 'password123');
 }
 

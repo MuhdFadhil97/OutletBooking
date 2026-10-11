@@ -5,12 +5,14 @@ import Head from 'expo-router/head';
 import { addDays, format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
+  LISTING_REF_FIELD,
   normalizeMyPhone,
   publicBookingCreateSchema,
   type AvailableSlot,
   type NextAvailableSlot,
   type PublicBookingCreateInput,
   type PublicBusiness,
+  type PublicListing,
   type PublicService,
 } from '@outletbooking/shared';
 import { Brand } from '@/components/Brand';
@@ -81,20 +83,43 @@ function BookingFlow({ biz }: { biz: PublicBusiness }) {
   const [date, setDate] = useState(() => todayIn(tz));
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [listingId, setListingId] = useState<number | null>(null);
 
   const service = biz.services.find((s) => s.id === serviceId) ?? null;
+  const listing = biz.listings.find((l) => l.id === listingId) ?? null;
+
+  /** Real estate: start with the listing's agent when they offer the service. */
+  const agentFor = (svcId: number | null, l: PublicListing | null) =>
+    l?.agentResourceId && biz.resources.some((r) => r.id === l.agentResourceId && svcId !== null && r.serviceIds.includes(svcId))
+      ? l.agentResourceId
+      : null;
 
   const chooseService = (svc: PublicService) => {
     if (svc.id !== serviceId) {
       setServiceId(svc.id);
       setDurationMin(svc.durationOptions?.length ? svc.durationOptions[0]! : svc.durationMin);
-      setResourceId(null);
+      setResourceId(agentFor(svc.id, listing));
       setSlot(null);
     }
   };
 
+  const chooseListing = (l: PublicListing | null) => {
+    setListingId(l?.id ?? null);
+    setResourceId(agentFor(serviceId, l));
+    setSlot(null);
+  };
+
   if (step === 1 || !service) {
-    return <ServiceStep biz={biz} selected={serviceId} onSelect={chooseService} onNext={() => service && setStep(2)} />;
+    return (
+      <ServiceStep
+        biz={biz}
+        selected={serviceId}
+        onSelect={chooseService}
+        listingId={listingId}
+        onListing={chooseListing}
+        onNext={() => service && setStep(2)}
+      />
+    );
   }
   if (step === 2 || !slot) {
     return (
@@ -145,6 +170,7 @@ function BookingFlow({ biz }: { biz: PublicBusiness }) {
       service={service}
       durationMin={durationMin}
       resourceId={resourceId}
+      listing={listing}
       slot={slot}
       onBack={() => setStep(2)}
       onSlotTaken={() => {
@@ -162,11 +188,15 @@ function ServiceStep({
   biz,
   selected,
   onSelect,
+  listingId,
+  onListing,
   onNext,
 }: {
   biz: PublicBusiness;
   selected: number | null;
   onSelect: (s: PublicService) => void;
+  listingId: number | null;
+  onListing: (l: PublicListing | null) => void;
   onNext: () => void;
 }) {
   const bookable = biz.services.filter((s) => biz.resources.some((r) => r.serviceIds.includes(s.id)));
@@ -201,6 +231,7 @@ function ServiceStep({
             </View>
             <Progress current={1} total={STEPS} />
           </View>
+          {biz.listings.length ? <ListingPicker biz={biz} selected={listingId} onSelect={onListing} /> : null}
           <Text className="text-[22px] font-extrabold">{b.whatToBook}</Text>
           {bookable.map((svc) => (
             <ServiceCard key={svc.id} svc={svc} selected={svc.id === selected} onPress={() => onSelect(svc)} />
@@ -208,6 +239,49 @@ function ServiceStep({
         </>
       )}
     </PublicPage>
+  );
+}
+
+/** C6 · real estate: which listing the viewing is for ("Another property" = type the ref later). */
+function ListingPicker({
+  biz,
+  selected,
+  onSelect,
+}: {
+  biz: PublicBusiness;
+  selected: number | null;
+  onSelect: (l: PublicListing | null) => void;
+}) {
+  const options: (PublicListing | null)[] = [...biz.listings, null];
+  return (
+    <View className="gap-2">
+      <Text className="text-[22px] font-extrabold">{t.listings.pick}</Text>
+      <Text className="text-[13px] text-muted">{t.listings.pickHint}</Text>
+      {options.map((l) => {
+        const on = (l?.id ?? null) === selected;
+        return (
+          <Pressable
+            key={l?.id ?? 'other'}
+            onPress={() => onSelect(l)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            className={`min-h-[56px] flex-row items-center gap-3 rounded-card p-3 ${
+              on ? 'border-2 border-primary bg-soft' : 'border border-border bg-card'
+            }`}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-[10px] bg-soft">
+              <Icon name="building" size={20} color={colors.primary} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[15px] font-bold" numberOfLines={1}>
+                {l ? [l.title, l.area].filter(Boolean).join(', ') : t.listings.otherProperty}
+              </Text>
+              {l ? <Text className="text-[12px] text-muted">{t.listings.refLabel(l.ref)}</Text> : null}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -623,6 +697,7 @@ function DetailsStep({
   service,
   durationMin,
   resourceId,
+  listing,
   slot,
   onBack,
   onSlotTaken,
@@ -631,6 +706,7 @@ function DetailsStep({
   service: PublicService;
   durationMin: number;
   resourceId: number | null;
+  listing: PublicListing | null;
   slot: AvailableSlot;
   onBack: () => void;
   onSlotTaken: () => void;
@@ -645,8 +721,11 @@ function DetailsStep({
   const create = useCreatePublicBooking(biz.slug);
   const quote = usePublicQuote(biz.slug, { serviceId: service.id, startAt: slot.startAt, durationMin });
 
-  const fields = biz.bookingFields.filter((f) => f.serviceId === null || f.serviceId === service.id);
-  const atCustomer = service.locationType === 'at_customer_location';
+  // A picked listing answers the "listing ref" question and gives the viewing address (filled in by the API).
+  const fields = biz.bookingFields.filter(
+    (f) => (f.serviceId === null || f.serviceId === service.id) && !(listing && f.fieldKey === LISTING_REF_FIELD),
+  );
+  const atCustomer = service.locationType === 'at_customer_location' && !listing?.hasAddress;
   // "Any": the slot lists free resources least busy first; the API makes the same choice.
   const shownResource = biz.resources.find((r) => r.id === (resourceId ?? slot.resourceIds[0]))?.name;
 
@@ -662,6 +741,7 @@ function DetailsStep({
       startAt: slot.startAt,
       durationMin,
       customer: { name: name.trim(), phone: normalizeMyPhone(phone) },
+      listingId: listing?.id,
       locationAddress: atCustomer ? address.trim() : null,
       customFields: cf,
       customerNotes: notes.trim() || null,
@@ -695,6 +775,7 @@ function DetailsStep({
     >
       <Card className="gap-2 p-4">
         <Text className="text-[16px] font-extrabold">{[service.name, shownResource].filter(Boolean).join(' · ')}</Text>
+        {listing ? <SummaryRow label={t.listings.property} value={`${listing.title} · ${listing.ref}`} /> : null}
         <SummaryRow
           label={formatInTimeZone(new Date(slot.startAt), tz, 'EEE, d MMM yyyy')}
           value={`${formatTimeSpan(slot.startAt, slot.endAt, tz)} · ${formatDuration(durationMin)}`}
@@ -756,6 +837,12 @@ function DetailsStep({
       ) : quote.isPending ? (
         <LoadingState />
       ) : null}
+      <Text className="text-[12px] text-muted">
+        {t.legal.bookingNote(biz.name)}
+        <Text className="text-[12px] font-bold text-primary" onPress={() => router.push('/privacy')} accessibilityRole="link">
+          {t.legal.bookingLink}
+        </Text>
+      </Text>
     </PublicPage>
   );
 }

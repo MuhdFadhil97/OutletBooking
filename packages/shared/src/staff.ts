@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emailSchema, passwordSchema, phoneE164 } from './schemas';
+import { acceptTermsSchema, emailSchema, passwordSchema, phoneE164 } from './schemas';
 
 /** D12 permissions. Defaults: own bookings only, may take payments, may not change setup. */
 const permissionFlags = {
@@ -38,6 +38,7 @@ export const acceptInviteNewAccountSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name').max(100),
   phone: phoneE164,
   password: passwordSchema,
+  acceptTerms: acceptTermsSchema,
 });
 export type AcceptInviteNewAccount = z.infer<typeof acceptInviteNewAccountSchema>;
 
