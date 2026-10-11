@@ -9,6 +9,7 @@
     "db:generate": "pnpm --filter @outletbooking/db generate",
     "db:migrate": "pnpm --filter @outletbooking/db migrate",
     "db:seed": "pnpm --filter @outletbooking/db seed",
+    "db:admin": "pnpm --filter @outletbooking/db admin",
     "dev": "pnpm --filter api dev",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck"

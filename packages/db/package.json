@@ -13,6 +13,7 @@
     "generate": "drizzle-kit generate",
     "generate:custom": "drizzle-kit generate --custom",
     "migrate": "tsx src/migrate-cli.ts",
+    "admin": "tsx src/admin-cli.ts",
     "seed": "tsx src/seed.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"

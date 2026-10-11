@@ -5,6 +5,7 @@ import type { Db } from '@outletbooking/db';
 import type { Auth } from './auth';
 import type { Env } from './env';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { adminRoutes } from './routes/admin';
 import { bookingFieldRoutes } from './routes/booking-fields';
 import { bookingRoutes } from './routes/bookings';
 import { businessRoutes } from './routes/businesses';
@@ -98,6 +99,7 @@ export function createApp({
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);
+  app.route('/admin', adminRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

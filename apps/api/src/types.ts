@@ -1,5 +1,5 @@
 import type { Db } from '@outletbooking/db';
-import type { MemberRole } from '@outletbooking/shared';
+import type { AdminMe, MemberRole } from '@outletbooking/shared';
 import type { Auth, AuthSession } from './auth';
 import type { Env } from './env';
 import type { PushSender } from './services/push';
@@ -32,6 +32,8 @@ export interface AppVariables {
   userId: number;
   session: AuthSession;
   tenant: Tenant;
+  /** Set by requirePlatformAdmin on /admin routes. */
+  admin: AdminMe;
 }
 
 export type AppEnv = { Variables: AppVariables };

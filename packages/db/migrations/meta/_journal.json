@@ -127,6 +127,20 @@
       "when": 1791701331334,
       "tag": "0017_phase6_pilot_extras_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791706025661,
+      "tag": "0018_phase7_platform_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791706033104,
+      "tag": "0019_phase7_platform_admin_triggers",
+      "breakpoints": true
     }
   ]
 }
