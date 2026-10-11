@@ -159,7 +159,7 @@ function buildSections(sum: SetupSummary, trial: string, payments: string): { ti
         { key: 'profile', title: s.profile, subtitle: s.profileSub, href: '/setup/profile' },
         { key: 'staff', title: s.staffRoles, subtitle: s.staffCount(sum.staffCount), href: '/setup/staff' },
         { key: 'reminders', title: s.reminders, subtitle: s.remindersSub, href: '/today/reminders' },
-        { key: 'plan', title: s.plan, subtitle: trial, soon: true },
+        { key: 'plan', title: s.plan, subtitle: trial, href: '/setup/plan' },
       ],
     },
   ];

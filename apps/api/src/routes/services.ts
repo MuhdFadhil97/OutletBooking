@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { idParam, serviceCreateSchema, serviceUpdateSchema } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requirePermission, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import { archiveService, createService, getService, listServices, updateService } from '../services/service-catalog';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
 /** Read: any member. Write: owner, or staff with "can change setup". */
 export const serviceRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant)
+  .use(requireSession, resolveTenant, requireActivePlan)
   .get('/', async (c) => c.json(await listServices(c.var.db, c.var.tenant.businessId)))
   .get('/:id', validate('param', idParam), async (c) =>
     c.json(await getService(c.var.db, c.var.tenant.businessId, c.req.valid('param').id)),

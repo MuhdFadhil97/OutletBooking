@@ -15,6 +15,7 @@ import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { useMe } from '@/features/me/hooks';
 import { useNotifications } from '@/features/notifications/hooks';
 import { SetupChecklistCard } from '@/features/onboarding/components/SetupChecklistCard';
+import { TrialEnded } from '@/features/plan/components/TrialEnded';
 import { useSetupChecklist, useUpdateChecklist } from '@/features/onboarding/hooks';
 import { confirm } from '@/lib/confirm';
 import { bookingUrl } from '@/lib/config';
@@ -47,6 +48,7 @@ export default function OwnerTodayScreen() {
   if (error || !me) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
   const { business, subscription } = me;
+  if (!subscription.hasAccess) return <TrialEnded businessName={business.name} />;
   const todayLabel = formatInTimeZone(new Date(), business.timezone, 'EEE, d MMM yyyy');
   const link = bookingUrl(business.slug);
   // O7 share screen (copy, WhatsApp, QR); it ticks "Share your booking link" on the checklist.
@@ -140,19 +142,19 @@ export default function OwnerTodayScreen() {
           </Pressable>
         </View>
 
-        <View
-          className={`flex-row items-center justify-between rounded-card px-3.5 py-3 ${
-            subscription.isTrialActive ? 'bg-pend-bg' : 'bg-danger-tint'
-          }`}
-        >
-          <View className="flex-row items-center gap-2">
-            <Icon name="clock" size={18} color={subscription.isTrialActive ? colors['pend-fg'] : colors.danger} />
-            <Text className={`text-[14px] font-bold ${subscription.isTrialActive ? 'text-pend-fg' : 'text-danger'}`}>
-              {subscription.isTrialActive ? t.today.trial(subscription.trialDaysLeft) : t.today.trialEnded}
-            </Text>
-          </View>
-          <Text className="text-[14px] font-bold text-primary">{t.today.choosePlan}</Text>
-        </View>
+        {subscription.status === 'trialing' ? (
+          <Pressable
+            onPress={() => router.push('/setup/plan')}
+            accessibilityRole="button"
+            className="flex-row items-center justify-between rounded-card bg-pend-bg px-3.5 py-3 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-2">
+              <Icon name="clock" size={18} color={colors['pend-fg']} />
+              <Text className="text-[14px] font-bold text-pend-fg">{t.today.trial(subscription.trialDaysLeft)}</Text>
+            </View>
+            <Text className="text-[14px] font-bold text-primary">{t.today.choosePlan}</Text>
+          </Pressable>
+        ) : null}
 
         {checklist.data && !checklist.data.hidden ? (
           <SetupChecklistCard

@@ -7,7 +7,7 @@ import {
   workingHoursSchema,
 } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requirePermission, requireRole, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import {
   archiveResource,
   createResource,
@@ -25,7 +25,7 @@ import { validate } from '../validate';
  * Create / edit / archive (plan limit, staff links): owner. Working hours: owner, or staff with "can change setup".
  */
 export const resourceRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant)
+  .use(requireSession, resolveTenant, requireActivePlan)
   .get('/', async (c) =>
     c.json(await listResources(c.var.db, c.var.tenant.businessId, resourceScope(c.var.tenant, c.var.userId))),
   )

@@ -29,6 +29,8 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   TRUSTED_ORIGINS: csv,
   APP_PUBLIC_URL: z.url().default('http://localhost:8081'),
+  /** Marketing website; E3 opens its plan payment page (I4, Phase 7). */
+  WEBSITE_URL: z.url().default('https://outletbooking.my'),
   /** `resend` for staging / production; `console` prints emails to the log (refused in production). */
   MAIL_TRANSPORT: z.enum(['console', 'resend']).default('console'),
   /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */

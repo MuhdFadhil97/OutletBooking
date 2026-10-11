@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { customerCreateSchema, customerListQuery, customerUpdateSchema, idParam } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requireRole, resolveTenant } from '../middleware/tenant';
+import { requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import { createCustomer, eraseCustomer, getCustomer, listCustomers, updateCustomer } from '../services/customers';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
 /** D10 / D11 customers (FR-12): owner only. PDPA erase anonymises; bookings and payments stay. */
 export const customerRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant, requireRole('owner'))
+  .use(requireSession, resolveTenant, requireActivePlan, requireRole('owner'))
   .get('/', validate('query', customerListQuery), async (c) =>
     c.json(await listCustomers(c.var.db, c.var.tenant.businessId, c.req.valid('query'))),
   )

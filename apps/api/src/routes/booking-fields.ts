@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bookingFieldCreateSchema, bookingFieldUpdateSchema, idParam, reorderSchema } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requirePermission, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import {
   createBookingField,
   deleteBookingField,
@@ -14,7 +14,7 @@ import { validate } from '../validate';
 
 /** Read: any member (staff see answers in booking detail). Write: owner, or staff with "can change setup". */
 export const bookingFieldRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant)
+  .use(requireSession, resolveTenant, requireActivePlan)
   .get('/', async (c) => {
     const all = await listBookingFields(c.var.db, c.var.tenant.businessId);
     // Questions hidden from staff are only listed for members who can change setup.

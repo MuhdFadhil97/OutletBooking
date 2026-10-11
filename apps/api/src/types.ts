@@ -17,6 +17,8 @@ export interface Tenant {
   canTakePayments: boolean;
   /** Services, prices, hours, time off, booking questions. */
   canEditSetup: boolean;
+  /** Trial running or plan paid. False = view only (no changes). */
+  planActive: boolean;
 }
 
 export interface AppVariables {

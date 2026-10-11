@@ -21,6 +21,8 @@ export interface MeResponse {
     trialEndsAt: string; // ISO
     trialDaysLeft: number; // 0 when ended
     isTrialActive: boolean;
+    /** Trial running or plan paid: false = booking page paused, app view only (FR-16.3). */
+    hasAccess: boolean;
   };
 }
 

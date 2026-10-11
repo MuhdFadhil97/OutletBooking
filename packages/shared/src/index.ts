@@ -15,3 +15,4 @@ export * from './payments';
 export * from './schedule';
 export * from './customers';
 export * from './reports';
+export * from './plans';

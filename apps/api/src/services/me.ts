@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
 import {
+  hasPlanAccess,
   resolveNotificationPrefs,
   type BusinessTemplate,
   type MeResponse,
@@ -34,6 +35,7 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
         plan: subscriptions.plan,
         status: subscriptions.status,
         trialEndsAt: subscriptions.trialEndsAt,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
       },
     })
     .from(users)
@@ -63,6 +65,7 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
       trialEndsAt: trialEndsAt.toISOString(),
       trialDaysLeft: daysLeft,
       isTrialActive: status === 'trialing' && daysLeft > 0,
+      hasAccess: hasPlanAccess(row.sub, now),
     },
   };
 }

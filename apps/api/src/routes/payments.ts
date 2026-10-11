@@ -3,7 +3,7 @@ import { connectToyyibPaySchema } from '@outletbooking/shared';
 import { runInBackground } from '../background';
 import { rateLimit } from '../middleware/rate-limit';
 import { requireSession } from '../middleware/session';
-import { requireRole, resolveTenant } from '../middleware/tenant';
+import { requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import {
   checkTestPayment,
   connectToyyibPay,
@@ -26,7 +26,7 @@ export const paymentDeps = (c: Context<AppEnv>): PaymentDeps => ({
 
 /** H1 · The owner connects their own ToyyibPay account. The key never comes back out. */
 export const paymentRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant, requireRole('owner'))
+  .use(requireSession, resolveTenant, requireActivePlan, requireRole('owner'))
   .get('/account', async (c) => c.json(await getPaymentAccount(c.var.db, c.var.tenant.businessId)))
   .post(
     '/account',

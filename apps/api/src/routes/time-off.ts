@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { idParam, timeOffCreateSchema, timeOffQuery, timeOffUpdateSchema } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requirePermission, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import { createTimeOff, deleteTimeOff, listTimeOff, updateTimeOff } from '../services/time-off';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
 /** Owner, or staff with "can change setup" (hours). */
 export const timeOffRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant, requirePermission('canEditSetup'))
+  .use(requireSession, resolveTenant, requireActivePlan, requirePermission('canEditSetup'))
   .get('/', validate('query', timeOffQuery), async (c) =>
     c.json(await listTimeOff(c.var.db, c.var.tenant.businessId, c.req.valid('query'))),
   )

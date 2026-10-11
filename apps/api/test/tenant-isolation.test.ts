@@ -84,6 +84,7 @@ describe('requireRole', () => {
         canViewAll: false,
         canTakePayments: c.req.header('x-pay') === '1',
         canEditSetup: false,
+        planActive: true,
       });
       await next();
     })

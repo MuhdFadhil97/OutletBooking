@@ -17,7 +17,7 @@ import {
   reminderListQuery,
 } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requirePermission, requireRole, resolveTenant } from '../middleware/tenant';
+import { requirePermission, requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
 import { getAvailability } from '../services/availability';
 import { listBookingEvents } from '../services/booking-events';
 import {
@@ -47,7 +47,7 @@ const scopeOf = (c: Context<AppEnv>) => bookingScope(c.var.db, c.var.tenant, c.v
  * Create / edit / reschedule / cancel: owner. Staff may check in, complete and mark no-show.
  */
 export const bookingRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant)
+  .use(requireSession, resolveTenant, requireActivePlan)
   .get('/', validate('query', bookingListQuery), async (c) =>
     c.json(await listBookings(c.var.db, c.var.tenant.businessId, c.req.valid('query'), await scopeOf(c))),
   )

@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
-import { businesses, businessMembers } from '@outletbooking/db';
-import type { MemberRole } from '@outletbooking/shared';
+import { businesses, businessMembers, subscriptions } from '@outletbooking/db';
+import { hasPlanAccess, type MemberRole } from '@outletbooking/shared';
 import { AppError, forbidden } from '../errors';
 import type { AppEnv } from '../types';
 
@@ -19,9 +19,15 @@ export const resolveTenant = createMiddleware<AppEnv>(async (c, next) => {
       canViewAll: businessMembers.canViewAll,
       canTakePayments: businessMembers.canTakePayments,
       canEditSetup: businessMembers.canEditSetup,
+      sub: {
+        status: subscriptions.status,
+        trialEndsAt: subscriptions.trialEndsAt,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+      },
     })
     .from(businessMembers)
     .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
+    .leftJoin(subscriptions, eq(subscriptions.businessId, businessMembers.businessId))
     .where(
       and(eq(businessMembers.userId, c.var.userId), eq(businessMembers.isActive, true), isNull(businesses.deletedAt)),
     )
@@ -38,6 +44,7 @@ export const resolveTenant = createMiddleware<AppEnv>(async (c, next) => {
     canViewAll: isOwner || member.canViewAll,
     canTakePayments: isOwner || member.canTakePayments,
     canEditSetup: isOwner || member.canEditSetup,
+    planActive: hasPlanAccess(member.sub),
   });
   await next();
 });
@@ -57,3 +64,14 @@ export const requireRole = (...roles: MemberRole[]) =>
     if (!roles.includes(c.var.tenant.role)) throw forbidden();
     await next();
   });
+
+/**
+ * FR-16.3: once the trial has ended without a paid plan the app is view only — every change is refused.
+ * Mounted on the business data routes; account routes (log out, push token, delete account) stay open.
+ */
+export const requireActivePlan = createMiddleware<AppEnv>(async (c, next) => {
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD' && !c.var.tenant.planActive) {
+    throw new AppError(403, 'plan_inactive', 'Your free trial has ended. Choose a plan to make changes.');
+  }
+  await next();
+});

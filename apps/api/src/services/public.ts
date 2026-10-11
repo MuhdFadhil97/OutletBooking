@@ -10,6 +10,7 @@ import {
   resources,
   resourceServices,
   services,
+  subscriptions,
   type Db,
   type Tx,
 } from '@outletbooking/db';
@@ -29,6 +30,7 @@ import type {
   PublicBusiness,
   ResourceType,
 } from '@outletbooking/shared';
+import { hasPlanAccess } from '@outletbooking/shared';
 import { AppError, notFound } from '../errors';
 import { bookingRef } from './payments';
 import { blockedRange, getAvailability, unbookable } from './availability';
@@ -59,12 +61,18 @@ const businessColumns = {
 };
 
 async function findBusiness(q: Q, slug: string) {
-  const [biz] = await q
-    .select(businessColumns)
+  const [row] = await q
+    .select({
+      ...businessColumns,
+      sub: { status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, currentPeriodEnd: subscriptions.currentPeriodEnd },
+    })
     .from(businesses)
+    .leftJoin(subscriptions, eq(subscriptions.businessId, businesses.id))
     .where(and(eq(businesses.slug, slug), isNull(businesses.deletedAt)));
-  if (!biz) throw notFound('Business');
-  return biz;
+  if (!row) throw notFound('Business');
+  const { sub, ...biz } = row;
+  // F3: paused when the owner turned booking off, or the trial ended without a plan (FR-16.3).
+  return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub) };
 }
 
 function assertBookingOpen(biz: { bookingEnabled: boolean }) {

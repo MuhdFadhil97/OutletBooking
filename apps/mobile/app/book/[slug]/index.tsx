@@ -184,10 +184,7 @@ function ServiceStep({
       <BusinessHeader biz={biz} />
 
       {!biz.bookingEnabled ? (
-        <Card className="gap-3 p-4">
-          <Text className="text-[14px]">{b.paused}</Text>
-          <ContactButtons biz={biz} />
-        </Card>
+        <Paused biz={biz} />
       ) : bookable.length === 0 ? (
         <Card>
           <EmptyState title={b.noServices} />
@@ -241,6 +238,26 @@ function BusinessHeader({ biz }: { biz: PublicBusiness }) {
           <Text className="flex-1 text-[13px] text-muted">{biz.address}</Text>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** F3 · Booking page paused: the owner turned online booking off, or the free trial ended without a plan. */
+function Paused({ biz }: { biz: PublicBusiness }) {
+  return (
+    <View className="gap-3.5 pt-6">
+      <View className="h-[72px] w-[72px] items-center justify-center self-center rounded-full bg-neutral-bg">
+        <Icon name="pause" size={30} color={colors['neutral-fg']} />
+      </View>
+      <Text className="text-center text-[22px] font-extrabold" accessibilityRole="header">
+        {b.pausedTitle}
+      </Text>
+      <Text className="text-center text-[15px] leading-[22px] text-muted">{b.pausedBody(biz.name)}</Text>
+      <ContactButtons biz={biz} />
+      <Card className="px-3.5 py-3">
+        <Text className="text-center text-[14px] leading-[20px]">{b.pausedBooked}</Text>
+      </Card>
+      <Text className="pt-4 text-center text-[12px] text-muted">{b.poweredBy}</Text>
     </View>
   );
 }
