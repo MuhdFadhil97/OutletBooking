@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import { BOOKING_SEARCH_FILTERS, type Booking, type BookingSearchFilter } from '@outletbooking/shared';
 import { Card } from '@/components/ui/Card';
@@ -88,7 +88,18 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-bg">
       <View className="gap-3 border-b border-border bg-card px-4 pb-3 pt-4">
-        <Text className="text-[20px] font-extrabold">{l.title}</Text>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-[20px] font-extrabold">{l.title}</Text>
+          {/* D10 customers list */}
+          <Pressable
+            onPress={() => router.push('/bookings/customers')}
+            accessibilityRole="button"
+            className="h-11 flex-row items-center gap-1.5 rounded-button border border-border bg-card px-3 active:bg-pressed"
+          >
+            <Icon name="users" size={18} color={colors.text} />
+            <Text className="text-[13px] font-bold">{t.customers.title}</Text>
+          </Pressable>
+        </View>
         <View
           className={`h-12 flex-row items-center gap-2 rounded-button border-2 bg-card px-3 ${focused ? 'border-primary' : 'border-input-border'}`}
         >

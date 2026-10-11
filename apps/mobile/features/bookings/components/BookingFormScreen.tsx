@@ -23,6 +23,7 @@ import { ChipGroup, FieldInput, fieldAnswers } from '@/features/bookings/compone
 import { todayIn } from '@/features/bookings/format';
 import { useBooking, useCalendarAvailability, useCreateBooking, useRescheduleBooking } from '@/features/bookings/hooks';
 import { openBooking, type BookingFormParams, type BookingsTab } from '@/features/bookings/nav';
+import { useCustomer } from '@/features/customers/hooks';
 import { useBookingFields, useBusiness, useResources, useServices } from '@/features/setup/hooks';
 import { ApiError } from '@/lib/api';
 import { formatDuration, formatTime } from '@/lib/format';
@@ -90,6 +91,13 @@ function BookingForm({ params, tab }: { params: BookingFormParams; tab: Bookings
   const [outsideHours, setOutsideHours] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  // D11 "Book": fill in the customer once their profile has loaded (only if the owner hasn't typed yet).
+  const prefill = useCustomer(params.customerId ? Number(params.customerId) : 0);
+  useEffect(() => {
+    if (!prefill.data) return;
+    setName((n) => n || prefill.data.name);
+    setPhone((p) => p || (prefill.data.phone ?? ''));
+  }, [prefill.data]);
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');

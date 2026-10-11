@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { bookingFieldRoutes } from './routes/booking-fields';
 import { bookingRoutes } from './routes/bookings';
 import { businessRoutes } from './routes/businesses';
+import { customerRoutes } from './routes/customers';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
@@ -86,6 +87,7 @@ export function createApp({
   app.route('/staff', staffRoutes);
   app.route('/invitations', invitationRoutes);
   app.route('/bookings', bookingRoutes);
+  app.route('/customers', customerRoutes);
   app.route('/notifications', notificationRoutes);
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);

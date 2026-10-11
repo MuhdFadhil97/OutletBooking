@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, Pressable, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   REFUND_METHODS,
@@ -105,12 +105,18 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
         <View className="h-11 w-11 items-center justify-center rounded-full bg-info-bg">
           <Text className="font-extrabold text-info-fg">{initials(b.customer.name)}</Text>
         </View>
-        <View className="flex-1">
-          <Text className="text-[15px] font-extrabold" numberOfLines={1}>
+        {/* D11: owners open the customer profile (erased customers have no phone and no profile). */}
+        <Pressable
+          onPress={() => router.push({ pathname: '/bookings/customers/[id]', params: { id: String(b.customer.id) } })}
+          disabled={me?.role !== 'owner' || !phone}
+          accessibilityRole={me?.role === 'owner' && phone ? 'link' : undefined}
+          className="min-w-0 flex-1"
+        >
+          <Text className={`text-[15px] font-extrabold ${me?.role === 'owner' && phone ? 'text-primary' : ''}`} numberOfLines={1}>
             {b.customer.name}
           </Text>
           {phone ? <Text className="text-[13px] text-muted">{formatPhone(phone)}</Text> : null}
-        </View>
+        </Pressable>
         {phone ? (
           <>
             <RoundButton icon="phone" label={s.call} onPress={() => void Linking.openURL(`tel:${phone}`)} />

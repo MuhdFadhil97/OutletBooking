@@ -13,6 +13,8 @@ export type BookingFormParams = {
   bookingId?: string;
   /** "1" = walk-in mode (today, start now, any free resource). */
   walkIn?: string;
+  /** D11 "Book": fill in this customer (an id, never name/phone: params end up in the web URL). */
+  customerId?: string;
 };
 
 export function openBooking(tab: BookingsTab, id: number, how: 'push' | 'replace' = 'push') {

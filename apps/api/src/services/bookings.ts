@@ -261,6 +261,15 @@ export async function searchBookings(
   return rows.map((r) => toDto(r, scope));
 }
 
+/** D11: one customer's bookings, newest first. */
+export async function customerBookings(q: Q, businessId: number, customerId: number, limit = 200): Promise<Booking[]> {
+  const rows = await selectBookings(q)
+    .where(and(eq(bookings.businessId, businessId), eq(bookings.customerId, customerId)))
+    .orderBy(desc(bookings.startAt), desc(bookings.id))
+    .limit(limit);
+  return rows.map((r) => toDto(r));
+}
+
 export async function getBooking(q: Q, businessId: number, id: number, scope: BookingScope = {}): Promise<Booking> {
   const [row] = await selectBookings(q).where(
     and(eq(bookings.businessId, businessId), eq(bookings.id, id), scopeFilter(scope)),

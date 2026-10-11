@@ -6,6 +6,7 @@ const tones = {
   pending: 'bg-pend-bg text-pend-fg',
   neutral: 'bg-neutral-bg text-neutral-fg',
   info: 'bg-info-bg text-info-fg',
+  danger: 'bg-danger-tint text-danger',
 } as const;
 
 export type TagTone = keyof typeof tones;
