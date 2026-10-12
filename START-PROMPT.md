@@ -54,7 +54,7 @@ Read these files before doing anything, and follow them strictly:
 | Files | S3-compatible: MinIO locally (Docker) |
 | Staff permissions | Staff **see prices, payment status, deposit and balance due**, and can record balance payment (cash / DuitNow QR / card) |
 | Bookings list | Searchable by **customer name** (partial match), filters All / Upcoming / Unpaid / Past |
-| Domain | `outletbooking.my` proposed, not registered yet — keep it configurable (`APP_PUBLIC_URL`) |
+| Domain | `outletbooking.my` registered (Hostinger) — still keep it configurable (`APP_PUBLIC_URL`) |
 
 ### 3. Tech stack
 pnpm monorepo: `apps/mobile` (Expo + Expo Router + TypeScript strict + NativeWind + TanStack Query + react-hook-form + zod), `apps/api` (Hono + zod + Better Auth + Drizzle + pg-boss), `packages/db` (Drizzle schema, migrations, seed), `packages/shared` (zod schemas + types). Vitest for tests. date-fns + date-fns-tz.

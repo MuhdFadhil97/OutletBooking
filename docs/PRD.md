@@ -386,7 +386,7 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 
 **Still open**
 - Plan renewal: automatic recurring charge or manual renewal with reminder? (Web billing page shows a placeholder.)
-- Domain: check and register (e.g. outletbooking.my / outletbooking.com) and secure the app name on Play Store
+- Domain: `outletbooking.my` registered (Hostinger). Still to do: secure the app name on Play Store
 - Pilot businesses: identify 1–2 per niche (agency, inspection centre, sports centre)
 - Real estate: is the resource the agent or the property? (Recommended: agent as resource, property as booking field)
 - Vehicle inspection: offer mobile inspection at MVP or on-site only?
