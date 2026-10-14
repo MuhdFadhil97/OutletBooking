@@ -43,6 +43,7 @@ CREATE TABLE users (
   phone           text,
   terms_accepted_at timestamptz,         -- PDPA consent at sign-up / accept invite
   terms_version   text,                  -- LEGAL_VERSION agreed to (re-ask when it changes)
+  two_factor_enabled boolean  NOT NULL DEFAULT false,   -- Better Auth two-factor plugin (required for platform admins, I6)
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
@@ -85,6 +86,17 @@ CREATE TABLE verifications (
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX verifications_identifier_idx ON verifications(identifier);
+-- Email sign-in links for the website (I13, M6) use Better Auth's magic-link plugin, stored in verifications.
+
+-- Better Auth two-factor plugin (TOTP + backup codes). Used by platform admins (I6, I29).
+CREATE TABLE two_factors (
+  id            integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id       integer     NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  secret        text        NOT NULL,      -- encrypted by Better Auth
+  backup_codes  text        NOT NULL,      -- encrypted by Better Auth
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
 
 CREATE TABLE push_tokens (
   id          integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -126,10 +138,19 @@ CREATE TABLE businesses (
   customers_can_cancel boolean    NOT NULL DEFAULT true,   -- E6 / F5
   late_cancel_keeps_deposit boolean NOT NULL DEFAULT true, -- E6
   settings            jsonb       NOT NULL DEFAULT '{}'::jsonb,  -- template-specific: mobile fee/area, report options, travel areas…
+  -- Platform admin (I2, I26)
+  suspended_at        timestamptz,                  -- suspended for misuse: app + booking page locked
+  suspend_reason      text,
+  close_requested_at  timestamptz,                  -- owner asked to close; data deleted 90 days later
+  deletion_notice_sent_at timestamptz,              -- M7 sent
+  deletion_due_at     timestamptz,                  -- daily job deletes tenant data on/after this date
+  deletion_hold_reason text,                        -- set = deletion paused by an admin
   created_at          timestamptz NOT NULL DEFAULT now(),
   updated_at          timestamptz NOT NULL DEFAULT now(),
-  deleted_at          timestamptz
+  deleted_at          timestamptz,                  -- tenant data deleted; row kept (name only) for FTech's receipts
+  CHECK ((suspended_at IS NULL) = (suspend_reason IS NULL))
 );
+CREATE INDEX businesses_deletion_due_idx ON businesses(deletion_due_at) WHERE deletion_due_at IS NOT NULL AND deleted_at IS NULL;
 
 CREATE TABLE business_members (
   id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -176,6 +197,7 @@ CREATE TABLE subscriptions (
   trial_ends_at         timestamptz NOT NULL DEFAULT now() + interval '7 days',
   current_period_start  timestamptz,
   current_period_end    timestamptz,
+  free_until            timestamptz,         -- free months given by an admin (I2); no payment created
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
@@ -439,28 +461,41 @@ CREATE TABLE payments (
   transaction_ref  text,                         -- ToyyibPay transaction id
   paid_at          timestamptz,
   raw_callback     jsonb,
+  receipt_no       text        UNIQUE,          -- plan payments only: OB-2026-000123 from receipt_no_seq (I15, I17, M4)
   created_at       timestamptz NOT NULL DEFAULT now(),
   updated_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (business_id, id),
   CHECK ((booking_id IS NOT NULL) <> (subscription_id IS NOT NULL)),
+  CHECK (receipt_no IS NULL OR purpose = 'subscription'),
   FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE RESTRICT
 );
 CREATE INDEX payments_booking_idx ON payments(booking_id);
 CREATE INDEX payments_business_idx ON payments(business_id, created_at);
+CREATE SEQUENCE receipt_no_seq;   -- API: 'OB-' || year || '-' || lpad(nextval('receipt_no_seq')::text, 6, '0') when a plan payment is paid
 
-CREATE TABLE refunds (                       -- D4: refunds are paid outside the app; recorded only
+-- Refunds are paid outside the app and only recorded here.
+--   Booking refunds (D4): by the business to its customer; booking_id set.
+--   Plan refunds (I24): by FTech to the business; payment_id = the plan payment, booking_id NULL.
+CREATE TABLE refunds (
   id                  integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   business_id         integer     NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
-  booking_id          integer     NOT NULL,
-  payment_id          integer     REFERENCES payments(id) ON DELETE RESTRICT,
+  booking_id          integer,
+  payment_id          integer,
   amount_sen          integer     NOT NULL CHECK (amount_sen > 0),
   method              text        NOT NULL CHECK (method IN ('bank_transfer','duitnow','cash')),
   reason              text,
+  reason_code         text        CHECK (reason_code IN ('charged_twice','not_applied','first_payment_guarantee','cancellation','other')),
+  bank_ref            text,
+  paid_on             date,
   recorded_by_user_id integer     REFERENCES users(id) ON DELETE SET NULL,
   created_at          timestamptz NOT NULL DEFAULT now(),
   updated_at          timestamptz NOT NULL DEFAULT now(),
-  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE RESTRICT
+  CHECK (booking_id IS NOT NULL OR payment_id IS NOT NULL),
+  FOREIGN KEY (business_id, booking_id) REFERENCES bookings(business_id, id) ON DELETE RESTRICT,
+  FOREIGN KEY (business_id, payment_id) REFERENCES payments(business_id, id) ON DELETE RESTRICT
 );
 CREATE INDEX refunds_booking_idx ON refunds(booking_id);
+CREATE INDEX refunds_payment_idx ON refunds(payment_id);
 
 -- Each business connects its OWN ToyyibPay account (H1). Money goes straight to the business.
 CREATE TABLE payment_accounts (
@@ -515,11 +550,14 @@ CREATE TABLE notifications (
 CREATE INDEX notifications_user_unread_idx ON notifications(user_id, created_at DESC) WHERE read_at IS NULL;
 
 -- =====================================================================
--- 6. PLATFORM ADMIN (FTech only — not tenant data)
+-- 6. PLATFORM ADMIN & WEBSITE (FTech only — not tenant data; Phase 7)
 -- =====================================================================
-CREATE TABLE platform_admins (
+CREATE TABLE platform_admins (               -- I10
   id          integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id     integer     NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  role        text        NOT NULL DEFAULT 'support' CHECK (role IN ('support','super_admin')),
+  is_active   boolean     NOT NULL DEFAULT true,
+  invited_by_user_id integer REFERENCES users(id) ON DELETE SET NULL,
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -528,13 +566,204 @@ CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
   id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   admin_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   business_id    integer     REFERENCES businesses(id) ON DELETE SET NULL,
-  action         text        NOT NULL CHECK (action IN ('extend_trial','pause_booking_page','resume_booking_page','change_plan','note')),
+  action         text        NOT NULL CHECK (action IN (
+                   'extend_trial','give_free_months','change_plan','pause_booking_page','resume_booking_page',
+                   'suspend_business','unsuspend_business','change_owner','resend_link','export_data','close_account',
+                   'send_deletion_notice','hold_deletion','release_deletion','delete_business_data',
+                   'record_payment','record_refund','recheck_payment','retry_job',
+                   'update_plans','update_platform_settings','add_admin','change_admin_role','remove_admin','reset_two_factor',
+                   'send_announcement','privacy_request_update','support_case_update','note')),
   reason         text        NOT NULL,
   details        jsonb       NOT NULL DEFAULT '{}'::jsonb,
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX admin_audit_log_business_idx ON admin_audit_log(business_id, created_at DESC);
+CREATE INDEX admin_audit_log_admin_idx ON admin_audit_log(admin_user_id, created_at DESC);
+-- The API only INSERTs into admin_audit_log; it never updates or deletes rows (I9 is read-only).
+
+-- Admin-only notes on a business (I2)
+CREATE TABLE admin_business_notes (
+  id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id    integer     NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  admin_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  body           text        NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX admin_business_notes_business_idx ON admin_business_notes(business_id, created_at DESC);
+
+-- Plans & prices (I12). Shown on the website (I3, I4) and the app (E3). Super admins only.
+CREATE TABLE plans (
+  id                  integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code                text        NOT NULL UNIQUE CHECK (code IN ('starter','business')),
+  name                text        NOT NULL,
+  price_sen           integer     NOT NULL CHECK (price_sen > 0),       -- per month
+  resource_limit      integer     NOT NULL CHECK (resource_limit > 0),
+  extra_resource_sen  integer     NOT NULL DEFAULT 1000 CHECK (extra_resource_sen >= 0),
+  features            jsonb       NOT NULL DEFAULT '{}'::jsonb,         -- {"staff_app":true,"reports":true,...}
+  is_public           boolean     NOT NULL DEFAULT true,
+  sort_order          integer     NOT NULL DEFAULT 0,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now()
+);
+-- New prices apply to new payments and the next renewal; paid periods keep the price in payments.amount_sen.
+
+-- Single-row platform settings (I12)
+CREATE TABLE platform_settings (
+  id                     integer     PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  trial_days             integer     NOT NULL DEFAULT 7  CHECK (trial_days BETWEEN 1 AND 90),
+  grace_days             integer     NOT NULL DEFAULT 3  CHECK (grace_days BETWEEN 0 AND 30),
+  renewal_reminder_days  integer[]   NOT NULL DEFAULT '{7,3,1}',
+  unpaid_delete_after_months integer NOT NULL DEFAULT 12,
+  deletion_notice_days   integer     NOT NULL DEFAULT 30,
+  close_delete_after_days integer    NOT NULL DEFAULT 90,
+  created_at             timestamptz NOT NULL DEFAULT now(),
+  updated_at             timestamptz NOT NULL DEFAULT now()
+);
+
+-- Website contact form (I19)
+CREATE TABLE leads (
+  id              integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  reason          text        NOT NULL CHECK (reason IN ('demo','question','account_help')),
+  name            text        NOT NULL,
+  business_name   text,
+  phone           text,
+  email           citext,
+  business_type   text,
+  resource_count  text,
+  message         text,
+  consent_at      timestamptz NOT NULL,          -- ticked "FTech may contact me"
+  status          text        NOT NULL DEFAULT 'new' CHECK (status IN ('new','contacted','won','lost')),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  CHECK (phone IS NOT NULL OR email IS NOT NULL)
+);
+CREATE INDEX leads_status_idx ON leads(status, created_at DESC);
+
+-- Support cases & internal notes (I11)
+CREATE TABLE support_cases (
+  id                   integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id          integer     REFERENCES businesses(id) ON DELETE SET NULL,
+  lead_id              integer     REFERENCES leads(id) ON DELETE SET NULL,
+  title                text        NOT NULL,
+  source               text        NOT NULL CHECK (source IN ('whatsapp','email','website','phone','other')),
+  status               text        NOT NULL DEFAULT 'open' CHECK (status IN ('open','waiting','closed')),
+  assigned_admin_user_id integer   REFERENCES users(id) ON DELETE SET NULL,
+  closed_at            timestamptz,
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX support_cases_status_idx ON support_cases(status, created_at DESC);
+CREATE INDEX support_cases_business_idx ON support_cases(business_id);
+CREATE INDEX support_cases_lead_idx ON support_cases(lead_id);
+CREATE INDEX support_cases_assigned_idx ON support_cases(assigned_admin_user_id);
+
+CREATE TABLE support_notes (
+  id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  case_id        integer     NOT NULL REFERENCES support_cases(id) ON DELETE CASCADE,
+  admin_user_id  integer     REFERENCES users(id) ON DELETE SET NULL,
+  kind           text        NOT NULL DEFAULT 'internal' CHECK (kind IN ('internal','owner_message')),  -- owner_message = copied in from WhatsApp/email
+  body           text        NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX support_notes_case_idx ON support_notes(case_id, created_at);
+
+-- Privacy (PDPA) requests (I25)
+CREATE TABLE privacy_requests (
+  id                integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  requester_name    text        NOT NULL,
+  requester_email   citext,
+  requester_phone   text,
+  requester_kind    text        NOT NULL CHECK (requester_kind IN ('owner','staff','customer','visitor')),
+  kind              text        NOT NULL CHECK (kind IN ('access','correction','deletion','portability','stop_marketing','other')),
+  business_id       integer     REFERENCES businesses(id) ON DELETE SET NULL,   -- the business the data belongs to, if any
+  status            text        NOT NULL DEFAULT 'open'
+                    CHECK (status IN ('open','waiting_id_check','in_progress','sent_to_business','done','rejected')),
+  received_at       timestamptz NOT NULL DEFAULT now(),
+  due_at            timestamptz NOT NULL DEFAULT now() + interval '21 days',
+  extended_reason   text,                         -- set when due_at is extended
+  checklist         jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  notes             text,
+  handled_by_user_id integer    REFERENCES users(id) ON DELETE SET NULL,
+  closed_at         timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  CHECK (requester_email IS NOT NULL OR requester_phone IS NOT NULL)
+);
+CREATE INDEX privacy_requests_open_idx ON privacy_requests(due_at) WHERE closed_at IS NULL;
+CREATE INDEX privacy_requests_business_idx ON privacy_requests(business_id);
+CREATE INDEX privacy_requests_handled_by_idx ON privacy_requests(handled_by_user_id);
+
+-- Announcements to owners (I28): email, in-app banner on Today (O2), push
+CREATE TABLE announcements (
+  id                  integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  type                text        NOT NULL CHECK (type IN ('maintenance','price_change','feature_change','other')),
+  audience            text        NOT NULL CHECK (audience IN ('all','plan','template','business')),
+  audience_value      text,                       -- plan code, template or business slug
+  channels            text[]      NOT NULL CHECK (cardinality(channels) > 0 AND channels <@ ARRAY['email','in_app','push']),
+  title               text        NOT NULL,
+  body                text        NOT NULL,
+  send_at             timestamptz NOT NULL DEFAULT now(),
+  ends_at             timestamptz,                -- banner hidden after this
+  sent_at             timestamptz,
+  sent_count          integer     NOT NULL DEFAULT 0,
+  created_by_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  CHECK ((audience = 'all') = (audience_value IS NULL))
+);
+CREATE INDEX announcements_send_idx ON announcements(send_at) WHERE sent_at IS NULL;
+CREATE INDEX announcements_created_by_idx ON announcements(created_by_user_id);
+
+CREATE TABLE announcement_dismissals (
+  id               integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  announcement_id  integer     NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id          integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (announcement_id, user_id)
+);
+CREATE INDEX announcement_dismissals_user_idx ON announcement_dismissals(user_id);
+
+-- System health (I27): ToyyibPay payments whose callback and re-check disagree or never arrived
+CREATE TABLE payment_checks (
+  id               integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  payment_id       integer     NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  problem          text        NOT NULL CHECK (problem IN ('callback_recheck_mismatch','no_callback','recheck_failed')),
+  callback_status  text,
+  recheck_status   text,
+  checked_at       timestamptz NOT NULL DEFAULT now(),
+  resolved_at      timestamptz,
+  resolved_by_user_id integer  REFERENCES users(id) ON DELETE SET NULL,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX payment_checks_open_idx ON payment_checks(checked_at) WHERE resolved_at IS NULL;
+CREATE INDEX payment_checks_payment_idx ON payment_checks(payment_id);
+CREATE INDEX payment_checks_resolved_by_idx ON payment_checks(resolved_by_user_id);
+
+-- System health (I27): email delivery events from Resend webhooks (M1–M7, announcements)
+CREATE TABLE email_events (
+  id                   integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id          integer     REFERENCES businesses(id) ON DELETE SET NULL,
+  user_id              integer     REFERENCES users(id) ON DELETE SET NULL,
+  template             text        NOT NULL CHECK (template IN (
+                         'verify_email','reset_password','staff_invite','receipt','trial_ending',
+                         'sign_in_link','deletion_notice','announcement','refund_note')),
+  to_masked            text        NOT NULL,       -- e.g. m***@gmail.com; full address is not stored here
+  provider_message_id  text        UNIQUE,         -- Resend email id
+  status               text        NOT NULL DEFAULT 'sent'
+                       CHECK (status IN ('sent','delivered','bounced','complained','failed')),
+  details              jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX email_events_problem_idx ON email_events(created_at DESC) WHERE status IN ('bounced','complained','failed');
+CREATE INDEX email_events_business_idx ON email_events(business_id);
+CREATE INDEX email_events_user_idx ON email_events(user_id);
+-- Failed background jobs (I27) are read from pg-boss's own tables, not stored here.
 
 -- =====================================================================
 -- 7. PILOT NICHE EXTRAS (Phase 6 — confirmed by the product owner, migrations 0016/0017)
@@ -630,7 +859,9 @@ BEGIN
     'branches','resources','services','service_price_rules','resource_services',
     'working_hours','time_off','booking_fields','customers','bookings',
     'booking_attachments','payments','refunds','payment_accounts','booking_events',
-    'notifications','platform_admins','admin_audit_log','listings','checklist_sections',
+    'notifications','platform_admins','admin_audit_log','two_factors','admin_business_notes',
+    'plans','platform_settings','leads','support_cases','support_notes','privacy_requests',
+    'announcements','announcement_dismissals','payment_checks','email_events','listings','checklist_sections',
     'checklist_items','inspection_results','inspection_item_results'
   ] LOOP
     EXECUTE format(
@@ -638,3 +869,11 @@ BEGIN
       t || '_set_updated_at', t);
   END LOOP;
 END $$;
+
+-- =====================================================================
+-- 9. DEFAULT ROWS (put in the Phase 7 migration; edit later in I12)
+-- =====================================================================
+INSERT INTO platform_settings (id) VALUES (1);
+INSERT INTO plans (code, name, price_sen, resource_limit, extra_resource_sen, features, sort_order) VALUES
+  ('starter',  'Starter',  4900, 3,  1000, '{"online_payment":true,"staff_app":false,"reports":false}', 1),
+  ('business', 'Business', 9900, 10, 1000, '{"online_payment":true,"staff_app":true,"reports":true}',  2);

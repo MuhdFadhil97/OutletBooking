@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OutletBooking · Contact</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.fld{display:flex;flex-direction:column;gap:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.nav a.nl{color:#33403A;text-decoration:none;font-weight:600;font-size:15px}
+.nav a.nl:hover{color:#0F7B55}
+.side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#33403A;text-decoration:none;font-weight:600;font-size:14px}
+.side a:hover{background:#F0F3F1;color:#16211C}
+.side a.on{background:#DDF3E8;color:#0B5E40}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#56625B;padding:12px 14px;border-bottom:1px solid #E1E6E2;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#F6F8F7}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
+<div style="min-height: 100vh; display: flex; flex-direction: column">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2">
+    <div class="wrap nav" style="height: 68px; display: flex; align-items: center; gap: 24px"><a href="Web-Landing.dc.html" style="text-decoration: none"><span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span></a><span style="flex-grow: 1"></span><a class="nl" href="Web-Landing.dc.html#niches">Businesses</a><a class="nl" href="Web-Landing.dc.html#pricing">Pricing</a><a class="nl" href="Web-Contact.dc.html">Book a demo</a><a class="nl" href="Owner-Login.dc.html">Log in</a><a class="btn" href="Owner-Signup-Account.dc.html" style="height: 42px">Start free trial</a></div>
+  </header>
+  <div style="flex-grow: 1">
+  <section class="wrap" style="padding-top: 40px; padding-bottom: 56px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start">
+    <div class="card" style="padding: 28px; display: flex; flex-direction: column; gap: 16px">
+      <h1 style="margin: 0; font-size: 30px; font-weight: 800">Talk to us</h1>
+      <div class="muted" style="font-size: 15px">We reply within one working day, usually on WhatsApp.</div>
+      <div class="lbl">What do you need?</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="chip on" href="#">Book a demo</a><a class="chip" href="#">A question</a><a class="chip" href="#">Help with my account</a></div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+        <div class="fld"><label class="lbl" for="cn">Your name</label><input class="inp" id="cn" value=""></div>
+        <div class="fld"><label class="lbl" for="cb">Business name</label><input class="inp" id="cb" value=""></div>
+        <div class="fld"><label class="lbl" for="cm">Mobile (WhatsApp)</label><input class="inp" id="cm" value="+60 "></div>
+        <div class="fld"><label class="lbl" for="ce">Email</label><input class="inp" id="ce" value=""></div>
+        <div class="fld"><label class="lbl" for="ct">Type of business</label><input class="inp" id="ct" value="Sports courts"></div>
+        <div class="fld"><label class="lbl" for="cr">How many courts / staff / bays?</label><input class="inp" id="cr" value=""></div>
+      </div>
+      <div class="fld"><label class="lbl" for="cx">Anything else? <span class="muted" style="font-weight: 500">(optional)</span></label><textarea class="inp" id="cx" style="height: 96px; padding: 12px 14px; resize: vertical"></textarea></div>
+      <label style="display: flex; gap: 10px; font-size: 14px; line-height: 1.5; align-items: flex-start"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #0F7B55; flex-shrink: 0; margin: 0"><span>I agree that FTech may contact me about this request, as in the <a href="Web-Legal.dc.html">privacy notice</a>.</span></label>
+      <a class="btn" href="#" style="align-self: flex-start">Send</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 10px"><b style="font-size: 16px">Prefer WhatsApp?</b><div class="muted" style="font-size: 14px">Mon – Fri, 9 AM – 6 PM</div><a class="btn" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>WhatsApp us</a></div>
+      <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px"><b style="font-size: 16px">FTech IT Consulting Sdn Bhd</b><span class="muted">[SSM no.]</span><span class="muted">[Office address]</span><span class="muted">[hello@outletbooking.my]</span></div>
+    </div>
+  </section>
+  </div>
+  <footer style="background: #16211C; color: #CBD3CE; padding: 32px 0">
+    <div class="wrap" style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-between; font-size: 14px">
+      <span>© 2026 FTech IT Consulting Sdn Bhd · OutletBooking</span>
+      <span style="display: flex; gap: 20px; flex-wrap: wrap"><a href="Web-Legal.dc.html" style="color: #CBD3CE">Privacy notice (PDPA)</a><a href="Web-Legal.dc.html" style="color: #CBD3CE">Terms</a><a href="Web-Legal.dc.html" style="color: #CBD3CE">Refund policy</a><a href="Web-Contact.dc.html" style="color: #CBD3CE">Contact</a><a href="#" style="color: #CBD3CE">WhatsApp us</a></span>
+    </div>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

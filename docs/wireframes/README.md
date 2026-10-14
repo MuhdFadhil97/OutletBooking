@@ -1,11 +1,11 @@
 # Wireframes — OutletBooking
 
-Approved mid-fidelity screens from the design canvas — **74 screens + 5 flow maps**. Each file is an HTML reference (390×844 phone frame; taller boards scroll; I1–I4 are desktop pages for `apps/web`); rebuild the mobile ones as React Native screens in `apps/mobile`. Read the markup for layout, copy, spacing and colours. Ignore the `<x-dc>`, `<helmet>`, `support.js` and `data-dc-script` parts — they belong to the design tool.
+Approved mid-fidelity screens from the design canvas — **107 screens + 6 flow maps**. Each file is an HTML reference (390×844 phone frame; taller boards scroll; I1–I29 are desktop pages for `apps/web`; M1–M7 are 600 px emails); rebuild the mobile ones as React Native screens in `apps/mobile`. Read the markup for layout, copy, spacing and colours. Ignore the `<x-dc>`, `<helmet>`, `support.js` and `data-dc-script` parts — they belong to the design tool.
 
 
 ## Flow maps (start here)
-Five boards show how the screens connect — each card has the screen ID used in the table below:
-`Flow-1-Account` (getting in, first run, paying, admin) · `Flow-2-Daily` (Today, Calendar, Bookings) · `Flow-3-Setup` (Setup tab) · `Flow-4-Customer` (booking page by business type) · `Flow-5-Staff` (staff app). Use them to plan Expo Router routes and navigation.
+Six boards show how the screens connect — each card has the screen ID used in the table below:
+`Flow-1-Account` (getting in, first run, paying on the website, emails) · `Flow-2-Daily` (Today, Calendar, Bookings) · `Flow-3-Setup` (Setup tab) · `Flow-4-Customer` (booking page by business type) · `Flow-5-Staff` (staff app) · `Flow-6-Admin` (website pages and platform admin). Use them to plan Expo Router routes and navigation.
 
 | ID | File | Screen | Niche shown | Built in phase |
 |---|---|---|---|---|
@@ -82,10 +82,45 @@ Five boards show how the screens connect — each card has the screen ID used in
 | C6c | Customer-ViewingConfirmed.dc.html | Viewing booked | Real estate | 4 |
 | C5c | Customer-InspectionConfirmed.dc.html | Inspection booked (deposit paid, balance, report on WhatsApp) | Vehicle inspection | 4–5 |
 | I1 | Admin-Businesses.dc.html | Platform admin: all businesses, KPIs, filters, extend trial (desktop web) | Platform | 7 |
-| I2 | Admin-Business.dc.html | Platform admin: business detail, extend trial with reason, audit log | Platform | 7 |
+| I2 | Admin-Business.dc.html | Platform admin: business detail — plan & usage, extend trial / free months / change plan, owner & staff (resend links, change owner), admin notes, audit log, export / suspend / close | Platform | 7 |
 | I3 | Web-Landing.dc.html | Website landing page (responsive) | Website | 7 |
 | I4 | Web-Billing.dc.html | Website: pay for plan via ToyyibPay, receipt & e-Invoice TIN | Website | 7 |
+| I5 | Admin-Login.dc.html | Platform admin: sign in (FTech staff only, lockout after 5 tries) | Platform | 7 |
+| I6 | Admin-2FA.dc.html | Platform admin: two-step code from authenticator app, backup codes (required for every admin) | Platform | 7 |
+| I7 | Admin-Trials.dc.html | Trials ending: ends in 1/3/7 days, setup progress (D8 steps), bookings in trial, ToyyibPay status, WhatsApp / extend | Platform | 7 |
+| I8 | Admin-Payments.dc.html | Plan payments (FTech ToyyibPay): paid / not completed / bank transfer to check, receipt numbers, record bank transfer with reason | Platform | 7 |
+| I9 | Admin-Audit.dc.html | Full audit log: filters by admin, action, business, dates; reason and before → after; read only; export CSV | Platform | 7 |
+| I10 | Admin-Users.dc.html | Admin users: roles Support / Super admin, two-step status, invite, reset two-step, remove | Platform | 7 |
+| I11 | Admin-Support.dc.html | Support cases (internal notes, assign, status) and website leads from the contact form | Platform | 7 |
+| I12 | Admin-Plans.dc.html | Plans & prices: price, resource limit, extra resource, features per plan; trial length, grace days, renewal reminders (super admin, reason required) | Platform | 7 |
+| I24 | Admin-PaymentDetail.dc.html | Plan payment detail, double-payment warning, record refund (paid by bank transfer first) | Platform | 7 |
+| I25 | Admin-Privacy.dc.html | Privacy (PDPA) requests: access / correction / delete / stop marketing, 21-day deadline, checklist; customer requests go to the business | Platform | 7 |
+| I26 | Admin-Deletion.dc.html | Data deletion queue: unpaid 12 months or closed on request → notice (M7) → auto delete; hold with reason | Platform | 7 |
+| I27 | Admin-Health.dc.html | System health: ToyyibPay payments to re-check, failed background jobs (retry), email bounces / spam | Platform | 7 |
+| I28 | Admin-Announce.dc.html | Announcements to owners: type, audience, email / in-app banner / push, schedule, banner preview, history | Platform | 7 |
+| I29 | Admin-Account.dc.html | My admin account: password, backup codes, new phone, signed-in devices | Platform | 7 |
+| I13 | Web-SignIn.dc.html | Website sign-in by one-time email link (+ "check your email" state); app's Choose a plan opens it already signed in | Website | 7 |
+| I14 | Web-LinkExpired.dc.html | Sign-in link expired or used | Website | 7 |
+| I15 | Web-PaySuccess.dc.html | Plan payment received: receipt no., ToyyibPay ref, plan period, PDF, back to app | Website | 7 |
+| I16 | Web-PayFailed.dc.html | Plan payment not completed: try again, trial still running, don't pay twice | Website | 7 |
+| I17 | Web-Account.dc.html | Billing & receipts: current plan, paid until, pay / change plan, receipt details (SSM, TIN, address), receipt history | Website | 7 |
+| I18 | Web-Legal.dc.html | Privacy notice (PDPA), Terms, Refund policy — text in `docs/legal/`, EN / BM, lawyer to review | Website | 6–7 |
+| I19 | Web-Contact.dc.html | Contact: book a demo / question / account help, WhatsApp, company details | Website | 7 |
+| I20 | Web-404.dc.html | Website page not found | Website | 7 |
+| I21 | Web-Sports.dc.html | Business-type page · Sports courts | Website | 7 |
+| I22 | Web-RealEstate.dc.html | Business-type page · Real estate | Website | 7 |
+| I23 | Web-Inspection.dc.html | Business-type page · Vehicle inspection | Website | 7 |
+| F6 | Customer-NotFound.dc.html | Booking page not found (wrong or old `/b/slug`) | All | 4 |
+| M1 | Email-Verify.dc.html | Email · confirm your email (after sign-up) | All | 1 |
+| M2 | Email-Reset.dc.html | Email · reset password (link opens E2) | All | 1 |
+| M3 | Email-StaffInvite.dc.html | Email · staff invite (link opens G1) | All | 2 |
+| M4 | Email-Receipt.dc.html | Email · plan payment receipt (PDF attached) | All | 7 |
+| M5 | Email-TrialEnding.dc.html | Email · trial ends soon, with trial stats (day 5 and day 7) | All | 5–6 |
+| M6 | Email-SignIn.dc.html | Email · one-time website sign-in link | All | 7 |
+| M7 | Email-DeletionNotice.dc.html | Email · data will be deleted in 30 days, keep my account | All | 7 |
 | S1 | Staff-Today.dc.html | Agent's viewings today (travel buffers, Waze/Maps) | Real estate | 6 |
 | S2 | Staff-Job.dc.html | Inspection in progress (result, notes, photos, payment & collect balance) | Vehicle inspection | 6 |
+
+**Business-type pages (I21–I23) are one Next.js page driven by the same template config**, like sign-up step 3. **Emails (M1–M7)** are one layout (logo, heading, text, one button, footer) — build them with one email template in the API.
 
 Sample businesses (Smash Arena PJ, SemakAuto Puchong, Laman Realty), names and numbers are placeholders. Bracketed text like `[Property address]` marks content to be replaced by real data.

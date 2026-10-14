@@ -11,7 +11,8 @@ docs/PRD.md
 docs/PLAN.md
 docs/SCHEMA.md
 docs/schema.sql
-docs/wireframes/*.dc.html   (74 screens + 5 flow maps Flow-1…5 from the design canvas)
+docs/legal/*.md             (privacy notice EN+BM, terms, refund policy — drafts, lawyer review before launch)
+docs/wireframes/*.dc.html   (107 screens + 6 flow maps Flow-1…6 from the design canvas)
 docs/wireframes/README.md   (screen IDs, descriptions, build phase)
 ```
 
@@ -25,7 +26,7 @@ You are building **OutletBooking**, a multi-tenant booking & appointment SaaS fo
 Read these files before doing anything, and follow them strictly:
 - `CLAUDE.md` — architecture, stack, database rules, coding rules (these override defaults)
 - `docs/PRD.md` — requirements (FR IDs, business rules, decisions in section 15)
-- `docs/SCHEMA.md` + `docs/schema.sql` — database design (32 tables, validated on PostgreSQL 16; migrate only what each phase needs)
+- `docs/SCHEMA.md` + `docs/schema.sql` — database design (44 tables, validated on PostgreSQL 16; migrate only what each phase needs)
 - `docs/PLAN.md` — phased build plan with checkboxes
 - `docs/wireframes/README.md` + the flow maps — the approved UI and navigation (see section 4)
 
@@ -47,7 +48,9 @@ Read these files before doing anything, and follow them strictly:
 | Who gets paid | Each business connects its **own ToyyibPay account** (screen H1); key stored encrypted (AES-256-GCM, `APP_ENCRYPTION_KEY`). Plan payments go to FTech's account on the website |
 | Manual payments | Owner/staff can record cash, DuitNow QR, card, bank transfer (`can_take_payments`); refunds are recorded, paid outside the app |
 | Template-driven screens | Sign-up step 3, Setup tab and customer booking steps are **one screen each driven by the business-type config**, not one screen per niche |
-| Website & admin | `apps/web` (Next.js, Phase 7): marketing site, plan payment page, platform admin with audit log |
+| Website & admin | `apps/web` (**Next.js**, confirmed, Phase 7): marketing site, plan payment page, platform admin (two-step sign-in, audit log) |
+| Email | **Resend** from the API (`RESEND_API_KEY`, `EMAIL_FROM`); log to console when no key is set locally |
+| Grants | No grant quotation offer on the website or app for now |
 | PDPA | Consent at sign-up; customer erase = anonymise, keep booking history |
 | Trial | **7-day free trial**, no permanent free plan; business subscription paid on website, not in-app |
 | Jobs | pg-boss (reminders, pending-payment expiry, trial expiry) |
@@ -60,7 +63,7 @@ Read these files before doing anything, and follow them strictly:
 pnpm monorepo: `apps/mobile` (Expo + Expo Router + TypeScript strict + NativeWind + TanStack Query + react-hook-form + zod), `apps/api` (Hono + zod + Better Auth + Drizzle + pg-boss), `packages/db` (Drizzle schema, migrations, seed), `packages/shared` (zod schemas + types). Vitest for tests. date-fns + date-fns-tz.
 
 ### 4. UI — follow the wireframes
-`docs/wireframes/*.dc.html` are the approved mid-fidelity screens (390×844 phone frames; some are taller because they scroll). Open them to read layout, copy and hierarchy; rebuild them as React Native components (they are HTML references, not code to copy). `docs/wireframes/README.md` lists every screen with its ID and build phase. **Start with the flow maps** (`Flow-1-Account` … `Flow-5-Staff`) to plan Expo Router routes.
+`docs/wireframes/*.dc.html` are the approved mid-fidelity screens (390×844 phone frames; some are taller because they scroll). Open them to read layout, copy and hierarchy; rebuild them as React Native components (they are HTML references, not code to copy). `docs/wireframes/README.md` lists every screen with its ID and build phase. **Start with the flow maps** (`Flow-1-Account` … `Flow-6-Admin`) to plan Expo Router routes.
 
 Design tokens (use one theme file; NativeWind config):
 | Token | Value |

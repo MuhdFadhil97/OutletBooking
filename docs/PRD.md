@@ -11,7 +11,7 @@
 | Stack | Expo app + Hono API + PostgreSQL (local Docker first; Supabase as managed Postgres for staging/production) — see `CLAUDE.md` |
 | Version | 1.0 (MVP) |
 | Owner | Muhammad Fadhil — FTech IT Consulting Sdn Bhd |
-| Status | Draft v1.1 — updated after wireframe review (74 screens, 5 flow maps) |
+| Status | Draft v1.1 — updated after wireframe review (107 screens, 6 flow maps) |
 
 ---
 
@@ -283,6 +283,34 @@ The first three templates are built and tested in depth with pilot businesses:
 | FR-19.8 | Platform admin (desktop web, FTech only): list businesses, filter by trial/paying/ended, extend trial with reason, toggle booking page, audit log of every admin action | Must |
 | FR-19.9 | Marketing website (responsive) and plan payment page (ToyyibPay, receipt details, optional TIN for LHDN e-Invoice) | Must |
 
+### FR-20 Platform admin & website (complete set)
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-20.1 | Admin sign-in with email + password **and a required two-step code** (authenticator app, backup codes); lock after 5 wrong tries; every sign-in logged | Must |
+| FR-20.2 | Admin roles: **Support** (businesses, trials, plan payments, support, extend trial, pause page, record bank transfer) and **Super admin** (+ admin users, plans & prices). No role can see ToyyibPay keys or customer payment details, or log in as an owner | Must |
+| FR-20.3 | Trials ending list with setup progress, bookings in trial, ToyyibPay status; WhatsApp and extend actions | Must |
+| FR-20.4 | Plan payments list (paid / not completed / to check), receipt numbers, record a bank transfer with reason (extends plan, emails receipt) | Must |
+| FR-20.5 | Full audit log with filters and CSV export; read only | Must |
+| FR-20.6 | Support cases with internal notes, assignee and status; website contact-form leads | Should |
+| FR-20.7 | Plans & prices editable by super admins (price, resource limit, extra resource price, features, trial length, grace days, reminders); applies to new payments and next renewal | Should |
+| FR-20.8 | Website sign-in by one-time email link (15 min, single use); the app's "Choose a plan" opens the website already signed in | Must |
+| FR-20.9 | Payment success / not completed pages; billing & receipts page with receipt details (SSM, TIN, address) and PDF receipts with sequential numbers | Must |
+| FR-20.10 | Privacy notice (PDPA, English and Bahasa Melayu), Terms, Refund policy pages — drafts in `docs/legal/`, reviewed by a lawyer before launch | Must |
+| FR-20.11 | Contact page (demo, question, account help) saved as a lead; business-type pages for sports, real estate and inspection; website 404 and booking-page-not-found (F6) | Should |
+| FR-20.12 | Transactional emails via **Resend**, from one template: confirm email, reset password, staff invite, plan receipt, trial ending, website sign-in link, deletion notice | Must |
+
+### FR-21 Platform admin — operations & compliance
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-21.1 | Business detail actions, each with a reason in the audit log: give free months, change plan by hand, resend confirm-email / password-reset link, change owner (with proof), admin-only notes, export data to the owner's email, suspend for misuse (app and booking page locked, owner sees why), close account on written request | Must |
+| FR-21.2 | Business detail shows plan, usage against the plan limit (e.g. 4 of 10 courts), staff list and whether ToyyibPay is connected — never the key or customers' payment details | Must |
+| FR-21.3 | Plan payment detail with double-payment warning; record a refund (reason, full / part, bank reference, date, keep or end plan) after paying it by bank transfer; refund note emailed to the owner | Must |
+| FR-21.4 | Privacy requests log (access, correction, deletion, portability, stop marketing) with 21-day deadline, checklist and "more time" with reason; customer requests are passed to the business | Must |
+| FR-21.5 | Data deletion queue: businesses unpaid for 12 months get the M7 notice; deletion runs automatically 30 days later (90 days after a close request) unless paid or put on hold with a reason; FTech's plan payment records kept 7 years | Must |
+| FR-21.6 | System health: ToyyibPay payments whose callback and re-check disagree or never arrived (re-check now), failed background jobs (retry), email bounces / spam reports from Resend webhooks | Must |
+| FR-21.7 | Announcements to owners by email, in-app banner on Today (O2) and/or push; audience all / by plan / by business type / one business; scheduled; history | Should |
+| FR-21.8 | Admin's own account: change password, new backup codes, move two-step to a new phone, signed-in devices and sign out others; admin sessions expire after 8 hours idle | Must |
+
 > Tables: `payment_accounts`, `refunds`, `booking_events`, `notifications`, `platform_admins`, `admin_audit_log` are in `docs/schema.sql` (validated on PostgreSQL 16).
 
 ### FR-13 Reports
@@ -340,7 +368,7 @@ The complete navigation is drawn in five flow maps on the design canvas (`docs/w
 | Observability | Error tracking (Sentry); webhook and payment logs |
 
 ## 11. Data model (summary)
-See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. 32 tables. Main entities: businesses, business_members, staff_invitations, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments, refunds, payment_accounts, booking_events, notifications, platform_admins, admin_audit_log; pilot extras (Phase 6): listings, checklist_sections, checklist_items, inspection_results, inspection_item_results.
+See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Integer primary/foreign keys; public links use slug and random booking tokens. 44 tables. Main entities: businesses, business_members, staff_invitations, subscriptions, branches, resources, services, service_price_rules, resource_services, working_hours, time_off, booking_fields, customers, bookings, booking_attachments, payments, refunds, payment_accounts, booking_events, notifications; platform (Phase 7): platform_admins, admin_audit_log, two_factors, plans, platform_settings, admin_business_notes, leads, support_cases, support_notes, privacy_requests, announcements, announcement_dismissals, payment_checks, email_events; pilot extras (Phase 6): listings, checklist_sections, checklist_items, inspection_results, inspection_item_results.
 
 ## 12. Pricing (draft, post-pilot)
 | Plan | Price | Limits |
@@ -350,7 +378,7 @@ See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Int
 | Business | RM99/month | Up to 10 resources, reports, staff app |
 | Extra resource | RM10/month each | — |
 
-Eligible for the MSME Digital Grant once registered as an approved solution provider.
+Grant quotations are not offered at launch (revisit after registering as a grant solution provider).
 
 ## 13. Risks & mitigations
 | Risk | Mitigation |
@@ -383,6 +411,11 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 | Pilot niches | Real estate viewing, vehicle inspection, sports booking |
 | Customer payments | Each business connects its **own ToyyibPay account**; money goes straight to them. OutletBooking never holds customer money |
 | Listings & inspection checklist | In the MVP (confirmed 2026-10-11): real estate listings customers pick when booking; vehicle inspection checklist with a report link sent on WhatsApp |
+| Website & admin | `apps/web` in **Next.js** |
+| Email | **Resend**; sender domain `outletbooking.my` verified in Resend before staging |
+| Grants | No grant quotation offer at launch |
+| Admin & website tables | In `schema.sql` section 6 (44 tables, validated on PostgreSQL 16); migrated in Phase 7 |
+| Legal pages | Drafted by Claude in `docs/legal/` (privacy notice EN + BM, terms, refund policy); lawyer review before launch |
 
 **Still open**
 - Plan renewal: automatic recurring charge or manual renewal with reminder? (Web billing page shows a placeholder.)
@@ -391,8 +424,9 @@ Eligible for the MSME Digital Grant once registered as an approved solution prov
 - Real estate: is the resource the agent or the property? (Recommended: agent as resource, property as booking field)
 - Vehicle inspection: offer mobile inspection at MVP or on-site only?
 - Sports: peak/off-peak pricing needed at MVP?
+- Refund policy choices to confirm: 7-day first-payment guarantee, upgrade pricing (docs/legal/refund-policy.md).
 
 ## 16. Screens & flows
-- **74 screens** in `docs/wireframes/` with IDs, descriptions and build phase in `docs/wireframes/README.md` (customer page, owner app, staff app, sign-up and Setup per business type, platform admin, website).
-- **5 flow maps** (`Flow-1-Account`, `Flow-2-Daily`, `Flow-3-Setup`, `Flow-4-Customer`, `Flow-5-Staff`) show how screens connect; use them for Expo Router routes.
+- **107 screens** in `docs/wireframes/` with IDs, descriptions and build phase in `docs/wireframes/README.md` (customer page, owner app, staff app, sign-up and Setup per business type, platform admin, website, emails).
+- **6 flow maps** (`Flow-1-Account`, `Flow-2-Daily`, `Flow-3-Setup`, `Flow-4-Customer`, `Flow-5-Staff`, `Flow-6-Admin`) show how screens connect; use them for Expo Router routes.
 - Screens that differ by business type (sign-up step 3, Setup tab) are built as **one screen driven by the template config**, never one screen per niche.

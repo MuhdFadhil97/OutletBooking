@@ -38,52 +38,79 @@ td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-spac
 tr:hover td{background:#F6F8F7}
 .sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
 .sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
 </style>
 </helmet>
 <div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
 <div style="display: flex; min-height: 100vh">
   <aside class="side" style="width: 220px; flex-shrink: 0; background: #FFFFFF; border-right: 1px solid #E1E6E2; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box">
     <div style="padding: 0 8px 16px"><span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span><div class="muted" style="font-size: 12px; font-weight: 700; margin-top: 4px">Platform admin</div></div>
-    <a class="on" href="Admin-Businesses.dc.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Businesses</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Trials ending</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Payments</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>Support</a><a class="" href="#"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Audit log</a>
+    <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: #8A958F; padding: 10px 12px 2px">Businesses</div><a class="on" href="Admin-Businesses.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Businesses</a><a class="" href="Admin-Trials.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Trials ending</a><a class="" href="Admin-Payments.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Plan payments</a><a class="" href="Admin-Support.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>Support</a><div style="font-size: 11px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: #8A958F; padding: 10px 12px 2px">Privacy &amp; records</div><a class="" href="Admin-Privacy.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg>Privacy requests</a><a class="" href="Admin-Deletion.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M6 6l12 12M18 6L6 18"></path></svg>Data deletion</a><a class="" href="Admin-Audit.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Audit log</a><div style="font-size: 11px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: #8A958F; padding: 10px 12px 2px">Platform</div><a class="" href="Admin-Health.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>System health</a><a class="" href="Admin-Announce.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"></path></svg>Announcements</a><a class="" href="Admin-Users.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 7M21 20c0-2.6-1.6-4.8-4-5.6"></path></svg>Admin users</a><a class="" href="Admin-Plans.dc.html" style="padding: 8px 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Plans &amp; prices</a>
+    <div style="margin-top: auto; border-top: 1px solid #E1E6E2; padding: 14px 8px 0; display: flex; align-items: center; gap: 10px"><span style="width: 34px; height: 34px; border-radius: 17px; background: #DDF3E8; color: #0B5E40; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0">FZ</span><a href="Admin-Account.dc.html" style="flex-grow: 1; min-width: 0; font-size: 13px; color: #16211C; text-decoration: none; padding: 0; display: block"><b>Fadhil Z.</b><span class="muted" style="display: block; font-size: 12px">Super admin · my account</span></a><a href="Admin-Login.dc.html" aria-label="Log out" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #56625B; padding: 0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"></path></svg></a></div>
   </aside>
   <main style="flex-grow: 1; min-width: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
     <a href="Admin-Businesses.dc.html" style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M15 6l-6 6 6 6"></path></svg>All businesses</a>
     <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
       <span style="width: 56px; height: 56px; border-radius: 16px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px">SA</span>
       <div style="flex-grow: 1"><h1 style="margin: 0; font-size: 26px; font-weight: 800">Smash Arena PJ</h1><div class="muted" style="font-size: 14px">Sports courts · outletbooking.my/b/smash-arena-pj · joined 3 Oct 2026</div></div>
-      <span class="tag t-pend" style="height: 30px; padding: 0 14px; font-size: 13px">Free trial · 5 days left</span>
+      <span class="tag t-pend" style="height: 30px; padding: 0 14px; font-size: 13px">Free trial · 3 days left</span>
+      <a class="btn2" href="#" style="height: 36px; padding: 0 12px; font-size: 13px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 16px; height: 16px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>WhatsApp owner</a>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start">
-      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 14px">
-        <b style="font-size: 16px">Extend free trial</b>
-        <div class="muted" style="font-size: 13px">Trial ends Sat, 17 Oct. Use for pilot businesses or support cases.</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="chip" href="#">+7 days</a><a class="chip" href="#">+14 days</a><a class="chip on" href="#">+30 days</a><a class="chip" href="#">Pick date</a></div>
-        <div class="fld"><label class="lbl" for="xr">Reason (saved in audit log)</label><input class="inp" id="xr" value="Pilot business — sports niche"></div>
-        <a class="btn" href="#" style="align-self: flex-start">Extend to Mon, 16 Nov</a>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start">
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; ">
+        <b style="font-size: 16px">Plan &amp; usage</b>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Plan</span><b style="text-align: right">Free trial → ends Sat, 17 Oct</b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Courts</span><b style="text-align: right"><span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 90px; height: 8px; border-radius: 4px; background: #E9ECEA; display: inline-block; overflow: hidden"><span style="display: block; height: 8px; width: 40%; background: #0F7B55"></span></span>4 of 10</span> <span class="muted" style="font-weight: 500">(Business limit)</span></b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Staff</span><b style="text-align: right">2 + 1 invited</b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Bookings (30 days)</span><b style="text-align: right">412</b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">ToyyibPay</span><b style="text-align: right"><span class="tag t-ok">Connected · tested 10 Oct</span></b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Booking page live</span><b style="text-align: right"><button class="sw" aria-label="Booking page live on"></button></b></div>
+        <div class="muted" style="font-size: 12px; line-height: 1.5">Admins see only that ToyyibPay is connected — never the key or customers’ payment details.</div>
       </div>
-      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px">
-        <b style="font-size: 16px">Account</b>
-        <div style="display: flex; justify-content: space-between"><span class="muted">Owner</span><b>Muhammad Fadhil</b></div>
-        <div style="display: flex; justify-content: space-between"><span class="muted">Contact</span><b>+60 12-345 6789</b></div>
-        <div style="display: flex; justify-content: space-between"><span class="muted">Courts · staff</span><b>4 · 2</b></div>
-        <div style="display: flex; justify-content: space-between"><span class="muted">ToyyibPay</span><span class="tag t-ok">Connected</span></div>
-        <div style="display: flex; justify-content: space-between"><span class="muted">Bookings (30 days)</span><b>412</b></div>
-        <div style="display: flex; justify-content: space-between; align-items: center"><span class="muted">Booking page live</span><button class="sw" aria-label="Booking page live on"></button></div>
-        <a class="btn2" href="#" style="align-self: flex-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"></path></svg>WhatsApp owner</a>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; ">
+        <b style="font-size: 16px">Extend trial or change plan</b>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="chip" href="#">Extend trial</a><a class="chip on" href="#">Give free months</a><a class="chip" href="#">Change plan</a></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="chip" href="#">1 month</a><a class="chip on" href="#">2 months</a><a class="chip" href="#">3 months</a></div>
+        <div class="fld"><label class="lbl" for="gp">On plan</label><input class="inp" id="gp" value="Business (RM 99)" placeholder=""></div>
+        <div class="fld"><label class="lbl" for="gr">Reason (saved in audit log)</label><input class="inp" id="gr" value="Pilot business — sports niche" placeholder=""></div>
+        <a class="btn" href="#" style="align-self: flex-start">Give 2 free months · until 16 Dec</a>
+        <div class="muted" style="font-size: 12px; line-height: 1.5">No payment is created. The owner sees “Free until 16 Dec” in the app and on billing.</div>
       </div>
-      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px">
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; ">
+        <b style="font-size: 16px">Owner &amp; staff</b>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Owner email</span><b style="text-align: right">owner@smasharena.my ✓</b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span class="muted">Owner mobile</span><b style="text-align: right">+60 12-345 6789</b></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><a class="btn2" href="#" style="height: 36px; padding: 0 12px; font-size: 13px">Resend confirm email</a><a class="btn2" href="#" style="height: 36px; padding: 0 12px; font-size: 13px">Send password reset link</a></div>
+        <div><div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #E1E6E2"><span><b>Muhammad Fadhil</b><span class="muted" style="display: block; font-size: 12px">Owner · email confirmed</span></span><span class="muted" style="font-size: 12px; text-align: right">Today</span></div><div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #E1E6E2"><span><b>Hafiz R.</b><span class="muted" style="display: block; font-size: 12px">Staff · Courts 1–4 · can take payments</span></span><span class="muted" style="font-size: 12px; text-align: right">Today</span></div><div style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid #E1E6E2"><span><b>Mei Ling</b><span class="muted" style="display: block; font-size: 12px">Staff · invited, not joined</span></span><span class="muted" style="font-size: 12px; text-align: right">—</span></div></div>
+        <a class="btn2" href="#" style="align-self: flex-start">Change owner…</a>
+        <div class="muted" style="font-size: 12px; line-height: 1.5">Change owner: pick a staff member (or invite a new email). Needs proof from the business (SSM / letter) and a reason. The old owner becomes staff or is removed.</div>
+      </div>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; ">
+        <b style="font-size: 16px">Admin notes</b>
+        <div style="background: #F6F7F5; border-radius: 10px; padding: 10px 12px; line-height: 1.5">Pilot — weekly call on Fridays. Wants peak pricing for weekends.<div class="muted" style="font-size: 12px">Nurul A. · 8 Oct</div></div>
+        <div class="fld"><label class="lbl" for="an">Add a note (only admins see it)</label><input class="inp" id="an" value="" placeholder=""></div>
+        <a class="btn" href="#" style="height: 36px; padding: 0 12px; font-size: 13px">Add note</a>
+      </div>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; ">
         <b style="font-size: 16px">Audit log</b>
-        <div><b>Trial extended +14 days</b><div class="muted" style="font-size: 12px">by you · “Pilot” · 1 Oct, 10:12 AM</div></div>
+        <div><b>Trial extended +14 days</b><div class="muted" style="font-size: 12px">Fadhil Z. · “Pilot” · 1 Oct, 10:12 AM</div></div>
         <div><b>ToyyibPay connected</b><div class="muted" style="font-size: 12px">by owner · 3 Oct, 4:12 PM</div></div>
         <div><b>Business created</b><div class="muted" style="font-size: 12px">by owner · 3 Oct, 3:58 PM</div></div>
-        <div class="muted" style="font-size: 12px">Admins can't see customers' payment details or the owner's ToyyibPay key.</div>
+        <a href="Admin-Audit.dc.html" style="font-size: 13px; font-weight: 700">View full audit log</a>
+      </div>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; border-color: #F2C9C0">
+        <b style="font-size: 16px">Account actions</b>
+        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center"><span><b>Export data</b><span class="muted" style="display: block; font-size: 12px">Bookings, customers, payments as CSV — emailed to the owner only</span></span><a class="btn2" href="#" style="height: 36px; padding: 0 12px; font-size: 13px">Export</a></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center"><span><b>Suspend business</b><span class="muted" style="display: block; font-size: 12px">For misuse. Booking page and app locked; owner sees the reason</span></span><a href="#" style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #E8B4AA; color: #B42318; background: #FFFFFF; font-weight: 700; font-size: 13px; text-decoration: none">Suspend…</a></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center"><span><b>Close account</b><span class="muted" style="display: block; font-size: 12px">Owner’s written request. Goes to Data deletion (90 days)</span></span><a href="Admin-Deletion.dc.html" style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #E8B4AA; color: #B42318; background: #FFFFFF; font-weight: 700; font-size: 13px; text-decoration: none">Close…</a></div>
+        <div class="muted" style="font-size: 12px; line-height: 1.5">Each action asks for a reason and, for suspend / close, typing the business name to confirm.</div>
       </div>
     </div>
   </main>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

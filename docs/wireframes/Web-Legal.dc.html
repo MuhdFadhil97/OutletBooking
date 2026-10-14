@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OutletBooking · Privacy, terms & refunds</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7B55}a:hover{color:#0A5C40}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.card{background:#FFFFFF;border:1px solid #E1E6E2;border-radius:14px}
+.muted{color:#56625B}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:12px;background:#0F7B55;color:#FFFFFF;font-weight:700;font-size:15px;text-decoration:none;border:0;font-family:inherit}
+.btn:hover{background:#0A5C40;color:#FFFFFF}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;background:#FFFFFF;color:#16211C;font-weight:700;font-size:15px;border:1px solid #CBD3CE;text-decoration:none;font-family:inherit}
+.btn2:hover{background:#F0F3F1;color:#16211C}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:#DDF3E8;color:#0B5E40}.t-pend{background:#FDEBD3;color:#8A4A06}.t-gray{background:#E9ECEA;color:#46524B}.t-blue{background:#E0ECFB;color:#1D4F91}.t-red{background:#FBE2DC;color:#8F2A0E}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #CBD3CE;background:#FFFFFF;font-size:13px;font-weight:600;color:#16211C;font-family:inherit;text-decoration:none}
+.chip.on{background:#0F7B55;border-color:#0F7B55;color:#FFFFFF}
+.inp{height:46px;border:1px solid #CBD3CE;border-radius:10px;background:#FFFFFF;padding:0 14px;font-size:15px;font-family:inherit;color:#16211C;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700;color:#33403A}
+.fld{display:flex;flex-direction:column;gap:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px;box-sizing:border-box}
+.nav a.nl{color:#33403A;text-decoration:none;font-weight:600;font-size:15px}
+.nav a.nl:hover{color:#0F7B55}
+.side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:#33403A;text-decoration:none;font-weight:600;font-size:14px}
+.side a:hover{background:#F0F3F1;color:#16211C}
+.side a.on{background:#DDF3E8;color:#0B5E40}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#56625B;padding:12px 14px;border-bottom:1px solid #E1E6E2;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #E1E6E2;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#F6F8F7}
+.sw{width:44px;height:26px;border-radius:13px;background:#0F7B55;position:relative;flex-shrink:0;border:0}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#FFFFFF}
+.sw.off{background:#B8C1BC}.sw.off::after{right:auto;left:3px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #F6F7F5; color: #16211C; font-family: 'Manrope', system-ui, sans-serif">
+<div style="min-height: 100vh; display: flex; flex-direction: column">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E1E6E2">
+    <div class="wrap nav" style="height: 68px; display: flex; align-items: center; gap: 24px"><a href="Web-Landing.dc.html" style="text-decoration: none"><span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #0F7B55"><span style="width: 32px; height: 32px; border-radius: 9px; background: #0F7B55; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width: 18px; height: 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg></span>OutletBooking</span></a><span style="flex-grow: 1"></span><a class="nl" href="Web-Landing.dc.html#niches">Businesses</a><a class="nl" href="Web-Landing.dc.html#pricing">Pricing</a><a class="nl" href="Web-Contact.dc.html">Book a demo</a><a class="nl" href="Owner-Login.dc.html">Log in</a><a class="btn" href="Owner-Signup-Account.dc.html" style="height: 42px">Start free trial</a></div>
+  </header>
+  <div style="flex-grow: 1">
+  <section class="wrap" style="padding-top: 36px; padding-bottom: 56px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start">
+    <nav class="side" aria-label="Legal pages" style="display: flex; flex-direction: column; gap: 4px; position: sticky; top: 16px">
+      <a class="on" href="#privacy">Privacy notice (PDPA)</a><a href="#terms">Terms of service</a><a href="#refund">Refund policy</a>
+      <div style="display: flex; gap: 8px; margin-top: 12px; padding: 0 4px"><a class="chip on" href="#" style="padding: 0 12px">English</a><a class="chip" href="#" style="padding: 0 12px">Bahasa Melayu</a></div>
+    </nav>
+    <article style="display: flex; flex-direction: column; gap: 22px; max-width: 760px">
+      <div class="card" style="padding: 12px 16px; font-size: 14px; line-height: 1.5; background: #FDEBD3; border-color: #F2C58E; color: #6E3B05"><b>Draft text in docs/legal/</b> — privacy-notice.md (English + Bahasa Melayu), terms-of-service.md, refund-policy.md. Lawyer to review before launch.</div>
+      <div id="privacy"><h1 style="margin: 0; font-size: 32px; font-weight: 800">Privacy notice</h1><div class="muted" style="font-size: 14px; margin-top: 4px">Last updated [date] · FTech IT Consulting Sdn Bhd [SSM no.]</div></div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #33403A">This notice explains how FTech IT Consulting Sdn Bhd, the company behind OutletBooking, collects and uses personal data, as required by the Personal Data Protection Act 2010.</p>
+      <div><h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 800">1. Who this notice covers</h3><ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #33403A"><li style="margin-bottom: 6px"><b>Business owners and staff</b> — we decide how your account data is used.</li><li style="margin-bottom: 6px"><b>Customers</b> booking through a business’s page — the <b>business</b> decides; we store and process it on the business’s behalf.</li><li style="margin-bottom: 6px"><b>Website visitors</b> who contact us — we decide.</li></ul></div>
+      <div><h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 800">2. Personal data we collect</h3><ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #33403A"><li style="margin-bottom: 6px">Account: name, email, mobile, password (hashed), business details, encrypted ToyyibPay key.</li><li style="margin-bottom: 6px">Bookings: customer name, mobile, answers to booking questions, booking details and payment status.</li><li style="margin-bottom: 6px">We never receive card numbers or online banking logins.</li></ul></div>
+      <div style="font-size: 15px; line-height: 1.9; color: #33403A">3. Why we use it · 4. Is it compulsory? · 5. Who we share it with · 6. Data stored outside Malaysia · 7. How long we keep it · 8. How we protect it · 9. Your rights · 10. Contact us · 11. Changes</div>
+      <div id="terms" style="height: 1px; background: #E1E6E2"></div>
+      <h2 style="margin: 0; font-size: 26px; font-weight: 800">Terms of service</h2>
+      <div style="font-size: 15px; line-height: 1.9; color: #33403A">1. About these terms · 2. The service · 3. Your account · 4. Free trial · 5. Plans and payment · 6. Payments from your customers · 7. Your responsibilities to your customers · 8. Acceptable use · 9. Availability and support · 10. Your data · 11. Ending your account · 12. Liability · 13. Intellectual property · 14. Changes · 15. Governing law · Booking page terms (for customers)</div>
+      <div id="refund" style="height: 1px; background: #E1E6E2"></div>
+      <h2 style="margin: 0; font-size: 26px; font-weight: 800">Refund policy</h2>
+      <div><h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 800">In short</h3><ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.6; color: #33403A"><li style="margin-bottom: 6px">Plans are paid in advance; no refunds for unused days.</li><li style="margin-bottom: 6px">Charged twice, or paid but not applied: full refund within 14 working days.</li><li style="margin-bottom: 6px">Customer booking refunds are handled by the business — OutletBooking never holds that money.</li></ul></div>
+    </article>
+  </section>
+  </div>
+  <footer style="background: #16211C; color: #CBD3CE; padding: 32px 0">
+    <div class="wrap" style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-between; font-size: 14px">
+      <span>© 2026 FTech IT Consulting Sdn Bhd · OutletBooking</span>
+      <span style="display: flex; gap: 20px; flex-wrap: wrap"><a href="Web-Legal.dc.html" style="color: #CBD3CE">Privacy notice (PDPA)</a><a href="Web-Legal.dc.html" style="color: #CBD3CE">Terms</a><a href="Web-Legal.dc.html" style="color: #CBD3CE">Refund policy</a><a href="Web-Contact.dc.html" style="color: #CBD3CE">Contact</a><a href="#" style="color: #CBD3CE">WhatsApp us</a></span>
+    </div>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

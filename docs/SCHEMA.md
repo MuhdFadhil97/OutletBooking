@@ -1,6 +1,6 @@
 # Database Schema — OutletBooking
 
-Full DDL: [`docs/schema.sql`](schema.sql) (validated on PostgreSQL 16 — 32 tables). Screen IDs in brackets (H1, D4…) refer to `docs/wireframes/README.md`. The Drizzle schema in `packages/db` must match it.
+Full DDL: [`docs/schema.sql`](schema.sql) (validated on PostgreSQL 16 — 44 tables). Screen IDs in brackets (H1, D4…) refer to `docs/wireframes/README.md`. The Drizzle schema in `packages/db` must match it.
 
 ## Key conventions
 | Rule | Detail |
@@ -53,6 +53,16 @@ erDiagram
   users ||--o{ notifications : receives
   users ||--o| platform_admins : "is admin"
   platform_admins ||--o{ admin_audit_log : writes
+  users ||--o| two_factors : "two-step"
+  businesses ||--o{ admin_business_notes : "admin notes"
+  payments ||--o{ refunds : "plan refund"
+  payments ||--o{ payment_checks : "health check"
+  leads ||--o{ support_cases : becomes
+  businesses ||--o{ support_cases : about
+  support_cases ||--o{ support_notes : has
+  businesses ||--o{ privacy_requests : about
+  announcements ||--o{ announcement_dismissals : dismissed
+  businesses ||--o{ email_events : sent
   businesses ||--o{ listings : "real estate"
   listings ||--o{ bookings : viewed_in
   checklist_sections ||--o{ checklist_items : has
@@ -88,6 +98,13 @@ erDiagram
 | Activity | notifications | In-app notifications per user | user_id, type, title, booking_id, read_at |
 | Platform | platform_admins | FTech staff who can use the admin panel | user_id |
 | Platform | admin_audit_log | Every admin action, with reason | admin_user_id, business_id, action, reason, details |
+| Platform | two_factors | Admin two-step sign-in (Better Auth) | user_id, secret, backup_codes |
+| Platform | plans, platform_settings | Plans & prices, trial / grace / reminder / deletion settings | code, price_sen, resource_limit, features; trial_days, grace_days |
+| Platform | admin_business_notes | Admin-only notes on a business | business_id, admin_user_id, body |
+| Platform | leads, support_cases, support_notes | Website leads and support cases | reason, consent_at; status, assigned_admin_user_id; kind, body |
+| Platform | privacy_requests | PDPA requests with 21-day deadline | requester_kind, kind, status, due_at |
+| Platform | announcements, announcement_dismissals | Messages to owners | audience, audience_value, channels, send_at, ends_at |
+| Platform | payment_checks, email_events | System health | problem, callback_status, recheck_status; template, to_masked, status |
 | Niche (Phase 6) | listings | Real estate listings customers pick when booking | ref, title, area, agent_resource_id, status, open_for_viewings |
 | Niche (Phase 6) | checklist_sections, checklist_items | Inspection checklist template per business | name / label, sort_order |
 | Niche (Phase 6) | inspection_results, inspection_item_results | Result of one inspection, per check | overall (pass/attention/fail), notes, report_sent_at; outcome per item |
@@ -107,7 +124,7 @@ erDiagram
 ## Validated behaviour (PostgreSQL 16)
 | Test | Result |
 |---|---|
-| Schema creates cleanly (32 tables) | ✅ |
+| Schema creates cleanly (44 tables) | ✅ |
 | Overlapping booking on same resource | ❌ rejected by `bookings_no_overlap` |
 | Booking using another business's resource | ❌ rejected by composite FK |
 | Back-to-back booking (11:00 after 10:00–11:00) | ✅ allowed |
@@ -115,6 +132,16 @@ erDiagram
 | Refund or timeline event pointing at another business's booking | ❌ rejected by composite FK |
 | Unknown payment method (e.g. cheque) | ❌ rejected by CHECK |
 | Second ToyyibPay account for the same business | ❌ rejected by UNIQUE |
+| Plan refund without a booking (payment only) | ✅ allowed |
+| Refund with neither booking nor payment | ❌ rejected by CHECK |
+| Plan refund pointing at another business's payment | ❌ rejected by composite FK |
+| Duplicate receipt number, or a receipt number on a booking payment | ❌ rejected by UNIQUE / CHECK |
+| Second `platform_settings` row | ❌ rejected by CHECK (id = 1) |
+| Suspend a business without a reason | ❌ rejected by CHECK |
+| Announcement with an unknown channel, or "all" with a value | ❌ rejected by CHECK |
+| Unknown admin role or audit action | ❌ rejected by CHECK |
+| Privacy request due date | ✅ defaults to 21 days after received |
+| Booking refund and double-booking constraint after the changes | ✅ unchanged |
 | PDPA erase (phone → NULL, name → "Deleted customer") keeps booking history | ✅ allowed |
 
 ## Rules for the new tables
@@ -124,3 +151,23 @@ erDiagram
 - **booking_events** is written by the API on every status change; the H8 timeline reads it.
 - **Platform admin** routes check `platform_admins` and write `admin_audit_log` in the same transaction as the change.
 - **Section 7 (listings, inspection checklist)** confirmed for the MVP by the product owner and migrated in Phase 6 (0016/0017).
+
+## Platform admin & website tables (section 6, Phase 7)
+| Screen | Table / column | Notes |
+|---|---|---|
+| I6, I29 | `two_factors`, `users.two_factor_enabled` | Better Auth two-factor plugin (TOTP + backup codes). Let the Better Auth CLI generate the exact columns |
+| I13, M6 | `verifications` | Website sign-in links (Better Auth magic-link plugin) — no new table |
+| I10 | `platform_admins.role` (`support` / `super_admin`), `is_active` | Super admin only: admin users, plans & prices |
+| I2 | `businesses.suspended_at` + `suspend_reason` (both or neither) | Suspended = app and booking page locked |
+| I2 | `subscriptions.free_until` | Free months given by an admin; no payment row |
+| I2 | `admin_business_notes` | Admin-only notes |
+| I2 | owner change | Update `business_members.role` for old and new owner in one transaction + `admin_audit_log` |
+| I12 | `plans`, `platform_settings` (single row, id = 1) | Seeded with Starter RM 49 / Business RM 99, 7-day trial, 3 grace days, reminders 7/3/1 days |
+| I15, I17, M4 | `payments.receipt_no` + `receipt_no_seq` | `OB-YYYY-000123`, plan payments only (CHECK) |
+| I24 | `refunds` — `booking_id` now optional; `payment_id`, `reason_code`, `bank_ref`, `paid_on` | Booking refund (D4) or plan refund (I24); composite FK keeps the payment in the same business |
+| I19, I11 | `leads`, `support_cases`, `support_notes` | Contact form leads (consent time required); cases with internal notes |
+| I25 | `privacy_requests` | `due_at` defaults to received + 21 days |
+| I26 | `businesses.close_requested_at`, `deletion_notice_sent_at`, `deletion_due_at`, `deletion_hold_reason` | Daily job deletes tenant data on the due date unless on hold; the `businesses` row stays (name only, `deleted_at` set) because FTech's plan payments reference it |
+| I28 | `announcements`, `announcement_dismissals` | Audience all / plan / template / business; channels email, in_app, push |
+| I27 | `payment_checks`, `email_events` | ToyyibPay callback vs re-check problems; Resend webhook events (masked address only). Failed jobs come from pg-boss's own tables |
+| I9 | `admin_audit_log.action` list extended | The API only inserts; never updates or deletes |
