@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { adminAuditLog, businesses, paymentAccounts, payments, platformAdmins, subscriptions } from '@outletbooking/db';
+import { adminAuditLog, businesses, paymentAccounts, payments, platformAdmins, subscriptions, users } from '@outletbooking/db';
 import {
   adminPlanState,
   type AdminBusinessDetail,
@@ -43,6 +43,8 @@ beforeAll(async () => {
   adminUserId = await ctx.createUser('FTech Admin', 'admin@ftech.my');
   await ctx.db.insert(platformAdmins).values({ userId: adminUserId });
   admin = await ctx.login('admin@ftech.my', 'password123');
+  // /admin needs two-step sign-in turned on; the real sign-in flow is tested in admin-sign-in.test.ts.
+  await ctx.db.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, adminUserId));
 });
 
 beforeEach(async () => {
@@ -83,7 +85,7 @@ describe('access', () => {
   it('GET /admin/me returns the admin', async () => {
     const res = await ctx.get('/admin/me', admin);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ userId: adminUserId, name: 'FTech Admin', email: 'admin@ftech.my' });
+    expect(await res.json()).toEqual({ userId: adminUserId, name: 'FTech Admin', email: 'admin@ftech.my', role: 'support' });
   });
 });
 

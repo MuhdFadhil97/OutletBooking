@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import type { Db } from '@outletbooking/db';
 import type { Auth } from './auth';
 import type { Env } from './env';
+import { adminPasswordGuard, adminTwoFactorSignIn, twoFactorSetupGuard } from './middleware/admin-sign-in';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { adminRoutes } from './routes/admin';
 import { bookingFieldRoutes } from './routes/booking-fields';
@@ -77,6 +78,12 @@ export function createApp({
     await next();
   });
 
+  // I5 / I6 admin sign-in rules around Better Auth's routes (lockout, sign-in log, two-step for admins only).
+  app.post('/api/auth/sign-in/email', adminPasswordGuard);
+  app.post('/api/auth/two-factor/verify-totp', adminTwoFactorSignIn('totp'));
+  app.post('/api/auth/two-factor/verify-backup-code', adminTwoFactorSignIn('backup_code'));
+  app.post('/api/auth/two-factor/enable', twoFactorSetupGuard);
+  app.post('/api/auth/two-factor/disable', twoFactorSetupGuard);
   app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
   app.route('/health', healthRoutes);

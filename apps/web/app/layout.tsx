@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { SiteFooter } from '@/components/SiteFooter';
-import { SiteHeader } from '@/components/SiteHeader';
 import { s } from '@/strings/en';
 import './globals.css';
 
@@ -17,14 +15,11 @@ export const viewport: Viewport = {
   themeColor: '#0F7B55',
 };
 
+/** Website pages add the header and footer in (site)/layout.tsx; /admin has its own shell. */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={manrope.variable}>
-      <body>
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

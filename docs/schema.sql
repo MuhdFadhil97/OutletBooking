@@ -570,6 +570,7 @@ CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
   admin_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   business_id    integer     REFERENCES businesses(id) ON DELETE SET NULL,
   action         text        NOT NULL CHECK (action IN (
+                   'sign_in','sign_in_failed',          -- I5/I6: every admin sign-in and wrong password (FR-20.1)
                    'extend_trial','give_free_months','change_plan','pause_booking_page','resume_booking_page',
                    'suspend_business','unsuspend_business','change_owner','resend_link','export_data','close_account',
                    'send_deletion_notice','hold_deletion','release_deletion','delete_business_data',

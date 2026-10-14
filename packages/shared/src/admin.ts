@@ -10,6 +10,8 @@ import type { BusinessTemplate } from './templates';
 
 /** Every admin change writes one of these to `admin_audit_log` (I9). Mirrors the DB CHECK. */
 export const ADMIN_ACTIONS = [
+  'sign_in',
+  'sign_in_failed',
   'extend_trial',
   'give_free_months',
   'change_plan',
@@ -45,6 +47,18 @@ export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 /** I10: support handles day-to-day work; super_admin also manages admins, plans and settings. */
 export const ADMIN_ROLES = ['support', 'super_admin'] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
+
+/** I5 / I6: wrong passwords or two-step codes in a row before the admin login is locked, and for how long. */
+export const ADMIN_MAX_SIGN_IN_FAILURES = 5;
+export const ADMIN_LOCK_MINUTES = 15;
+
+/** Error codes the admin sign-in screens react to. */
+export const ADMIN_AUTH_ERRORS = {
+  /** Signed in with a password, but two-step sign-in is not set up yet (first sign-in, I6). */
+  twoFactorSetupRequired: 'two_factor_setup_required',
+  /** Too many wrong passwords (I5). */
+  accountLocked: 'account_locked',
+} as const;
 
 /** I1 filter chips. "pilot" = on a trial that FTech extended. */
 export const ADMIN_BUSINESS_FILTERS = ['all', 'trial', 'paying', 'ended', 'pilot'] as const;
@@ -99,6 +113,7 @@ export interface AdminMe {
   userId: number;
   name: string;
   email: string;
+  role: AdminRole;
 }
 
 export interface AdminSubscription {

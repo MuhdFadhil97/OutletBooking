@@ -38,15 +38,26 @@ const TZ = 'Asia/Kuala_Lumpur';
 /** Furthest an admin can push a trial from today. */
 const MAX_TRIAL_DAYS = 365;
 
-/** Null when the user is not a platform admin. */
-export async function getPlatformAdmin(db: Db, userId: number): Promise<AdminMe | null> {
+/** Null when the user is not an active platform admin. */
+export async function getPlatformAdmin(
+  db: Db,
+  userId: number,
+): Promise<{ admin: AdminMe; twoFactorEnabled: boolean } | null> {
   const [row] = await db
-    .select({ userId: users.id, name: users.name, email: users.email })
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      role: platformAdmins.role,
+      twoFactorEnabled: users.twoFactorEnabled,
+    })
     .from(platformAdmins)
     .innerJoin(users, eq(users.id, platformAdmins.userId))
-    .where(eq(platformAdmins.userId, userId))
+    .where(and(eq(platformAdmins.userId, userId), eq(platformAdmins.isActive, true)))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const { twoFactorEnabled, role, ...me } = row;
+  return { admin: { ...me, role: role === 'super_admin' ? 'super_admin' : 'support' }, twoFactorEnabled };
 }
 
 /** First active owner of the business (one per business today). */

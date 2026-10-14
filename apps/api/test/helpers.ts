@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { sql as dsql } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { accounts, createDb, users } from '@outletbooking/db';
@@ -47,6 +48,7 @@ export function createTestContext() {
 
   return {
     db,
+    auth,
     app,
     outbox,
     pushes,
@@ -171,4 +173,28 @@ export function fakeStorage() {
     },
   };
   return storage;
+}
+
+/** Cookie header from a response's Set-Cookie (cleared cookies left out). */
+export function cookiesOf(res: Response): string {
+  return res.headers
+    .getSetCookie()
+    .map((c) => c.split(';')[0]!)
+    .filter((c) => !c.endsWith('='))
+    .join('; ');
+}
+
+/** RFC 6238 TOTP (SHA-1, 30 s, 6 digits) for an otpauth:// URI — what an authenticator app shows. */
+export function totpCode(totpUri: string, at = Date.now()): string {
+  const secret = new URL(totpUri).searchParams.get('secret') ?? '';
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const ch of secret.replace(/=+$/, '').toUpperCase()) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(at / 30_000)));
+  const hmac = createHmac('sha1', key).update(counter).digest();
+  const offset = hmac[hmac.length - 1]! & 0xf;
+  const value = (hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(value).padStart(6, '0');
 }

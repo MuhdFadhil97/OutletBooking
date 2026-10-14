@@ -1,7 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { twoFactor } from 'better-auth/plugins';
 import { expo } from '@better-auth/expo';
-import { accounts, sessions, users, verifications, type Db } from '@outletbooking/db';
+import { accounts, sessions, twoFactors, users, verifications, type Db } from '@outletbooking/db';
+import { ADMIN_LOCK_MINUTES, ADMIN_MAX_SIGN_IN_FAILURES } from '@outletbooking/shared';
 import type { Env } from './env';
 import { createMailer, type Mailer } from './services/mailer';
 import { RESET_LINK_MINUTES, resetPasswordEmail, resetPasswordUrl } from './services/password-emails';
@@ -15,7 +17,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
     trustedOrigins: env.TRUSTED_ORIGINS,
     database: drizzleAdapter(db, {
       provider: 'pg',
-      schema: { user: users, session: sessions, account: accounts, verification: verifications },
+      schema: { user: users, session: sessions, account: accounts, verification: verifications, twoFactor: twoFactors },
     }),
     emailAndPassword: {
       enabled: true,
@@ -41,7 +43,15 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       database: { generateId: 'serial' },
     },
     rateLimit: { enabled: env.NODE_ENV !== 'test' },
-    plugins: [expo()],
+    plugins: [
+      expo(),
+      // I6: two-step sign-in (authenticator app + 10 backup codes). Only users who turned it on are asked
+      // for a code, i.e. platform admins (required for them in requirePlatformAdmin); owners and staff are not.
+      twoFactor({
+        issuer: 'OutletBooking Admin',
+        accountLockout: { maxFailedAttempts: ADMIN_MAX_SIGN_IN_FAILURES, durationSeconds: ADMIN_LOCK_MINUTES * 60 },
+      }),
+    ],
   });
 }
 
