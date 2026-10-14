@@ -8,8 +8,43 @@ import type { BusinessTemplate } from './templates';
  * Admins never see ToyyibPay keys or customers' payment details — only "connected" and counts.
  */
 
-export const ADMIN_ACTIONS = ['extend_trial', 'pause_booking_page', 'resume_booking_page', 'change_plan', 'note'] as const;
+/** Every admin change writes one of these to `admin_audit_log` (I9). Mirrors the DB CHECK. */
+export const ADMIN_ACTIONS = [
+  'extend_trial',
+  'give_free_months',
+  'change_plan',
+  'pause_booking_page',
+  'resume_booking_page',
+  'suspend_business',
+  'unsuspend_business',
+  'change_owner',
+  'resend_link',
+  'export_data',
+  'close_account',
+  'send_deletion_notice',
+  'hold_deletion',
+  'release_deletion',
+  'delete_business_data',
+  'record_payment',
+  'record_refund',
+  'recheck_payment',
+  'retry_job',
+  'update_plans',
+  'update_platform_settings',
+  'add_admin',
+  'change_admin_role',
+  'remove_admin',
+  'reset_two_factor',
+  'send_announcement',
+  'privacy_request_update',
+  'support_case_update',
+  'note',
+] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
+
+/** I10: support handles day-to-day work; super_admin also manages admins, plans and settings. */
+export const ADMIN_ROLES = ['support', 'super_admin'] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 /** I1 filter chips. "pilot" = on a trial that FTech extended. */
 export const ADMIN_BUSINESS_FILTERS = ['all', 'trial', 'paying', 'ended', 'pilot'] as const;

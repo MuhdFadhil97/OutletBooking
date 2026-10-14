@@ -94,6 +94,9 @@ CREATE TABLE two_factors (
   user_id       integer     NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
   secret        text        NOT NULL,      -- encrypted by Better Auth
   backup_codes  text        NOT NULL,      -- encrypted by Better Auth
+  verified      boolean     NOT NULL DEFAULT true,
+  failed_verification_count integer NOT NULL DEFAULT 0,   -- better-auth 1.7 lockout after wrong codes
+  locked_until  timestamptz,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );

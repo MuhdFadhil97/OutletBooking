@@ -15,6 +15,29 @@ export const users = pgTable('users', {
   /** PDPA: when this person agreed to the Terms + Privacy Notice, and which version (`LEGAL_VERSION`). */
   termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }),
   termsVersion: text('terms_version'),
+  /** Better Auth two-factor plugin (required for platform admins, I6). */
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Better Auth two-factor plugin (TOTP + backup codes) for platform admins (I6, I29).
+ * Columns follow the plugin's schema in better-auth 1.7 (`verified`, `failedVerificationCount`, `lockedUntil`).
+ */
+export const twoFactors = pgTable('two_factors', {
+  id: idPk(),
+  userId: integer('user_id')
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** Encrypted by Better Auth. */
+  secret: text('secret').notNull(),
+  /** Encrypted by Better Auth. */
+  backupCodes: text('backup_codes').notNull(),
+  verified: boolean('verified').notNull().default(true),
+  failedVerificationCount: integer('failed_verification_count').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

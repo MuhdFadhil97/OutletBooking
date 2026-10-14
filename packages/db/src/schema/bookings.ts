@@ -1,4 +1,4 @@
-import { check, foreignKey, index, integer, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { check, date, foreignKey, index, integer, jsonb, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
@@ -236,10 +236,13 @@ export const payments = pgTable(
     transactionRef: text('transaction_ref'),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     rawCallback: jsonb('raw_callback'),
+    /** Plan payments only: OB-2026-000123 from `receipt_no_seq` (I15, I17, M4). */
+    receiptNo: text('receipt_no').unique(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
+    unique('payments_business_id_id_key').on(t.businessId, t.id),
     foreignKey({
       name: 'payments_business_id_booking_id_fkey',
       columns: [t.businessId, t.bookingId],
@@ -256,12 +259,14 @@ export const payments = pgTable(
     check('payments_amount_sen_check', sql`${t.amountSen} > 0`),
     check('payments_status_check', sql`${t.status} IN ('pending','paid','failed','expired','refunded')`),
     check('payments_target_check', sql`(${t.bookingId} IS NOT NULL) <> (${t.subscriptionId} IS NOT NULL)`),
+    check('payments_receipt_no_check', sql`${t.receiptNo} IS NULL OR ${t.purpose} = 'subscription'`),
   ],
 );
 
 /**
- * D4: refunds are paid outside the app (bank transfer / DuitNow / cash) and only recorded here.
- * `payment_id` gets its FK to `payments` in the Phase 5 migration that creates that table.
+ * Refunds are paid outside the app (bank transfer / DuitNow / cash) and only recorded here.
+ * Booking refunds (D4): by the business to its customer; `booking_id` set.
+ * Plan refunds (I24): by FTech to the business; `payment_id` = the plan payment, `booking_id` NULL.
  */
 export const refunds = pgTable(
   'refunds',
@@ -270,11 +275,14 @@ export const refunds = pgTable(
     businessId: integer('business_id')
       .notNull()
       .references(() => businesses.id, { onDelete: 'restrict' }),
-    bookingId: integer('booking_id').notNull(),
-    paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'restrict' }),
+    bookingId: integer('booking_id'),
+    paymentId: integer('payment_id'),
     amountSen: integer('amount_sen').notNull(),
     method: text('method').notNull(),
     reason: text('reason'),
+    reasonCode: text('reason_code'),
+    bankRef: text('bank_ref'),
+    paidOn: date('paid_on'),
     recordedByUserId: integer('recorded_by_user_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -285,10 +293,21 @@ export const refunds = pgTable(
       columns: [t.businessId, t.bookingId],
       foreignColumns: [bookings.businessId, bookings.id],
     }).onDelete('restrict'),
+    foreignKey({
+      name: 'refunds_business_id_payment_id_fkey',
+      columns: [t.businessId, t.paymentId],
+      foreignColumns: [payments.businessId, payments.id],
+    }).onDelete('restrict'),
     index('refunds_booking_idx').on(t.bookingId),
+    index('refunds_payment_idx').on(t.paymentId),
     index('refunds_business_id_idx').on(t.businessId),
     check('refunds_amount_sen_check', sql`${t.amountSen} > 0`),
     check('refunds_method_check', sql`${t.method} IN ('bank_transfer','duitnow','cash')`),
+    check(
+      'refunds_reason_code_check',
+      sql`${t.reasonCode} IN ('charged_twice','not_applied','first_payment_guarantee','cancellation','other')`,
+    ),
+    check('refunds_target_check', sql`${t.bookingId} IS NOT NULL OR ${t.paymentId} IS NOT NULL`),
   ],
 );
 

@@ -155,7 +155,7 @@ erDiagram
 ## Platform admin & website tables (section 6, Phase 7)
 | Screen | Table / column | Notes |
 |---|---|---|
-| I6, I29 | `two_factors`, `users.two_factor_enabled` | Better Auth two-factor plugin (TOTP + backup codes). Let the Better Auth CLI generate the exact columns |
+| I6, I29 | `two_factors`, `users.two_factor_enabled` | Better Auth two-factor plugin (TOTP + backup codes). Columns match better-auth 1.7 (`verified`, `failed_verification_count`, `locked_until`) |
 | I13, M6 | `verifications` | Website sign-in links (Better Auth magic-link plugin) — no new table |
 | I10 | `platform_admins.role` (`support` / `super_admin`), `is_active` | Super admin only: admin users, plans & prices |
 | I2 | `businesses.suspended_at` + `suspend_reason` (both or neither) | Suspended = app and booking page locked |

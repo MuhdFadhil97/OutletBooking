@@ -38,11 +38,28 @@ export const businesses = pgTable(
       .$type<Record<string, string | number | boolean | null>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    // Platform admin (I2, I26)
+    /** Suspended for misuse: app + booking page locked. */
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+    suspendReason: text('suspend_reason'),
+    /** Owner asked to close; data deleted 90 days later. */
+    closeRequestedAt: timestamp('close_requested_at', { withTimezone: true }),
+    /** M7 sent. */
+    deletionNoticeSentAt: timestamp('deletion_notice_sent_at', { withTimezone: true }),
+    /** The daily job deletes tenant data on/after this date. */
+    deletionDueAt: timestamp('deletion_due_at', { withTimezone: true }),
+    /** Set = deletion paused by an admin. */
+    deletionHoldReason: text('deletion_hold_reason'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    /** Tenant data deleted; row kept (name only) for FTech's receipts. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
+    index('businesses_deletion_due_idx')
+      .on(t.deletionDueAt)
+      .where(sql`${t.deletionDueAt} IS NOT NULL AND ${t.deletedAt} IS NULL`),
+    check('businesses_suspend_check', sql`(${t.suspendedAt} IS NULL) = (${t.suspendReason} IS NULL)`),
     check('businesses_slug_check', sql`${t.slug} ~ '^[a-z0-9][a-z0-9-]{2,49}$'`),
     check(
       'businesses_template_check',
@@ -105,6 +122,8 @@ export const subscriptions = pgTable(
       .default(sql`now() + interval '7 days'`),
     currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
     currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+    /** Free months given by an admin (I2); no payment created. */
+    freeUntil: timestamp('free_until', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
