@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { hasPlanAccess, type PlanAccessInput } from './plans';
-import type { SubscriptionStatus } from './types';
+import { hasPlanAccess, PAID_PLANS, type PlanAccessInput } from './plans';
+import type { MemberRole, SubscriptionStatus } from './types';
 import type { BusinessTemplate } from './templates';
 
 /**
@@ -100,6 +100,27 @@ export type ExtendTrialInput = z.infer<typeof extendTrialSchema>;
 export const bookingPageSchema = z.object({ enabled: z.boolean(), reason: adminReason });
 export type BookingPageInput = z.infer<typeof bookingPageSchema>;
 
+/**
+ * I2 "Give free months": the paid period is extended with no payment (`current_period_end` and
+ * `free_until` move together, so renewal, grace and reminders work as usual). A business on a trial or
+ * whose plan ended starts the given plan today (default Business); a paying business keeps its plan.
+ */
+export const FREE_MONTH_OPTIONS = [1, 2, 3] as const;
+export const freeMonthsSchema = z.object({
+  months: z.number().int().min(1).max(12),
+  plan: z.enum(PAID_PLANS).optional(),
+  reason: adminReason,
+});
+export type FreeMonthsInput = z.infer<typeof freeMonthsSchema>;
+
+/** I2 "Change plan" by hand, for a paying business (dates stay the same; resource limit follows the plan). */
+export const changePlanSchema = z.object({ plan: z.enum(PAID_PLANS), reason: adminReason });
+export type ChangePlanInput = z.infer<typeof changePlanSchema>;
+
+/** I2 "Send password reset link" to the owner (same email as E1 forgot password). */
+export const ownerLinkSchema = z.object({ reason: adminReason });
+export type OwnerLinkInput = z.infer<typeof ownerLinkSchema>;
+
 export const adminNoteSchema = z.object({ reason: adminReason });
 export type AdminNoteInput = z.infer<typeof adminNoteSchema>;
 
@@ -121,6 +142,8 @@ export interface AdminSubscription {
   status: SubscriptionStatus;
   trialEndsAt: string;
   currentPeriodEnd: string | null;
+  /** Free months given by FTech run until here (no payment). */
+  freeUntil: string | null;
   hasAccess: boolean;
 }
 
@@ -165,6 +188,24 @@ export interface AuditEntry {
   createdAt: string;
 }
 
+export interface AdminMember {
+  name: string;
+  email: string;
+  role: MemberRole;
+  emailVerified: boolean;
+  isActive: boolean;
+  canViewAll: boolean;
+  canTakePayments: boolean;
+  canEditSetup: boolean;
+  joinedAt: string;
+}
+
+export interface AdminInvitation {
+  email: string;
+  expiresAt: string;
+  expired: boolean;
+}
+
 export interface AdminBusinessDetail extends AdminBusinessRow {
   owner: { name: string; email: string; phone: string | null } | null;
   whatsappPhone: string | null;
@@ -174,5 +215,9 @@ export interface AdminBusinessDetail extends AdminBusinessRow {
   staffCount: number;
   /** Only whether it is connected — never the key. */
   toyyibpayConnected: boolean;
+  /** Owner first, then staff; inactive members last. */
+  members: AdminMember[];
+  /** Staff invitations not accepted yet (expired ones included, marked). */
+  invitations: AdminInvitation[];
   auditLog: AuditEntry[];
 }

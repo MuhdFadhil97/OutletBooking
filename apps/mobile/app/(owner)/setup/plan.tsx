@@ -104,6 +104,9 @@ export default function PlanScreen() {
 
 function subtitle(p: PlanInfo, tz: string): string {
   const date = (iso: string) => formatInTimeZone(new Date(iso), tz, 'EEE, d MMM');
+  if (p.plan !== 'trial' && p.hasAccess && p.freeUntil && new Date(p.freeUntil).getTime() > Date.now()) {
+    return s.freeUntil(s.names[p.plan], date(p.freeUntil));
+  }
   if (p.plan !== 'trial' && p.hasAccess && p.currentPeriodEnd) return s.paidUntil(s.names[p.plan], date(p.currentPeriodEnd));
   if (p.status === 'trialing') return p.hasAccess ? s.trialEnds(date(p.trialEndsAt)) : s.trialEnded(date(p.trialEndsAt));
   return '';

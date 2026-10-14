@@ -1236,6 +1236,8 @@ export const en = {
     trialEnds: (date: string) => `Free trial ends ${date}`,
     trialEnded: (date: string) => `Free trial ended ${date}`,
     paidUntil: (plan: string, date: string) => `${plan} plan · paid until ${date}`,
+    /** Free months given by FTech (admin I2). */
+    freeUntil: (plan: string, date: string) => `${plan} plan · free until ${date}`,
     names: { starter: 'Starter', business: 'Business' },
     youHave: (resources: string, staff: string) => `You have ${resources} and ${staff}. Keep everything you set up during the trial.`,
     count: (n: number, one: string) => `${n} ${n === 1 ? one.toLowerCase() : `${one.toLowerCase()}s`}`,

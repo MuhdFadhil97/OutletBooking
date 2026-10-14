@@ -2,18 +2,45 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { adminReason, PLAN_PRICES, type AdminBusinessDetail, type AuditEntry } from '@outletbooking/shared';
-import { addNote, extendTrial, getBusiness, setBookingPage, type Result } from '@/lib/admin-api';
-import { daysUntil, formatDate, formatDateTime, formatDay, formatPhone, whatsappLink, ymdInMalaysia } from '@/lib/admin-format';
+import {
+  adminReason,
+  FREE_MONTH_OPTIONS,
+  PAID_PLANS,
+  PLAN_PRICES,
+  type AdminBusinessDetail,
+  type AuditEntry,
+  type PaidPlan,
+} from '@outletbooking/shared';
+import {
+  addNote,
+  changePlan,
+  extendTrial,
+  getBusiness,
+  giveFreeMonths,
+  sendOwnerPasswordReset,
+  setBookingPage,
+  type Result,
+} from '@/lib/admin-api';
+import {
+  addMonthsMalaysia,
+  daysUntil,
+  formatDate,
+  formatDateTime,
+  formatDay,
+  formatPhone,
+  whatsappLink,
+  ymdInMalaysia,
+} from '@/lib/admin-format';
 import { APP_URL } from '@/lib/config';
 import { s } from '@/strings/en';
 import { useAdmin } from './AdminShell';
-import { endDate, planName } from './status';
+import { endDate, isFree, planName } from './status';
 
 const t = s.admin;
 const d = t.business;
 const DAY_MS = 86_400_000;
 const EXTEND_DAYS = [7, 14, 30] as const;
+type PlanTab = keyof typeof d.planActions.tabs;
 
 type State = { kind: 'loading' } | { kind: 'ok'; biz: AdminBusinessDetail } | { kind: 'not_found' } | { kind: 'error' };
 /** Error to show, or null when saved. */
@@ -126,29 +153,10 @@ export function BusinessDetail({ id }: { id: number }) {
       <div className="biz-grid">
         <div className="biz-col">
           <Usage biz={biz} save={save} />
-          <ExtendTrial
-            biz={biz}
-            save={save}
-            onDone={(day) => setFlash(d.extend.done(day))}
-          />
+          <PlanActions biz={biz} save={save} onDone={setFlash} />
         </div>
         <div className="biz-col">
-          <section className="card admin-section">
-            <h2>{d.owner.title}</h2>
-            {biz.owner ? (
-              <dl className="facts-list">
-                <Fact label={d.owner.name}>{biz.owner.name}</Fact>
-                <Fact label={d.owner.email}>
-                  <a href={`mailto:${biz.owner.email}`}>{biz.owner.email}</a>
-                </Fact>
-                <Fact label={d.owner.mobile}>{biz.owner.phone ? formatPhone(biz.owner.phone) : '—'}</Fact>
-                <Fact label={d.usage.staff}>{d.owner.staff(biz.staffCount)}</Fact>
-              </dl>
-            ) : (
-              <p className="muted">{d.owner.none}</p>
-            )}
-          </section>
-
+          <OwnerStaff biz={biz} save={save} onDone={setFlash} />
           <section className="card admin-section">
             <h2>{d.notes.title}</h2>
             {notes.length === 0 ? <p className="muted">{d.notes.empty}</p> : <EntryList entries={notes} />}
@@ -194,7 +202,14 @@ function Usage({ biz, save }: { biz: AdminBusinessDetail; save: Save }) {
   const limitPlan = plan === 'starter' ? 'starter' : 'business';
   const limit = PLAN_PRICES[limitPlan].resourceLimit;
   const when =
-    end && (biz.state === 'paying' ? u.renews(formatDay(end)) : biz.state === 'ended' ? u.ended(formatDay(end)) : u.trialEnds(formatDay(end)));
+    end &&
+    (biz.state === 'paying'
+      ? isFree(biz)
+        ? u.freeUntil(formatDay(end))
+        : u.renews(formatDay(end))
+      : biz.state === 'ended'
+        ? u.ended(formatDay(end))
+        : u.trialEnds(formatDay(end)));
 
   return (
     <section className="card admin-section">
@@ -242,20 +257,44 @@ function Usage({ biz, save }: { biz: AdminBusinessDetail; save: Save }) {
   );
 }
 
-function ExtendTrial({ biz, save, onDone }: { biz: AdminBusinessDetail; save: Save; onDone: (day: string) => void }) {
+/** I2 "Extend trial or change plan": three tabs, one form each. Paying businesses start on "Give free months". */
+function PlanActions({ biz, save, onDone }: { biz: AdminBusinessDetail; save: Save; onDone: (message: string) => void }) {
+  const paying = biz.state === 'paying';
+  const [tab, setTab] = useState<PlanTab>(paying ? 'free' : 'extend');
+  const a = d.planActions;
+  return (
+    <section id="extend" className="card admin-section">
+      <h2>{a.title}</h2>
+      <div className="chips" role="tablist" aria-label={a.title}>
+        {(Object.keys(a.tabs) as PlanTab[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            className={`chip${tab === key ? ' on' : ''}`}
+            onClick={() => setTab(key)}
+          >
+            {a.tabs[key]}
+          </button>
+        ))}
+      </div>
+      {tab === 'extend' && <ExtendTrialForm biz={biz} save={save} onDone={onDone} />}
+      {tab === 'free' && <FreeMonthsForm biz={biz} save={save} onDone={onDone} />}
+      {tab === 'change' && <ChangePlanForm biz={biz} save={save} onDone={onDone} />}
+    </section>
+  );
+}
+
+type FormProps = { biz: AdminBusinessDetail; save: Save; onDone: (message: string) => void };
+
+function ExtendTrialForm({ biz, save, onDone }: FormProps) {
   const [choice, setChoice] = useState<number | 'pick'>(14);
   const [until, setUntil] = useState('');
   const e = d.extend;
   const sub = biz.subscription;
 
-  if (biz.state === 'paying' || !sub) {
-    return (
-      <section id="extend" className="card admin-section">
-        <h2>{e.title}</h2>
-        <p className="muted">{e.paying}</p>
-      </section>
-    );
-  }
+  if (biz.state === 'paying' || !sub) return <p className="muted">{e.paying}</p>;
 
   // The API adds days to the later of now and the current trial end.
   const base = Math.max(Date.now(), Date.parse(sub.trialEndsAt));
@@ -264,8 +303,7 @@ function ExtendTrial({ biz, save, onDone }: { biz: AdminBusinessDetail; save: Sa
     choice === 'pick' ? (until ? `${until}T12:00:00+08:00` : null) : new Date(base + choice * DAY_MS).toISOString();
 
   return (
-    <section id="extend" className="card admin-section">
-      <h2>{e.title}</h2>
+    <>
       <div className="chips" role="group" aria-label={e.title}>
         {EXTEND_DAYS.map((n) => (
           <button key={n} type="button" className={`chip${choice === n ? ' on' : ''}`} aria-pressed={choice === n} onClick={() => setChoice(n)}>
@@ -285,16 +323,206 @@ function ExtendTrial({ biz, save, onDone }: { biz: AdminBusinessDetail; save: Sa
       {newEnd && <p className="muted">{e.preview(formatDay(newEnd))}</p>}
       <ReasonForm
         label={d.reason}
-        placeholder={d.reasonPlaceholder}
         submit={e.submit}
         disabled={!newEnd}
         onSubmit={async (reason) => {
           const r = await extendTrial(biz.id, choice === 'pick' ? { until, reason } : { days: choice, reason });
           const error = save(r);
-          if (!error && r.kind === 'ok' && r.data.subscription) onDone(formatDay(r.data.subscription.trialEndsAt));
+          if (!error && r.kind === 'ok' && r.data.subscription) onDone(e.done(formatDay(r.data.subscription.trialEndsAt)));
           return error;
         }}
       />
+    </>
+  );
+}
+
+function FreeMonthsForm({ biz, save, onDone }: FormProps) {
+  const paying = biz.state === 'paying';
+  const current = biz.subscription?.plan;
+  const [months, setMonths] = useState<number>(FREE_MONTH_OPTIONS[0]);
+  const [plan, setPlan] = useState<PaidPlan>(current === 'starter' ? 'starter' : 'business');
+  const f = d.free;
+  // Same rule as the API: a paying business extends its period end; anyone else starts today.
+  const from = paying ? (biz.subscription?.currentPeriodEnd ?? null) : new Date().toISOString();
+  const until = from ? formatDay(addMonthsMalaysia(from, months)) : null;
+
+  return (
+    <>
+      <div className="chips" role="group" aria-label={d.planActions.tabs.free}>
+        {FREE_MONTH_OPTIONS.map((n) => (
+          <button key={n} type="button" className={`chip${months === n ? ' on' : ''}`} aria-pressed={months === n} onClick={() => setMonths(n)}>
+            {f.months(n)}
+          </button>
+        ))}
+      </div>
+      {paying ? (
+        <p className="muted">
+          {f.plan}: <strong>{planName(current)}</strong>
+        </p>
+      ) : (
+        <>
+          <PlanPicker label={f.plan} value={plan} onChange={setPlan} />
+          <p className="muted small">{f.startsToday}</p>
+        </>
+      )}
+      <p className="muted small">{f.note}</p>
+      <ReasonForm
+        label={d.reason}
+        submit={until ? f.submit(months, until) : d.planActions.tabs.free}
+        disabled={!until}
+        onSubmit={async (reason) => {
+          const r = await giveFreeMonths(biz.id, paying ? { months, reason } : { months, plan, reason });
+          const error = save(r);
+          if (!error && r.kind === 'ok' && r.data.subscription?.freeUntil) onDone(f.done(formatDay(r.data.subscription.freeUntil)));
+          return error;
+        }}
+      />
+    </>
+  );
+}
+
+function ChangePlanForm({ biz, save, onDone }: FormProps) {
+  const current = biz.subscription?.plan;
+  const [picked, setPlan] = useState<PaidPlan>(current === 'starter' ? 'business' : 'starter');
+  // After a change the business is on the picked plan; offer the other one again.
+  const plan: PaidPlan = picked === current ? (current === 'starter' ? 'business' : 'starter') : picked;
+  const c = d.change;
+  if (biz.state !== 'paying') return <p className="muted">{c.notPaying}</p>;
+  const starterLimit = PLAN_PRICES.starter.resourceLimit;
+
+  return (
+    <>
+      <p className="muted">
+        {c.current}: <strong>{planName(current)}</strong>
+      </p>
+      <PlanPicker label={c.to} value={plan} onChange={setPlan} disabled={current} />
+      {plan === 'starter' && biz.resourceCount > starterLimit && (
+        <p className="alert alert-warn">{c.overLimit(biz.resourceCount, starterLimit, biz.resourceLabel)}</p>
+      )}
+      <p className="muted small">{c.note}</p>
+      <ReasonForm
+        label={d.reason}
+        submit={c.submit}
+        disabled={plan === current}
+        onSubmit={async (reason) => {
+          const r = await changePlan(biz.id, { plan, reason });
+          const error = save(r);
+          if (!error) onDone(c.done(planName(plan)));
+          return error;
+        }}
+      />
+    </>
+  );
+}
+
+function PlanPicker({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: PaidPlan;
+  onChange: (plan: PaidPlan) => void;
+  /** The plan the business is already on (cannot be picked). */
+  disabled?: string;
+}) {
+  return (
+    <fieldset className="fld plain-fieldset">
+      <legend className="lbl">{label}</legend>
+      <div className="chips">
+        {PAID_PLANS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={`chip${value === p ? ' on' : ''}`}
+            aria-pressed={value === p}
+            disabled={p === disabled}
+            onClick={() => onChange(p)}
+          >
+            {planName(p)} · {PLAN_PRICES[p].resourceLimit}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** I2 "Owner & staff": who is in the business, open invitations, and the owner's reset link. */
+function OwnerStaff({ biz, save, onDone }: FormProps) {
+  const [resetting, setResetting] = useState(false);
+  const o = d.owner;
+  const perms = (m: AdminBusinessDetail['members'][number]) =>
+    m.role === 'owner'
+      ? []
+      : [m.canViewAll && o.perms.viewAll, m.canTakePayments && o.perms.payments, m.canEditSetup && o.perms.setup].filter(
+          (x): x is string => !!x,
+        );
+
+  return (
+    <section className="card admin-section">
+      <h2>{o.title}</h2>
+      {biz.owner ? (
+        <dl className="facts-list">
+          <Fact label={o.email}>
+            <a href={`mailto:${biz.owner.email}`}>{biz.owner.email}</a>
+          </Fact>
+          <Fact label={o.mobile}>{biz.owner.phone ? formatPhone(biz.owner.phone) : '—'}</Fact>
+        </dl>
+      ) : (
+        <p className="muted">{o.none}</p>
+      )}
+
+      <ul className="entries">
+        {biz.members.map((m) => (
+          <li key={m.email} className={m.isActive ? undefined : 'muted'}>
+            <div className="entry-title">{m.name}</div>
+            <div className="muted small">
+              {[
+                o.roles[m.role],
+                m.role === 'owner' ? (m.emailVerified ? o.confirmed : o.unconfirmed) : m.email,
+                ...perms(m),
+                !m.isActive && o.inactive,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+            <div className="muted small">{o.joined(formatDate(m.joinedAt))}</div>
+          </li>
+        ))}
+        {biz.invitations.map((i) => (
+          <li key={i.email}>
+            <div className="entry-title">{i.email}</div>
+            <div className="muted small">
+              {o.roles.staff} · {i.expired ? o.inviteExpired : o.invited}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {biz.owner &&
+        (resetting ? (
+          <div className="sub-form">
+            <p className="muted small">{o.resetHint}</p>
+            <ReasonForm
+              label={d.reason}
+              submit={o.resetSubmit}
+              onCancel={() => setResetting(false)}
+              onSubmit={async (reason) => {
+                const error = save(await sendOwnerPasswordReset(biz.id, reason));
+                if (!error) {
+                  setResetting(false);
+                  onDone(o.resetDone(biz.owner!.email));
+                }
+                return error;
+              }}
+            />
+          </div>
+        ) : (
+          <button type="button" className="btn2 btn-sm align-start" onClick={() => setResetting(true)}>
+            {o.reset}
+          </button>
+        ))}
     </section>
   );
 }

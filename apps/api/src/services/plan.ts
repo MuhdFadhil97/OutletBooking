@@ -28,6 +28,7 @@ export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string
         status: subscriptions.status,
         trialEndsAt: subscriptions.trialEndsAt,
         currentPeriodEnd: subscriptions.currentPeriodEnd,
+        freeUntil: subscriptions.freeUntil,
       })
       .from(businesses)
       .leftJoin(subscriptions, eq(subscriptions.businessId, businesses.id))
@@ -52,6 +53,7 @@ export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string
     status,
     trialEndsAt: trialEndsAt.toISOString(),
     currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
+    freeUntil: row.freeUntil?.toISOString() ?? null,
     hasAccess: hasPlanAccess({ status, trialEndsAt, currentPeriodEnd: row.currentPeriodEnd }, now),
     resourceCount,
     staffCount,

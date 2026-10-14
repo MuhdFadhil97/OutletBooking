@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysUntil, formatDate, formatDay, formatPhone, whatsappLink, ymdInMalaysia } from '../lib/admin-format';
+import { addMonthsMalaysia, daysUntil, formatDate, formatDay, formatPhone, whatsappLink, ymdInMalaysia } from '../lib/admin-format';
 import { formatRm } from '../lib/money';
 
 describe('admin formatting (Malaysia time)', () => {
@@ -15,6 +15,13 @@ describe('admin formatting (Malaysia time)', () => {
     expect(daysUntil('2026-10-14T15:59:59Z', now)).toBe(0); // 11:59 pm today
     expect(daysUntil('2026-10-17T15:59:59Z', now)).toBe(3);
     expect(daysUntil('2026-10-12T15:59:59Z', now)).toBe(-2);
+  });
+
+  it('adds calendar months like the API (Malaysia time)', () => {
+    expect(addMonthsMalaysia('2099-01-31T02:00:00.000Z', 1)).toBe('2099-02-28T02:00:00.000Z');
+    expect(addMonthsMalaysia('2026-10-16T20:00:00.000Z', 2)).toBe('2026-12-16T20:00:00.000Z'); // 17 Oct 4 am → 17 Dec
+    // 1 Mar 1 am in Malaysia (still 28 Feb in UTC) + 1 month = 1 Apr 1 am, not 28 Mar.
+    expect(addMonthsMalaysia('2026-02-28T17:00:00.000Z', 1)).toBe('2026-03-31T17:00:00.000Z');
   });
 
   it('formats phones and WhatsApp links', () => {

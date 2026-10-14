@@ -28,6 +28,21 @@ export function daysUntil(iso: string, now: Date = new Date()): number {
   return Math.round((day(new Date(iso)) - day(now)) / 86_400_000);
 }
 
+/**
+ * `months` calendar months after `iso`, as the API counts them (Malaysia time, no daylight saving:
+ * 31 Jan + 1 month = 28/29 Feb).
+ */
+export function addMonthsMalaysia(iso: string, months: number): string {
+  const OFFSET = 8 * 3_600_000;
+  const local = new Date(Date.parse(iso) + OFFSET);
+  const day = local.getUTCDate();
+  local.setUTCDate(1);
+  local.setUTCMonth(local.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 0)).getUTCDate();
+  local.setUTCDate(Math.min(day, lastDay));
+  return new Date(local.getTime() - OFFSET).toISOString();
+}
+
 /** wa.me link for a Malaysian E.164 number (+60…). */
 export function whatsappLink(phone: string, text?: string): string {
   return `https://wa.me/${phone.replace(/\D/g, '')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;

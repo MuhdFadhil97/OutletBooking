@@ -1184,3 +1184,20 @@ textarea.inp {
     gap: 2px;
   }
 }
+
+.alert-warn {
+  background: #fdebd3;
+  color: #8a4a06;
+}
+.plain-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.align-start {
+  align-self: flex-start;
+}
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -3,7 +3,9 @@ import type {
   AdminBusinessesResponse,
   AdminBusinessFilter,
   BookingPageInput,
+  ChangePlanInput,
   ExtendTrialInput,
+  FreeMonthsInput,
 } from '@outletbooking/shared';
 import { API_URL } from './config';
 
@@ -88,4 +90,17 @@ export async function setBookingPage(id: number, input: BookingPageInput): Promi
 
 export async function addNote(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
   return toResult(await call(`/admin/businesses/${id}/notes`, { reason }));
+}
+
+export async function giveFreeMonths(id: number, input: FreeMonthsInput): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/free-months`, input));
+}
+
+export async function changePlan(id: number, input: ChangePlanInput): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/change-plan`, input));
+}
+
+/** Emails the owner the same reset link as E1 "Forgot password". */
+export async function sendOwnerPasswordReset(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/password-reset`, { reason }));
 }

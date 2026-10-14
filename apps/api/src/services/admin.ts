@@ -1,5 +1,6 @@
-import { and, count, desc, eq, gte, isNull, sql, sum, type SQL } from 'drizzle-orm';
-import { fromZonedTime } from 'date-fns-tz';
+import { and, asc, count, desc, eq, gte, isNull, sql, sum, type SQL } from 'drizzle-orm';
+import { addMonths } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import {
   adminAuditLog,
   bookings,
@@ -9,6 +10,7 @@ import {
   payments,
   platformAdmins,
   resources,
+  staffInvitations,
   subscriptions,
   users,
   type Db,
@@ -17,6 +19,8 @@ import {
 import {
   adminPlanState,
   hasPlanAccess,
+  PAID_PLANS,
+  PLAN_PRICES,
   type AdminAction,
   type AdminBusinessDetail,
   type AdminBusinessesResponse,
@@ -28,9 +32,14 @@ import {
   type AuditLogQuery,
   type BookingPageInput,
   type BusinessTemplate,
+  type ChangePlanInput,
   type ExtendTrialInput,
+  type FreeMonthsInput,
+  type MemberRole,
+  type PaidPlan,
   type SubscriptionStatus,
 } from '@outletbooking/shared';
+import type { Auth } from '../auth';
 import { AppError, notFound } from '../errors';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -83,6 +92,7 @@ function selectBusinesses(q: Db | Tx, since: Date) {
         status: subscriptions.status,
         trialEndsAt: subscriptions.trialEndsAt,
         currentPeriodEnd: subscriptions.currentPeriodEnd,
+        freeUntil: subscriptions.freeUntil,
       },
       bookings30d: sql<number>`(select count(*)::int from ${bookings}
         where ${bookings.businessId} = ${businesses.id} and ${bookings.createdAt} >= ${since.toISOString()})`,
@@ -104,6 +114,7 @@ function toRow(r: Row, now: Date): AdminBusinessRow {
           status: r.sub.status as SubscriptionStatus,
           trialEndsAt: r.sub.trialEndsAt,
           currentPeriodEnd: r.sub.currentPeriodEnd,
+          freeUntil: r.sub.freeUntil,
         }
       : null;
   return {
@@ -119,6 +130,7 @@ function toRow(r: Row, now: Date): AdminBusinessRow {
       status: sub.status,
       trialEndsAt: sub.trialEndsAt.toISOString(),
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      freeUntil: sub.freeUntil?.toISOString() ?? null,
       hasAccess: hasPlanAccess(sub, now),
     },
     bookingEnabled: r.bookingEnabled,
@@ -167,7 +179,7 @@ export async function listAdminBusinesses(
 /** I2: one business. Only "ToyyibPay connected" — never keys or customers' payments. */
 export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Date = new Date()): Promise<AdminBusinessDetail> {
   const since = new Date(now.getTime() - 30 * DAY_MS);
-  const [[row], [res], [staff], [account], auditLog] = await Promise.all([
+  const [[row], [res], [staff], [account], auditLog, memberRows, inviteRows] = await Promise.all([
     selectBusinesses(db, since)
       .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
       .limit(1),
@@ -181,6 +193,27 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
       .where(and(eq(businessMembers.businessId, businessId), eq(businessMembers.role, 'staff'), eq(businessMembers.isActive, true))),
     db.select({ status: paymentAccounts.status }).from(paymentAccounts).where(eq(paymentAccounts.businessId, businessId)),
     listAuditLog(db, { businessId, limit: 50 }),
+    db
+      .select({
+        name: users.name,
+        email: users.email,
+        emailVerified: users.emailVerified,
+        role: businessMembers.role,
+        isActive: businessMembers.isActive,
+        canViewAll: businessMembers.canViewAll,
+        canTakePayments: businessMembers.canTakePayments,
+        canEditSetup: businessMembers.canEditSetup,
+        joinedAt: businessMembers.createdAt,
+      })
+      .from(businessMembers)
+      .innerJoin(users, eq(users.id, businessMembers.userId))
+      .where(eq(businessMembers.businessId, businessId))
+      .orderBy(desc(businessMembers.isActive), asc(sql`${businessMembers.role} <> 'owner'`), asc(businessMembers.id)),
+    db
+      .select({ email: staffInvitations.email, expiresAt: staffInvitations.expiresAt })
+      .from(staffInvitations)
+      .where(and(eq(staffInvitations.businessId, businessId), isNull(staffInvitations.acceptedAt)))
+      .orderBy(desc(staffInvitations.createdAt)),
   ]);
   if (!row) throw notFound('Business');
   return {
@@ -191,6 +224,12 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
     resourceCount: res?.n ?? 0,
     staffCount: staff?.n ?? 0,
     toyyibpayConnected: account?.status === 'connected',
+    members: memberRows.map((m) => ({ ...m, role: m.role as MemberRole, joinedAt: m.joinedAt.toISOString() })),
+    invitations: inviteRows.map((i) => ({
+      email: i.email,
+      expiresAt: i.expiresAt.toISOString(),
+      expired: i.expiresAt.getTime() <= now.getTime(),
+    })),
     auditLog,
   };
 }
@@ -323,3 +362,109 @@ export async function addAdminNote(db: Db, adminUserId: number, businessId: numb
   return getAdminBusiness(db, businessId);
 }
 
+
+const isPaidPlan = (plan: string): plan is PaidPlan => PAID_PLANS.some((p) => p === plan);
+
+/** Paying = on a paid plan that still gives access (active / past_due / cancelled until the period ends). */
+function isPaying(sub: { status: string; trialEndsAt: Date; currentPeriodEnd: Date | null; plan: string }, now: Date) {
+  return sub.status !== 'trialing' && isPaidPlan(sub.plan) && hasPlanAccess(sub, now);
+}
+
+/**
+ * I2 "Give free months": no payment is created. A paying business gets its period extended
+ * (`current_period_end` += months); a business on a trial or with an ended plan starts the given plan
+ * (default Business) today. `free_until` = the new period end, shown to the owner as "Free until …".
+ */
+export async function giveFreeMonths(
+  db: Db,
+  adminUserId: number,
+  businessId: number,
+  input: FreeMonthsInput,
+  now: Date = new Date(),
+): Promise<AdminBusinessDetail> {
+  await db.transaction(async (tx) => {
+    await lockBusiness(tx, businessId);
+    const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.businessId, businessId)).for('update');
+    if (!sub) throw notFound('Subscription');
+    const paying = isPaying(sub, now);
+    if (paying && sub.currentPeriodEnd === null) {
+      throw new AppError(409, 'no_end_date', 'This plan has no end date, so free months would not change anything');
+    }
+    if (paying && input.plan && input.plan !== sub.plan) {
+      throw new AppError(409, 'use_change_plan', 'This business is paying. Change the plan first, then give free months.');
+    }
+    const plan: PaidPlan = paying && isPaidPlan(sub.plan) ? sub.plan : (input.plan ?? 'business');
+    const from = paying ? sub.currentPeriodEnd! : now;
+    // Calendar months in Malaysia (31 Jan + 1 month = 28/29 Feb).
+    const newEnd = fromZonedTime(addMonths(toZonedTime(from, TZ), input.months), TZ);
+
+    await tx
+      .update(subscriptions)
+      .set({
+        plan,
+        status: 'active',
+        currentPeriodStart: paying ? sub.currentPeriodStart : now,
+        currentPeriodEnd: newEnd,
+        freeUntil: newEnd,
+        resourceLimit: PLAN_PRICES[plan].resourceLimit,
+      })
+      .where(eq(subscriptions.id, sub.id));
+    await audit(tx, adminUserId, businessId, 'give_free_months', input.reason, {
+      months: input.months,
+      plan,
+      from: from.toISOString(),
+      to: newEnd.toISOString(),
+      previousPlan: sub.plan,
+      previousStatus: sub.status,
+    });
+  });
+  return getAdminBusiness(db, businessId, now);
+}
+
+/** I2 "Change plan" by hand (Starter ↔ Business) for a paying business. Dates stay; the resource limit follows. */
+export async function changePlan(
+  db: Db,
+  adminUserId: number,
+  businessId: number,
+  input: ChangePlanInput,
+  now: Date = new Date(),
+): Promise<AdminBusinessDetail> {
+  await db.transaction(async (tx) => {
+    await lockBusiness(tx, businessId);
+    const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.businessId, businessId)).for('update');
+    if (!sub) throw notFound('Subscription');
+    if (!isPaying(sub, now)) {
+      throw new AppError(409, 'not_paying', 'Only a paying business can change plan here. Give free months to start a plan.');
+    }
+    if (sub.plan === input.plan) throw new AppError(409, 'no_change', `This business is already on ${input.plan}`);
+    await tx
+      .update(subscriptions)
+      .set({ plan: input.plan, resourceLimit: PLAN_PRICES[input.plan].resourceLimit })
+      .where(eq(subscriptions.id, sub.id));
+    await audit(tx, adminUserId, businessId, 'change_plan', input.reason, { from: sub.plan, to: input.plan });
+  });
+  return getAdminBusiness(db, businessId, now);
+}
+
+/**
+ * I2 "Send password reset link" to the owner: the same email as E1 (link valid 60 minutes).
+ * The audit row is written once Better Auth has accepted the request.
+ */
+export async function sendOwnerPasswordReset(
+  db: Db,
+  auth: Auth,
+  adminUserId: number,
+  businessId: number,
+  reason: string,
+  headers: Headers,
+): Promise<AdminBusinessDetail> {
+  const detail = await getAdminBusiness(db, businessId);
+  const owner = detail.members.find((m) => m.role === 'owner' && m.isActive);
+  if (!owner) throw new AppError(409, 'no_owner', 'This business has no active owner');
+  await auth.api.requestPasswordReset({ body: { email: owner.email }, headers });
+  await db.transaction(async (tx) => {
+    await lockBusiness(tx, businessId);
+    await audit(tx, adminUserId, businessId, 'resend_link', reason, { link: 'password_reset' });
+  });
+  return getAdminBusiness(db, businessId);
+}

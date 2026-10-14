@@ -58,6 +58,8 @@ export interface PlanInfo {
   status: SubscriptionStatus;
   trialEndsAt: string;
   currentPeriodEnd: string | null;
+  /** Free months given by FTech (I2) run until here: "Free until 16 Dec". */
+  freeUntil: string | null;
   hasAccess: boolean;
   /** Active resources and active staff (not counting the owner). */
   resourceCount: number;

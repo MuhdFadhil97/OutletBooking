@@ -14,6 +14,12 @@ const TAG_CLASS: Record<AdminBusinessRow['state'], string> = {
 /** Plan name for a paying business ("Business"), from subscriptions.plan. */
 export const planName = (plan: string | undefined) => (plan && t.plans[plan]) || plan || '';
 
+/** On free months given by FTech right now (no payment until they end). */
+export function isFree(b: AdminBusinessRow, now: Date = new Date()): boolean {
+  const free = b.subscription?.freeUntil;
+  return b.state === 'paying' && !!free && Date.parse(free) > now.getTime();
+}
+
 /** When the trial ends, the plan renews, or it ended. */
 export function endDate(b: AdminBusinessRow): string | null {
   const sub = b.subscription;
@@ -41,7 +47,7 @@ export function untilLabel(b: AdminBusinessRow): string {
   if (!end) return '—';
   const day = formatDay(end);
   if (b.state === 'pilot') return t.businesses.extendedTo(day);
-  if (b.state === 'paying') return t.businesses.renews(day);
+  if (b.state === 'paying') return isFree(b) ? t.businesses.freeUntil(day) : t.businesses.renews(day);
   if (b.state === 'ended') return t.businesses.endedOn(day);
   return day;
 }

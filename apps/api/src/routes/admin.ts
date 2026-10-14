@@ -4,14 +4,20 @@ import {
   adminNoteSchema,
   auditLogQuery,
   bookingPageSchema,
+  changePlanSchema,
   extendTrialSchema,
+  freeMonthsSchema,
   idParam,
+  ownerLinkSchema,
 } from '@outletbooking/shared';
 import { requirePlatformAdmin } from '../middleware/platform-admin';
 import { requireSession } from '../middleware/session';
 import {
   addAdminNote,
+  changePlan,
   extendTrial,
+  giveFreeMonths,
+  sendOwnerPasswordReset,
   getAdminBusiness,
   listAdminBusinesses,
   listAuditLog,
@@ -32,6 +38,24 @@ export const adminRoutes = new Hono<AppEnv>()
   )
   .post('/businesses/:id/extend-trial', validate('param', idParam), validate('json', extendTrialSchema), async (c) =>
     c.json(await extendTrial(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/businesses/:id/free-months', validate('param', idParam), validate('json', freeMonthsSchema), async (c) =>
+    c.json(await giveFreeMonths(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/businesses/:id/change-plan', validate('param', idParam), validate('json', changePlanSchema), async (c) =>
+    c.json(await changePlan(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/businesses/:id/password-reset', validate('param', idParam), validate('json', ownerLinkSchema), async (c) =>
+    c.json(
+      await sendOwnerPasswordReset(
+        c.var.db,
+        c.var.auth,
+        c.var.userId,
+        c.req.valid('param').id,
+        c.req.valid('json').reason,
+        c.req.raw.headers,
+      ),
+    ),
   )
   .post('/businesses/:id/booking-page', validate('param', idParam), validate('json', bookingPageSchema), async (c) =>
     c.json(await setBookingPage(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),

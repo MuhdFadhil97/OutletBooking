@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { adminAuditLog, businesses, paymentAccounts, payments, platformAdmins, subscriptions, users } from '@outletbooking/db';
+import { adminAuditLog, businesses, paymentAccounts, payments, platformAdmins, staffInvitations, subscriptions, users } from '@outletbooking/db';
 import {
   adminPlanState,
   type AdminBusinessDetail,
   type AdminBusinessesResponse,
   type AuditEntry,
+  type PlanInfo,
   type PublicBusiness,
 } from '@outletbooking/shared';
 import { createTestContext, signupInput } from './helpers';
@@ -49,7 +50,15 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await ctx.db.delete(adminAuditLog);
-  const fresh = { plan: 'trial', status: 'trialing', trialEndsAt: new Date(Date.now() + 5 * DAY), currentPeriodEnd: null };
+  const fresh = {
+    plan: 'trial',
+    status: 'trialing',
+    trialEndsAt: new Date(Date.now() + 5 * DAY),
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    freeUntil: null,
+    resourceLimit: 10,
+  };
   await setSub(bizA, fresh);
   await setSub(bizB, fresh);
   await ctx.db.update(businesses).set({ bookingEnabled: true });
@@ -196,6 +205,105 @@ describe('I2 booking page switch and notes', () => {
     const all = (await (await ctx.get('/admin/audit-log', admin)).json()) as AuditEntry[];
     expect(all).toHaveLength(1);
     expect(all[0]).toMatchObject({ action: 'note', business: { id: bizB, name: 'SemakAuto' } });
+  });
+});
+
+describe('I2 give free months and change plan', () => {
+  it('a trial business gets 2 free months on Business from today: paying, free until, shown to the owner', async () => {
+    const res = await ctx.send('POST', `/admin/businesses/${bizA}/free-months`, admin, { months: 2, reason: 'Pilot reward' });
+    expect(res.status).toBe(200);
+    const detail = (await res.json()) as AdminBusinessDetail;
+    expect(detail.state).toBe('paying');
+    const sub = await subOf(bizA);
+    expect(sub).toMatchObject({ plan: 'business', status: 'active', resourceLimit: 10 });
+    expect(sub.freeUntil!.toISOString()).toBe(sub.currentPeriodEnd!.toISOString());
+    // About two calendar months (59–62 days).
+    const days = (sub.currentPeriodEnd!.getTime() - Date.now()) / DAY;
+    expect(days).toBeGreaterThan(58);
+    expect(days).toBeLessThan(63);
+    expect(detail.subscription!.freeUntil).toBe(sub.freeUntil!.toISOString());
+    expect(detail.auditLog[0]).toMatchObject({
+      action: 'give_free_months',
+      reason: 'Pilot reward',
+      details: { months: 2, plan: 'business', previousPlan: 'trial', previousStatus: 'trialing' },
+    });
+    // No payment row: free months are not revenue.
+    expect(await ctx.db.select().from(payments).where(eq(payments.businessId, bizA))).toHaveLength(0);
+
+    const plan = (await (await ctx.get('/businesses/current/plan', ownerA)).json()) as PlanInfo;
+    expect(plan).toMatchObject({ plan: 'business', status: 'active', hasAccess: true, freeUntil: sub.freeUntil!.toISOString() });
+  });
+
+  it('a paying business keeps its plan and its period end moves by calendar months (Malaysia)', async () => {
+    // 31 Jan 2099 10:00 in Malaysia + 1 month = 28 Feb 2099 10:00.
+    await setSub(bizA, { plan: 'starter', status: 'active', currentPeriodEnd: new Date('2099-01-31T02:00:00Z'), resourceLimit: 3 });
+    const path = `/admin/businesses/${bizA}/free-months`;
+    expect(await errCode(await ctx.send('POST', path, admin, { months: 1, plan: 'business', reason: 'Goodwill' }))).toBe('use_change_plan');
+    expect((await ctx.send('POST', path, admin, { months: 1, reason: 'Goodwill' })).status).toBe(200);
+    expect(await subOf(bizA)).toMatchObject({
+      plan: 'starter',
+      resourceLimit: 3,
+      currentPeriodEnd: new Date('2099-02-28T02:00:00Z'),
+      freeUntil: new Date('2099-02-28T02:00:00Z'),
+    });
+  });
+
+  it('an ended business can restart on Starter, and the owner can make changes again', async () => {
+    await setSub(bizA, { status: 'expired', trialEndsAt: new Date(Date.now() - 3 * DAY) });
+    expect(await errCode(await ctx.send('POST', '/resources', ownerA, { name: 'Court X', resourceType: 'court' }))).toBe('plan_inactive');
+    const res = await ctx.send('POST', `/admin/businesses/${bizA}/free-months`, admin, { months: 1, plan: 'starter', reason: 'Restart' });
+    expect(res.status).toBe(200);
+    expect(await subOf(bizA)).toMatchObject({ plan: 'starter', status: 'active', resourceLimit: 3 });
+  });
+
+  it('refuses a missing reason, too many months or an unknown plan', async () => {
+    const path = `/admin/businesses/${bizA}/free-months`;
+    expect((await ctx.send('POST', path, admin, { months: 1 })).status).toBe(400);
+    expect((await ctx.send('POST', path, admin, { months: 13, reason: 'Too many' })).status).toBe(400);
+    expect((await ctx.send('POST', path, admin, { months: 1, plan: 'gold', reason: 'Bad plan' })).status).toBe(400);
+    expect(await auditRows()).toHaveLength(0);
+  });
+
+  it('changes a paying business between Starter and Business, keeping the dates', async () => {
+    const path = `/admin/businesses/${bizA}/change-plan`;
+    expect(await errCode(await ctx.send('POST', path, admin, { plan: 'starter', reason: 'Trial' }))).toBe('not_paying');
+
+    const end = new Date(Date.now() + 20 * DAY);
+    await setSub(bizA, { plan: 'business', status: 'active', currentPeriodEnd: end, resourceLimit: 10 });
+    expect(await errCode(await ctx.send('POST', path, admin, { plan: 'business', reason: 'Same' }))).toBe('no_change');
+    const res = await ctx.send('POST', path, admin, { plan: 'starter', reason: 'Only uses 2 courts' });
+    expect(res.status).toBe(200);
+    expect(await subOf(bizA)).toMatchObject({ plan: 'starter', status: 'active', resourceLimit: 3, currentPeriodEnd: end });
+    const [log] = ((await res.json()) as AdminBusinessDetail).auditLog;
+    expect(log).toMatchObject({ action: 'change_plan', details: { from: 'business', to: 'starter' } });
+  });
+});
+
+describe('I2 owner and staff', () => {
+  it('lists the owner, staff and open invitations', async () => {
+    const [owner] = await ctx.db.select({ id: users.id }).from(users).where(eq(users.email, 'a@example.com'));
+    await ctx.db.delete(staffInvitations).where(eq(staffInvitations.businessId, bizA));
+    await ctx.db.insert(staffInvitations).values([
+      { businessId: bizA, email: 'new-staff@example.com', invitedBy: owner!.id },
+      { businessId: bizA, email: 'old@example.com', invitedBy: owner!.id, expiresAt: new Date(Date.now() - DAY) },
+    ]);
+    const detail = (await (await ctx.get(`/admin/businesses/${bizA}`, admin)).json()) as AdminBusinessDetail;
+    expect(detail.members[0]).toMatchObject({ role: 'owner', email: 'a@example.com', isActive: true, emailVerified: expect.any(Boolean) });
+    expect(detail.invitations.map((i) => [i.email, i.expired]).sort()).toEqual([
+      ['new-staff@example.com', false],
+      ['old@example.com', true],
+    ]);
+  });
+
+  it('sends the owner a password reset link, with the reason in the audit log', async () => {
+    ctx.outbox.length = 0;
+    const path = `/admin/businesses/${bizA}/password-reset`;
+    expect((await ctx.send('POST', path, admin, {})).status).toBe(400);
+    const res = await ctx.send('POST', path, admin, { reason: 'Owner locked out, called support' });
+    expect(res.status).toBe(200);
+    expect(ctx.outbox.map((m) => [m.to, m.subject])).toEqual([['a@example.com', 'Reset your OutletBooking password']]);
+    const [log] = ((await res.json()) as AdminBusinessDetail).auditLog;
+    expect(log).toMatchObject({ action: 'resend_link', details: { link: 'password_reset' } });
   });
 });
 
