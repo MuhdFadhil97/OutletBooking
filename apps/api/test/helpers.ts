@@ -57,7 +57,7 @@ export function createTestContext() {
     async reset() {
       outbox.length = 0;
       storage.objects.clear();
-      await db.execute(dsql`TRUNCATE users, businesses RESTART IDENTITY CASCADE`);
+      await db.execute(dsql`TRUNCATE users, businesses, leads RESTART IDENTITY CASCADE`);
     },
     async close() {
       await sql.end();

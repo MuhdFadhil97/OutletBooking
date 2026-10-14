@@ -1,6 +1,6 @@
-import { check, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import { check, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { createdAt, idPk, updatedAt } from './columns';
+import { citext, createdAt, idPk, updatedAt } from './columns';
 import { users } from './auth';
 import { businesses } from './tenant';
 
@@ -40,5 +40,32 @@ export const adminAuditLog = pgTable(
       'admin_audit_log_action_check',
       sql`${t.action} IN ('extend_trial','pause_booking_page','resume_booking_page','change_plan','note')`,
     ),
+  ],
+);
+
+/** I19 website contact form (no login). Read by FTech in the admin support screen (I11). */
+export const leads = pgTable(
+  'leads',
+  {
+    id: idPk(),
+    reason: text('reason').notNull(),
+    name: text('name').notNull(),
+    businessName: text('business_name'),
+    phone: text('phone'),
+    email: citext('email'),
+    businessType: text('business_type'),
+    resourceCount: text('resource_count'),
+    message: text('message'),
+    /** Ticked "FTech may contact me". */
+    consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
+    status: text('status').notNull().default('new'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('leads_status_idx').on(t.status, t.createdAt.desc()),
+    check('leads_reason_check', sql`${t.reason} IN ('demo','question','account_help')`),
+    check('leads_status_check', sql`${t.status} IN ('new','contacted','won','lost')`),
+    check('leads_contact_check', sql`${t.phone} IS NOT NULL OR ${t.email} IS NOT NULL`),
   ],
 );

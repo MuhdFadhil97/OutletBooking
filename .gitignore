@@ -22,3 +22,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo

@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import {
   availabilityQuerySchema,
+  leadCreateSchema,
   nextAvailableQuerySchema,
   publicBookingCreateSchema,
   publicQuoteQuery,
   publicSlugParam,
   publicTokenParam,
+  type LeadCreated,
 } from '@outletbooking/shared';
 import { runInBackground } from '../background';
 import { rateLimit } from '../middleware/rate-limit';
@@ -24,6 +26,7 @@ import { createBookingPaymentLink, notifyPayment, syncBookingBills } from '../se
 import { notifyBooking } from '../services/push';
 import { paymentDeps } from './payments';
 import { getPublicReport } from '../services/inspections';
+import { createLead } from '../services/leads';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
@@ -77,6 +80,16 @@ export const publicRoutes = new Hono<AppEnv>()
       const result = await syncBookingBills(paymentDeps(c), id);
       if (result) runInBackground('notify payment', () => notifyPayment(paymentDeps(c), result));
       return c.json(await getPublicBooking(c.var.db, token));
+    },
+  )
+  // I19 website contact form → lead (no login).
+  .post(
+    '/leads',
+    rateLimit({ prefix: 'public-lead', windowMs: 60 * 60_000, max: 5 }),
+    validate('json', leadCreateSchema),
+    async (c) => {
+      await createLead(c.var.db, c.req.valid('json'));
+      return c.json({ ok: true } satisfies LeadCreated, 201);
     },
   )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>
