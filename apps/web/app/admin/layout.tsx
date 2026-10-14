@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Logo } from '@/components/Logo';
 import { s } from '@/strings/en';
 
 export const metadata: Metadata = {
@@ -8,15 +7,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** FTech platform admin (desktop): no website header or footer. */
+/** FTech platform admin (desktop): no website header or footer. Sign-in pages vs. the (panel) with a sidebar. */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="admin">
-      <header className="admin-top">
-        <Logo />
-        <span className="muted small">{s.admin.tagline}</span>
-      </header>
-      <main>{children}</main>
-    </div>
-  );
+  return <div className="admin">{children}</div>;
 }

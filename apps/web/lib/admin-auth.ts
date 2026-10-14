@@ -1,19 +1,9 @@
 import { ADMIN_AUTH_ERRORS, type AdminMe } from '@outletbooking/shared';
-import { API_URL } from './config';
+import { call, errorCodeOf } from './admin-api';
 
-/**
- * I5 / I6 admin sign-in, called from the browser. Better Auth keeps the session in an httpOnly cookie
- * on the API's domain, so every call sends credentials. The website must be in the API's TRUSTED_ORIGINS
- * and on the same site as the API (localhost:3001 → localhost:3000; later outletbooking.my → api.outletbooking.my).
- */
+/** I5 / I6 admin sign-in, called from the browser (see admin-api.ts for how the session cookie works). */
 
-/** Error code from either Better Auth (`{ code }`) or our API (`{ error: { code } }`). */
-export function errorCodeOf(body: unknown): string | null {
-  if (typeof body !== 'object' || body === null) return null;
-  const b = body as { code?: unknown; error?: { code?: unknown } };
-  if (typeof b.error?.code === 'string') return b.error.code;
-  return typeof b.code === 'string' ? b.code : null;
-}
+export { errorCodeOf };
 
 /** Setup key from an otpauth:// URI, in groups of 4 so it is easy to type into an authenticator app. */
 export function setupKeyOf(totpUri: string): string {
@@ -22,26 +12,6 @@ export function setupKeyOf(totpUri: string): string {
     return (secret.match(/.{1,4}/g) ?? []).join(' ');
   } catch {
     return '';
-  }
-}
-
-interface Reply {
-  status: number;
-  body: unknown;
-}
-
-async function call(path: string, body?: unknown): Promise<Reply> {
-  if (!API_URL) return { status: 0, body: null };
-  try {
-    const res = await fetch(`${API_URL}${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
-      credentials: 'include',
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    return { status: res.status, body: await res.json().catch(() => null) };
-  } catch {
-    return { status: 0, body: null };
   }
 }
 

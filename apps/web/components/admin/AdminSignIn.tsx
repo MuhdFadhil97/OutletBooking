@@ -127,7 +127,7 @@ export function AdminSignIn() {
 
   if (step.name === 'setup') {
     return (
-      <form className="card admin-card admin-card-wide" onSubmit={onSetup} noValidate>
+      <form method="post" className="card admin-card admin-card-wide" onSubmit={onSetup} noValidate>
         <h1>{t.setup.title}</h1>
         <p className="muted">{t.setup.intro}</p>
         <ol className="admin-steps">
@@ -164,7 +164,7 @@ export function AdminSignIn() {
   if (step.name === 'code') {
     const backup = step.mode === 'backup';
     return (
-      <form key={step.mode} className="card admin-card" onSubmit={(e) => onCode(e, step.mode)} noValidate>
+      <form key={step.mode} method="post" className="card admin-card" onSubmit={(e) => onCode(e, step.mode)} noValidate>
         <h1>{backup ? t.code.backupTitle : t.code.title}</h1>
         <p className="muted">{backup ? t.code.backupIntro : t.code.intro}</p>
         <label className="fld">
@@ -190,8 +190,9 @@ export function AdminSignIn() {
     );
   }
 
+  // method="post": if JS has not loaded yet, a submit must never put the password in the URL.
   return (
-    <form className="card admin-card" onSubmit={onPassword} noValidate>
+    <form method="post" className="card admin-card" onSubmit={onPassword} noValidate>
       <h1>{t.signIn.title}</h1>
       <label className="fld">
         <span className="lbl">{t.signIn.email}</span>
