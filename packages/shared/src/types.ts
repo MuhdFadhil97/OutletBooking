@@ -11,6 +11,8 @@ export interface MeResponse {
     template: BusinessTemplate;
     resourceLabel: string;
     timezone: string;
+    /** Set when FTech suspended the business for misuse: the app shows this and is locked (I2). */
+    suspendReason: string | null;
   };
   role: MemberRole;
   /** Owners have all of them. The API enforces these; the app uses them to show / hide actions. */

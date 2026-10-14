@@ -7,6 +7,8 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** The same message from the shared template (services/email-template.ts). */
+  html?: string;
 }
 
 export interface Mailer {
@@ -41,11 +43,11 @@ export function createMailer(config: MailerConfig, fetchFn: typeof fetch = fetch
       const { RESEND_API_KEY: apiKey, MAIL_FROM: from } = config;
       if (!apiKey || !from) throw new Error('MAIL_TRANSPORT=resend needs RESEND_API_KEY and MAIL_FROM');
       return {
-        async send({ to, subject, text }) {
+        async send({ to, subject, text, html }) {
           const res = await fetchFn(RESEND_URL, {
             method: 'POST',
             headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-            body: JSON.stringify({ from, to: [to], subject, text }),
+            body: JSON.stringify({ from, to: [to], subject, text, ...(html ? { html } : {}) }),
           });
           if (!res.ok) {
             // Never log the key or the message body (it holds the reset link).

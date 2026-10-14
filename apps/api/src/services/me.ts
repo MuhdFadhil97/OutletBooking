@@ -30,6 +30,7 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
         template: businesses.template,
         resourceLabel: businesses.resourceLabel,
         timezone: businesses.timezone,
+        suspendReason: businesses.suspendReason,
       },
       sub: {
         plan: subscriptions.plan,

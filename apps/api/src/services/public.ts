@@ -66,15 +66,17 @@ async function findBusiness(q: Q, slug: string) {
   const [row] = await q
     .select({
       ...businessColumns,
+      suspendedAt: businesses.suspendedAt,
       sub: { status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, currentPeriodEnd: subscriptions.currentPeriodEnd },
     })
     .from(businesses)
     .leftJoin(subscriptions, eq(subscriptions.businessId, businesses.id))
     .where(and(eq(businesses.slug, slug), isNull(businesses.deletedAt)));
   if (!row) throw notFound('Business');
-  const { sub, ...biz } = row;
-  // F3: paused when the owner turned booking off, or the trial ended without a plan (FR-16.3).
-  return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub) };
+  const { sub, suspendedAt, ...biz } = row;
+  // F3: paused when the owner turned booking off, the trial ended without a plan (FR-16.3),
+  // or FTech suspended the business (I2 — customers are not told why).
+  return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub) && suspendedAt === null };
 }
 
 function assertBookingOpen(biz: { bookingEnabled: boolean }) {

@@ -5,15 +5,17 @@ import { createApp } from './app';
 import { createAuth } from './auth';
 import { loadEnv } from './env';
 import { startJobs } from './jobs';
+import { createMailer } from './services/mailer';
 import { expoPushSender } from './services/push';
 import { toyyibPayClient } from './services/toyyibpay';
 
 const env = loadEnv();
 const { db, sql } = createDb(env.DATABASE_URL, { prepare: env.DB_PREPARE });
-const auth = createAuth(db, env);
+const mailer = createMailer(env);
+const auth = createAuth(db, env, mailer);
 const push = expoPushSender(env.EXPO_ACCESS_TOKEN);
 const toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL);
-const app = createApp({ db, auth, env, push, toyyibpay });
+const app = createApp({ db, auth, env, mailer, push, toyyibpay });
 
 const jobs = env.JOBS_ENABLED
   ? startJobs({ db, env, push, toyyibpay }).catch((err: unknown) => {

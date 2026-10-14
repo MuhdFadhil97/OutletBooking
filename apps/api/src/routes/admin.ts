@@ -4,16 +4,20 @@ import {
   adminNoteSchema,
   auditLogQuery,
   bookingPageSchema,
+  changeOwnerSchema,
   changePlanSchema,
   extendTrialSchema,
   freeMonthsSchema,
   idParam,
   ownerLinkSchema,
+  suspendSchema,
+  unsuspendSchema,
 } from '@outletbooking/shared';
 import { requirePlatformAdmin } from '../middleware/platform-admin';
 import { requireSession } from '../middleware/session';
 import {
   addAdminNote,
+  changeOwner,
   changePlan,
   extendTrial,
   giveFreeMonths,
@@ -21,7 +25,10 @@ import {
   getAdminBusiness,
   listAdminBusinesses,
   listAuditLog,
+  resendOwnerConfirmEmail,
   setBookingPage,
+  suspendBusiness,
+  unsuspendBusiness,
 } from '../services/admin';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
@@ -57,8 +64,22 @@ export const adminRoutes = new Hono<AppEnv>()
       ),
     ),
   )
+  .post('/businesses/:id/confirm-email', validate('param', idParam), validate('json', ownerLinkSchema), async (c) =>
+    c.json(
+      await resendOwnerConfirmEmail(c.var.db, c.var.mailer, c.var.env, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason),
+    ),
+  )
   .post('/businesses/:id/booking-page', validate('param', idParam), validate('json', bookingPageSchema), async (c) =>
     c.json(await setBookingPage(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/businesses/:id/suspend', validate('param', idParam), validate('json', suspendSchema), async (c) =>
+    c.json(await suspendBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/businesses/:id/unsuspend', validate('param', idParam), validate('json', unsuspendSchema), async (c) =>
+    c.json(await unsuspendBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason)),
+  )
+  .post('/businesses/:id/change-owner', validate('param', idParam), validate('json', changeOwnerSchema), async (c) =>
+    c.json(await changeOwner(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
   )
   .post('/businesses/:id/notes', validate('param', idParam), validate('json', adminNoteSchema), async (c) =>
     c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),

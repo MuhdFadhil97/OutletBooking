@@ -6,7 +6,7 @@ import type { SignupInput } from '@outletbooking/shared';
 import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
-import type { MailMessage } from '../src/services/mailer';
+import type { MailMessage, Mailer } from '../src/services/mailer';
 import type { PushMessage, PushSender, PushTicket } from '../src/services/push';
 import type { ObjectStorage } from '../src/services/storage';
 import { ToyyibPayError, type BillTransaction, type CreateBillInput, type ToyyibPayClient } from '../src/services/toyyibpay';
@@ -29,7 +29,8 @@ export function createTestContext() {
   const { db, sql } = createDb(url, { max: 5 });
   /** Every email the API "sent" during the test. */
   const outbox: MailMessage[] = [];
-  const auth = createAuth(db, env, { send: async (m) => void outbox.push(m) });
+  const mailer: Mailer = { send: async (m) => void outbox.push(m) };
+  const auth = createAuth(db, env, mailer);
   /** Push messages "sent" by the API (never reaches Expo in tests). Set `pushError` to fail a token. */
   const pushes: PushMessage[] = [];
   const pushErrors = new Map<string, string>();
@@ -44,7 +45,7 @@ export function createTestContext() {
   };
   const toyyibpay = fakeToyyibPay();
   const storage = fakeStorage();
-  const app = createApp({ db, auth, env, push, toyyibpay, storage });
+  const app = createApp({ db, auth, env, mailer, push, toyyibpay, storage });
 
   return {
     db,

@@ -5,20 +5,26 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import {
   adminReason,
   FREE_MONTH_OPTIONS,
+  OLD_OWNER_OPTIONS,
   PAID_PLANS,
   PLAN_PRICES,
   type AdminBusinessDetail,
   type AuditEntry,
+  type OldOwnerOption,
   type PaidPlan,
 } from '@outletbooking/shared';
 import {
   addNote,
+  changeOwner,
   changePlan,
   extendTrial,
   getBusiness,
   giveFreeMonths,
+  resendConfirmEmail,
   sendOwnerPasswordReset,
   setBookingPage,
+  suspendBusiness,
+  unsuspendBusiness,
   type Result,
 } from '@/lib/admin-api';
 import {
@@ -150,10 +156,13 @@ export function BusinessDetail({ id }: { id: number }) {
         </p>
       )}
 
+      {biz.suspended && <SuspendedBanner biz={biz} save={save} onDone={setFlash} />}
+
       <div className="biz-grid">
         <div className="biz-col">
           <Usage biz={biz} save={save} />
           <PlanActions biz={biz} save={save} onDone={setFlash} />
+          <AccountActions biz={biz} save={save} onDone={setFlash} />
         </div>
         <div className="biz-col">
           <OwnerStaff biz={biz} save={save} onDone={setFlash} />
@@ -451,7 +460,9 @@ function PlanPicker({
 /** I2 "Owner & staff": who is in the business, open invitations, and the owner's reset link. */
 function OwnerStaff({ biz, save, onDone }: FormProps) {
   const [resetting, setResetting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const o = d.owner;
+  const ownerConfirmed = biz.members.some((m) => m.role === 'owner' && m.isActive && m.emailVerified);
   const perms = (m: AdminBusinessDetail['members'][number]) =>
     m.role === 'owner'
       ? []
@@ -500,6 +511,33 @@ function OwnerStaff({ biz, save, onDone }: FormProps) {
         ))}
       </ul>
 
+      <ChangeOwner biz={biz} save={save} onDone={onDone} />
+
+      {biz.owner &&
+        !ownerConfirmed &&
+        (confirming ? (
+          <div className="sub-form">
+            <p className="muted small">{o.confirmHint}</p>
+            <ReasonForm
+              label={d.reason}
+              submit={o.confirmSubmit}
+              onCancel={() => setConfirming(false)}
+              onSubmit={async (reason) => {
+                const error = save(await resendConfirmEmail(biz.id, reason));
+                if (!error) {
+                  setConfirming(false);
+                  onDone(o.confirmDone(biz.owner!.email));
+                }
+                return error;
+              }}
+            />
+          </div>
+        ) : (
+          <button type="button" className="btn2 btn-sm align-start" onClick={() => setConfirming(true)}>
+            {o.confirm}
+          </button>
+        ))}
+
       {biz.owner &&
         (resetting ? (
           <div className="sub-form">
@@ -523,6 +561,174 @@ function OwnerStaff({ biz, save, onDone }: FormProps) {
             {o.reset}
           </button>
         ))}
+    </section>
+  );
+}
+
+/** I2 "Change owner…": an active staff member becomes the owner, with proof from the business. */
+function ChangeOwner({ biz, save, onDone }: FormProps) {
+  const [open, setOpen] = useState(false);
+  const staff = biz.members.filter((m) => m.role === 'staff' && m.isActive);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [oldOwner, setOldOwner] = useState<OldOwnerOption>('staff');
+  const [proof, setProof] = useState('');
+  const o = d.owner;
+
+  if (!open) {
+    return (
+      <button type="button" className="btn2 btn-sm align-start" onClick={() => setOpen(true)}>
+        {o.change}
+      </button>
+    );
+  }
+  const picked = staff.find((m) => m.userId === userId) ?? null;
+  return (
+    <div className="sub-form">
+      <h3>{o.changeTitle}</h3>
+      <p className="muted small">{o.changeHint}</p>
+      {staff.length === 0 ? (
+        <>
+          <p className="alert alert-warn">{o.noStaff}</p>
+          <button className="btn2 align-start" type="button" onClick={() => setOpen(false)}>
+            {d.cancel}
+          </button>
+        </>
+      ) : (
+        <>
+          <label className="fld">
+            <span className="lbl">{o.newOwner}</span>
+            <select className="inp" value={userId ?? ''} onChange={(ev) => setUserId(ev.target.value ? Number(ev.target.value) : null)}>
+              <option value="">{o.pick}</option>
+              {staff.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.name} · {m.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="fld plain-fieldset">
+            <legend className="lbl">{o.oldOwner}</legend>
+            <div className="chips">
+              {OLD_OWNER_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`chip${oldOwner === opt ? ' on' : ''}`}
+                  aria-pressed={oldOwner === opt}
+                  onClick={() => setOldOwner(opt)}
+                >
+                  {o.oldOwnerOptions[opt]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <label className="fld">
+            <span className="lbl">{o.proof}</span>
+            <input className="inp" value={proof} maxLength={500} placeholder={o.proofPlaceholder} onChange={(ev) => setProof(ev.target.value)} />
+          </label>
+          <ReasonForm
+            label={d.reason}
+            submit={o.changeSubmit}
+            danger
+            disabled={!picked || proof.trim().length < 3}
+            onCancel={() => setOpen(false)}
+            onSubmit={async (reason) => {
+              if (!picked) return null;
+              const error = save(await changeOwner(biz.id, { newOwnerUserId: picked.userId, oldOwner, proof: proof.trim(), reason }));
+              if (!error) {
+                setOpen(false);
+                setUserId(null);
+                setProof('');
+                onDone(o.changeDone(picked.name));
+              }
+              return error;
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+const normName = (x: string) => x.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** Shown at the top of I2 while the business is suspended, with "Lift suspension". */
+function SuspendedBanner({ biz, save, onDone }: FormProps) {
+  const [lifting, setLifting] = useState(false);
+  const g = d.danger;
+  if (!biz.suspended) return null;
+  return (
+    <section className="card admin-section" role="status">
+      <p className="alert alert-error">
+        {g.suspendedTitle} · “{biz.suspended.reason}”
+      </p>
+      <p className="muted small">{g.suspendedSince(formatDateTime(biz.suspended.at))}</p>
+      {lifting ? (
+        <ReasonForm
+          label={d.reason}
+          submit={g.unsuspendSubmit}
+          onCancel={() => setLifting(false)}
+          onSubmit={async (reason) => {
+            const error = save(await unsuspendBusiness(biz.id, reason));
+            if (!error) {
+              setLifting(false);
+              onDone(g.unsuspendDone);
+            }
+            return error;
+          }}
+        />
+      ) : (
+        <button type="button" className="btn2 btn-sm align-start" onClick={() => setLifting(true)}>
+          {g.unsuspend}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** I2 account actions: suspend for misuse (type the business name to confirm). Export / close come with I26. */
+function AccountActions({ biz, save, onDone }: FormProps) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const g = d.danger;
+  const matches = normName(name) === normName(biz.name);
+  return (
+    <section className="card admin-section">
+      <h2>{g.title}</h2>
+      <div className="entry-title">{g.suspend}</div>
+      <p className="muted small">{g.suspendHint}</p>
+      {biz.suspended ? null : open ? (
+        <div className="sub-form">
+          <label className="fld">
+            <span className="lbl">{g.confirmName(biz.name)}</span>
+            <input className="inp" value={name} autoComplete="off" onChange={(ev) => setName(ev.target.value)} />
+          </label>
+          <ReasonForm
+            label={d.reason}
+            submit={g.suspendSubmit}
+            danger
+            disabled={!matches}
+            onCancel={() => {
+              setOpen(false);
+              setName('');
+            }}
+            onSubmit={async (reason) => {
+              const error = save(await suspendBusiness(biz.id, { reason, confirmName: name }));
+              if (!error) {
+                setOpen(false);
+                setName('');
+                onDone(g.suspendDone);
+              }
+              return error;
+            }}
+          />
+        </div>
+      ) : (
+        <button type="button" className="btn2 btn-sm align-start" onClick={() => setOpen(true)}>
+          {g.suspendOpen}
+        </button>
+      )}
+      <p className="muted small">{g.later}</p>
     </section>
   );
 }

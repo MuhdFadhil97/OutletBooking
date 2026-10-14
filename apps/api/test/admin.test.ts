@@ -1,11 +1,22 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { adminAuditLog, businesses, paymentAccounts, payments, platformAdmins, staffInvitations, subscriptions, users } from '@outletbooking/db';
+import {
+  adminAuditLog,
+  businesses,
+  businessMembers,
+  paymentAccounts,
+  payments,
+  platformAdmins,
+  staffInvitations,
+  subscriptions,
+  users,
+} from '@outletbooking/db';
 import {
   adminPlanState,
   type AdminBusinessDetail,
   type AdminBusinessesResponse,
   type AuditEntry,
+  type MeResponse,
   type PlanInfo,
   type PublicBusiness,
 } from '@outletbooking/shared';
@@ -61,7 +72,7 @@ beforeEach(async () => {
   };
   await setSub(bizA, fresh);
   await setSub(bizB, fresh);
-  await ctx.db.update(businesses).set({ bookingEnabled: true });
+  await ctx.db.update(businesses).set({ bookingEnabled: true, suspendedAt: null, suspendReason: null });
 });
 
 afterAll(() => ctx.close());
@@ -304,6 +315,126 @@ describe('I2 owner and staff', () => {
     expect(ctx.outbox.map((m) => [m.to, m.subject])).toEqual([['a@example.com', 'Reset your OutletBooking password']]);
     const [log] = ((await res.json()) as AdminBusinessDetail).auditLog;
     expect(log).toMatchObject({ action: 'resend_link', details: { link: 'password_reset' } });
+  });
+});
+
+describe('I2 suspend business', () => {
+  it('needs the business name typed again and a reason', async () => {
+    const path = `/admin/businesses/${bizA}/suspend`;
+    expect((await ctx.send('POST', path, admin, { confirmName: 'Smash Arena' })).status).toBe(400);
+    expect(await errCode(await ctx.send('POST', path, admin, { confirmName: 'Smash', reason: 'Fake listings' }))).toBe('name_mismatch');
+    expect(await auditRows()).toHaveLength(0);
+    expect((await ctx.get('/resources', ownerA)).status).toBe(200);
+  });
+
+  it('locks the app and booking page, shows the owner why, then lifts it', async () => {
+    const res = await ctx.send('POST', `/admin/businesses/${bizA}/suspend`, admin, {
+      confirmName: '  smash ARENA ',
+      reason: 'Fake listings reported by customers',
+    });
+    expect(res.status).toBe(200);
+    const detail = (await res.json()) as AdminBusinessDetail;
+    expect(detail.suspended).toMatchObject({ reason: 'Fake listings reported by customers' });
+    expect(detail.auditLog[0]).toMatchObject({ action: 'suspend_business' });
+
+    // Every business route is refused, reads included; GET /me still loads so the app can show the reason.
+    for (const path of ['/resources', '/bookings?date=2099-01-01', '/me/schedule', '/reports']) {
+      expect(await errCode(await ctx.get(path, ownerA)), path).toBe('business_suspended');
+    }
+    expect(await errCode(await ctx.send('POST', '/resources', ownerA, { name: 'Court X', resourceType: 'court' }))).toBe('business_suspended');
+    const me = (await (await ctx.get('/me', ownerA)).json()) as MeResponse;
+    expect(me.business.suspendReason).toBe('Fake listings reported by customers');
+    expect(((await (await ctx.get('/public/admin-a')).json()) as PublicBusiness).bookingEnabled).toBe(false);
+    // Other businesses are not affected.
+    expect(((await (await ctx.get('/public/admin-b')).json()) as PublicBusiness).bookingEnabled).toBe(true);
+    // I1 shows it too.
+    const list = (await (await ctx.get('/admin/businesses', admin)).json()) as AdminBusinessesResponse;
+    expect(list.businesses.find((b) => b.id === bizA)?.suspended).not.toBeNull();
+
+    expect(await errCode(await ctx.send('POST', `/admin/businesses/${bizA}/suspend`, admin, { confirmName: 'Smash Arena', reason: 'Again' }))).toBe(
+      'no_change',
+    );
+    const lifted = await ctx.send('POST', `/admin/businesses/${bizA}/unsuspend`, admin, { reason: 'Owner removed the listings' });
+    expect(lifted.status).toBe(200);
+    expect(((await lifted.json()) as AdminBusinessDetail).suspended).toBeNull();
+    expect((await ctx.get('/resources', ownerA)).status).toBe(200);
+    expect(((await (await ctx.get('/me', ownerA)).json()) as MeResponse).business.suspendReason).toBeNull();
+    expect(((await (await ctx.get('/public/admin-a')).json()) as PublicBusiness).bookingEnabled).toBe(true);
+    expect((await auditRows()).map((r) => r.action).sort()).toEqual(['suspend_business', 'unsuspend_business']);
+    expect(await errCode(await ctx.send('POST', `/admin/businesses/${bizA}/unsuspend`, admin, { reason: 'Again' }))).toBe('no_change');
+  });
+
+  it('owners cannot suspend or lift a suspension themselves', async () => {
+    expect((await ctx.send('POST', `/admin/businesses/${bizA}/suspend`, ownerA, { confirmName: 'Smash Arena', reason: 'Test' })).status).toBe(403);
+    expect((await ctx.send('POST', `/admin/businesses/${bizA}/unsuspend`, ownerA, { reason: 'Test' })).status).toBe(403);
+  });
+});
+
+describe('I2 change owner', () => {
+  let ownerB = 0;
+  let hafiz = 0;
+  const memberOf = async (userId: number) =>
+    (await ctx.db.select().from(businessMembers).where(eq(businessMembers.userId, userId))).find((m) => m.businessId === bizB)!;
+
+  beforeAll(async () => {
+    [{ id: ownerB }] = (await ctx.db.select({ id: users.id }).from(users).where(eq(users.email, 'b@example.com'))) as [{ id: number }];
+    hafiz = await ctx.createUser('Hafiz R.', 'hafiz@example.com');
+    await ctx.db.insert(businessMembers).values({ businessId: bizB, userId: hafiz, role: 'staff' });
+  });
+
+  it('refuses a missing proof, someone outside the business, or the current owner', async () => {
+    const path = `/admin/businesses/${bizB}/change-owner`;
+    const body = { newOwnerUserId: hafiz, oldOwner: 'staff', proof: 'SSM cert emailed 3 Oct', reason: 'Business sold' };
+    expect((await ctx.send('POST', path, admin, { ...body, proof: '' })).status).toBe(400);
+    expect((await ctx.send('POST', path, admin, { ...body, oldOwner: 'delete' })).status).toBe(400);
+    expect((await ctx.send('POST', path, admin, { ...body, newOwnerUserId: adminUserId })).status).toBe(404);
+    expect(await errCode(await ctx.send('POST', path, admin, { ...body, newOwnerUserId: ownerB }))).toBe('no_change');
+    expect(await auditRows()).toHaveLength(0);
+  });
+
+  it('refuses someone who already owns another business', async () => {
+    const [{ id: ownerAUser }] = (await ctx.db.select({ id: users.id }).from(users).where(eq(users.email, 'a@example.com'))) as [{ id: number }];
+    const [row] = await ctx.db.insert(businessMembers).values({ businessId: bizB, userId: ownerAUser, role: 'staff' }).returning();
+    const res = await ctx.send('POST', `/admin/businesses/${bizB}/change-owner`, admin, {
+      newOwnerUserId: ownerAUser,
+      oldOwner: 'staff',
+      proof: 'Letter',
+      reason: 'Business sold',
+    });
+    await ctx.db.delete(businessMembers).where(eq(businessMembers.id, row!.id));
+    expect(await errCode(res)).toBe('owner_elsewhere');
+  });
+
+  it('makes a staff member the owner; the old owner stays as staff, or is removed', async () => {
+    const path = `/admin/businesses/${bizB}/change-owner`;
+    const res = await ctx.send('POST', path, admin, {
+      newOwnerUserId: hafiz,
+      oldOwner: 'staff',
+      proof: 'SSM cert + letter emailed 3 Oct',
+      reason: 'Business sold to Hafiz',
+    });
+    expect(res.status).toBe(200);
+    const detail = (await res.json()) as AdminBusinessDetail;
+    expect(detail.owner?.email).toBe('hafiz@example.com');
+    expect(detail.members.filter((m) => m.role === 'owner').map((m) => m.email)).toEqual(['hafiz@example.com']);
+    expect(detail.auditLog[0]).toMatchObject({
+      action: 'change_owner',
+      reason: 'Business sold to Hafiz',
+      details: { from: 'b@example.com', to: 'hafiz@example.com', oldOwner: 'staff', proof: 'SSM cert + letter emailed 3 Oct' },
+    });
+    expect(await memberOf(ownerB)).toMatchObject({ role: 'staff', isActive: true, canViewAll: true, canTakePayments: true, canEditSetup: false });
+
+    const hafizCookie = await ctx.login('hafiz@example.com', 'password123');
+    expect(((await (await ctx.get('/me', hafizCookie)).json()) as MeResponse).role).toBe('owner');
+    const oldCookie = await ctx.login('b@example.com', 'password123');
+    expect(((await (await ctx.get('/me', oldCookie)).json()) as MeResponse).role).toBe('staff');
+
+    // And back again, this time removing the person who is owner now.
+    const back = await ctx.send('POST', path, admin, { newOwnerUserId: ownerB, oldOwner: 'remove', proof: 'Sale cancelled', reason: 'Undo' });
+    expect(back.status).toBe(200);
+    expect(await memberOf(ownerB)).toMatchObject({ role: 'owner', isActive: true });
+    expect(await memberOf(hafiz)).toMatchObject({ role: 'staff', isActive: false });
+    expect((await ctx.get('/me', hafizCookie)).status).toBe(403);
   });
 });
 

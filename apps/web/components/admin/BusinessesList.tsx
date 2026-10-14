@@ -139,7 +139,13 @@ export function BusinessesList() {
                     </td>
                     <td>
                       <StateTag business={row} />
-                      {!row.bookingEnabled && <div className="muted small">{b.paused}</div>}
+                      {row.suspended ? (
+                        <div>
+                          <span className="tag tag-red">{b.suspended}</span>
+                        </div>
+                      ) : (
+                        !row.bookingEnabled && <div className="muted small">{b.paused}</div>
+                      )}
                     </td>
                     <td>{untilLabel(row)}</td>
                     <td className="num">{row.bookings30d}</td>

@@ -1272,6 +1272,16 @@ export const en = {
     whatsapp: 'Talk to us on WhatsApp',
     whatsappMessage: (business: string) => `Hi FTech, my OutletBooking free trial for ${business} has ended. Can you help me choose a plan?`,
   },
+  /** I2 · business suspended by FTech (owner and staff). */
+  suspended: {
+    title: 'Account suspended',
+    body: (business: string) =>
+      `OutletBooking has suspended ${business}. The app and the online booking page are locked until this is sorted out.`,
+    reason: 'Reason',
+    safe: 'Your bookings, customers and payments are kept. Contact us to resolve this.',
+    whatsapp: 'Contact OutletBooking',
+    whatsappMessage: (business: string) => `Hi FTech, ${business} has been suspended on OutletBooking. Can you help?`,
+  },
   reports: {
     periods: { today: 'Today', week: 'This week', month: 'This month' },
     previous: 'Previous period',

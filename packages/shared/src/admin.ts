@@ -121,6 +121,35 @@ export type ChangePlanInput = z.infer<typeof changePlanSchema>;
 export const ownerLinkSchema = z.object({ reason: adminReason });
 export type OwnerLinkInput = z.infer<typeof ownerLinkSchema>;
 
+/**
+ * I2 "Suspend business" for misuse: the owner and staff app and the booking page are locked, and the owner
+ * sees the reason. The admin types the business name again to confirm.
+ */
+export const suspendSchema = z.object({
+  reason: adminReason,
+  confirmName: z.string().trim().min(1, 'Type the business name to confirm').max(200),
+});
+export type SuspendInput = z.infer<typeof suspendSchema>;
+
+export const unsuspendSchema = z.object({ reason: adminReason });
+export type UnsuspendInput = z.infer<typeof unsuspendSchema>;
+
+/** I2 "Change owner": what happens to the old owner. */
+export const OLD_OWNER_OPTIONS = ['staff', 'remove'] as const;
+export type OldOwnerOption = (typeof OLD_OWNER_OPTIONS)[number];
+
+/**
+ * I2 "Change owner": an active staff member becomes the owner. Needs proof from the business
+ * (e.g. "SSM certificate + letter emailed 3 Oct") and a reason. The old owner becomes staff or is removed.
+ */
+export const changeOwnerSchema = z.object({
+  newOwnerUserId: z.number().int().positive(),
+  oldOwner: z.enum(OLD_OWNER_OPTIONS),
+  proof: z.string().trim().min(3, 'Describe the proof from the business (SSM, letter…)').max(500),
+  reason: adminReason,
+});
+export type ChangeOwnerInput = z.infer<typeof changeOwnerSchema>;
+
 export const adminNoteSchema = z.object({ reason: adminReason });
 export type AdminNoteInput = z.infer<typeof adminNoteSchema>;
 
@@ -157,6 +186,8 @@ export interface AdminBusinessRow {
   state: AdminPlanState;
   subscription: AdminSubscription | null;
   bookingEnabled: boolean;
+  /** Suspended for misuse by FTech (app and booking page locked). */
+  suspended: { at: string; reason: string } | null;
   /** Bookings made in the last 30 days (any status). */
   bookings30d: number;
   createdAt: string;
@@ -189,6 +220,7 @@ export interface AuditEntry {
 }
 
 export interface AdminMember {
+  userId: number;
   name: string;
   email: string;
   role: MemberRole;

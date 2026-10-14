@@ -26,6 +26,7 @@ import { checklistRoutes } from './routes/checklist';
 import { listingRoutes } from './routes/listings';
 import { timeOffRoutes } from './routes/time-off';
 import { paymentRoutes, toyyibPayRoutes } from './routes/payments';
+import { createMailer, type Mailer } from './services/mailer';
 import { expoPushSender, type PushSender } from './services/push';
 import { s3Storage, type ObjectStorage } from './services/storage';
 import { toyyibPayClient, type ToyyibPayClient } from './services/toyyibpay';
@@ -35,6 +36,8 @@ export interface AppDeps {
   db: Db;
   auth: Auth;
   env: Env;
+  /** Email (M1–M7); pass the same one as createAuth. Tests pass a fake. */
+  mailer?: Mailer;
   /** Push notifications; tests pass a fake. */
   push?: PushSender;
   /** ToyyibPay API; tests pass a fake. */
@@ -47,6 +50,7 @@ export function createApp({
   db,
   auth,
   env,
+  mailer = createMailer(env),
   push = expoPushSender(env.EXPO_ACCESS_TOKEN),
   toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL),
   storage = s3Storage(env),
@@ -72,6 +76,7 @@ export function createApp({
     c.set('db', db);
     c.set('auth', auth);
     c.set('env', env);
+    c.set('mailer', mailer);
     c.set('push', push);
     c.set('toyyibpay', toyyibpay);
     c.set('storage', storage);

@@ -36,6 +36,12 @@ describe('Resend mailer', () => {
     });
   });
 
+  it('sends the HTML version too when there is one', async () => {
+    const { fn, calls } = fakeFetch();
+    await createMailer(config, fn).send({ ...message, html: '<p>Hi</p>' });
+    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({ text: message.text, html: '<p>Hi</p>' });
+  });
+
   it('throws when Resend rejects the email, without leaking the key or the link', async () => {
     const { fn } = fakeFetch(422, '{"message":"The from domain is not verified"}');
     const err = await createMailer(config, fn).send(message).catch((e: Error) => e);

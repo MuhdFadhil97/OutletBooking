@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, isNull, sql, sum, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, isNull, ne, sql, sum, type SQL } from 'drizzle-orm';
 import { addMonths } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import {
@@ -32,14 +32,19 @@ import {
   type AuditLogQuery,
   type BookingPageInput,
   type BusinessTemplate,
+  type ChangeOwnerInput,
   type ChangePlanInput,
   type ExtendTrialInput,
   type FreeMonthsInput,
   type MemberRole,
   type PaidPlan,
   type SubscriptionStatus,
+  type SuspendInput,
 } from '@outletbooking/shared';
 import type { Auth } from '../auth';
+import type { Env } from '../env';
+import { sendConfirmEmail } from './confirm-email';
+import type { Mailer } from './mailer';
 import { AppError, notFound } from '../errors';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,6 +90,8 @@ function selectBusinesses(q: Db | Tx, since: Date) {
       whatsappPhone: businesses.whatsappPhone,
       resourceLabel: businesses.resourceLabel,
       bookingEnabled: businesses.bookingEnabled,
+      suspendedAt: businesses.suspendedAt,
+      suspendReason: businesses.suspendReason,
       createdAt: businesses.createdAt,
       owner: { name: users.name, email: users.email, phone: users.phone },
       sub: {
@@ -134,6 +141,7 @@ function toRow(r: Row, now: Date): AdminBusinessRow {
       hasAccess: hasPlanAccess(sub, now),
     },
     bookingEnabled: r.bookingEnabled,
+    suspended: r.suspendedAt && r.suspendReason !== null ? { at: r.suspendedAt.toISOString(), reason: r.suspendReason } : null,
     bookings30d: Number(r.bookings30d),
     createdAt: r.createdAt.toISOString(),
   };
@@ -195,6 +203,7 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
     listAuditLog(db, { businessId, limit: 50 }),
     db
       .select({
+        userId: users.id,
         name: users.name,
         email: users.email,
         emailVerified: users.emailVerified,
@@ -281,7 +290,12 @@ async function audit(
 
 async function lockBusiness(tx: Tx, businessId: number) {
   const [biz] = await tx
-    .select({ id: businesses.id, bookingEnabled: businesses.bookingEnabled })
+    .select({
+      id: businesses.id,
+      name: businesses.name,
+      bookingEnabled: businesses.bookingEnabled,
+      suspendedAt: businesses.suspendedAt,
+    })
     .from(businesses)
     .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
     .for('update');
@@ -349,6 +363,130 @@ export async function setBookingPage(
     }
     await tx.update(businesses).set({ bookingEnabled: input.enabled }).where(eq(businesses.id, businessId));
     await audit(tx, adminUserId, businessId, input.enabled ? 'resume_booking_page' : 'pause_booking_page', input.reason);
+  });
+  return getAdminBusiness(db, businessId);
+}
+
+/**
+ * I2 "Resend confirm email" to the owner (M1, link valid 24 hours). Refused once the email is confirmed.
+ * The audit row is written once the email has been handed to the mailer.
+ */
+export async function resendOwnerConfirmEmail(
+  db: Db,
+  mailer: Mailer,
+  env: Env,
+  adminUserId: number,
+  businessId: number,
+  reason: string,
+): Promise<AdminBusinessDetail> {
+  const detail = await getAdminBusiness(db, businessId);
+  const owner = detail.members.find((m) => m.role === 'owner' && m.isActive);
+  if (!owner) throw new AppError(409, 'no_owner', 'This business has no active owner');
+  if (!(await sendConfirmEmail(db, mailer, env, owner.userId))) {
+    throw new AppError(409, 'already_confirmed', 'The owner has already confirmed their email');
+  }
+  await db.transaction(async (tx) => {
+    await lockBusiness(tx, businessId);
+    await audit(tx, adminUserId, businessId, 'resend_link', reason, { link: 'confirm_email' });
+  });
+  return getAdminBusiness(db, businessId);
+}
+
+/** Compare names the way people type them: case, spacing and accents do not matter. */
+function sameName(a: string, b: string) {
+  const norm = (x: string) => x.normalize('NFKD').replace(/\p{M}/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  return norm(a) === norm(b);
+}
+
+/**
+ * I2 "Suspend business" for misuse: every business route refuses the owner and staff (resolveTenant), the app
+ * shows the reason, and the booking page shows as paused. Bookings, customers and payments are kept.
+ * The admin types the business name to confirm.
+ */
+export async function suspendBusiness(
+  db: Db,
+  adminUserId: number,
+  businessId: number,
+  input: SuspendInput,
+  now: Date = new Date(),
+): Promise<AdminBusinessDetail> {
+  await db.transaction(async (tx) => {
+    const biz = await lockBusiness(tx, businessId);
+    if (biz.suspendedAt) throw new AppError(409, 'no_change', 'This business is already suspended');
+    if (!sameName(input.confirmName, biz.name)) {
+      throw new AppError(400, 'name_mismatch', `Type the business name exactly: ${biz.name}`);
+    }
+    await tx.update(businesses).set({ suspendedAt: now, suspendReason: input.reason }).where(eq(businesses.id, businessId));
+    await audit(tx, adminUserId, businessId, 'suspend_business', input.reason);
+  });
+  return getAdminBusiness(db, businessId, now);
+}
+
+/** I2 "Lift suspension": the app works again; the booking page is live again if it was live before. */
+export async function unsuspendBusiness(db: Db, adminUserId: number, businessId: number, reason: string): Promise<AdminBusinessDetail> {
+  await db.transaction(async (tx) => {
+    const biz = await lockBusiness(tx, businessId);
+    if (!biz.suspendedAt) throw new AppError(409, 'no_change', 'This business is not suspended');
+    await tx.update(businesses).set({ suspendedAt: null, suspendReason: null }).where(eq(businesses.id, businessId));
+    await audit(tx, adminUserId, businessId, 'unsuspend_business', reason, { suspendedAt: biz.suspendedAt.toISOString() });
+  });
+  return getAdminBusiness(db, businessId);
+}
+
+/**
+ * I2 "Change owner" (with proof from the business): an active staff member becomes the owner; the old owner
+ * stays as staff (sees all bookings, can take payments) or is removed. One owner per business.
+ */
+export async function changeOwner(db: Db, adminUserId: number, businessId: number, input: ChangeOwnerInput): Promise<AdminBusinessDetail> {
+  await db.transaction(async (tx) => {
+    await lockBusiness(tx, businessId);
+    const members = await tx
+      .select({ id: businessMembers.id, userId: businessMembers.userId, role: businessMembers.role, email: users.email })
+      .from(businessMembers)
+      .innerJoin(users, eq(users.id, businessMembers.userId))
+      .where(and(eq(businessMembers.businessId, businessId), eq(businessMembers.isActive, true)));
+    const next = members.find((m) => m.userId === input.newOwnerUserId);
+    if (!next) throw new AppError(404, 'not_found', 'Pick an active staff member of this business');
+    if (next.role === 'owner') throw new AppError(409, 'no_change', 'This person is already the owner');
+
+    // The app works with one business per login, and an owner membership wins (resolveTenant).
+    const [elsewhere] = await tx
+      .select({ id: businessMembers.id })
+      .from(businessMembers)
+      .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
+      .where(
+        and(
+          eq(businessMembers.userId, next.userId),
+          eq(businessMembers.role, 'owner'),
+          eq(businessMembers.isActive, true),
+          isNull(businesses.deletedAt),
+          ne(businessMembers.businessId, businessId),
+        ),
+      )
+      .limit(1);
+    if (elsewhere) throw new AppError(409, 'owner_elsewhere', 'This person already owns another business');
+
+    const old = members.filter((m) => m.role === 'owner');
+    for (const o of old) {
+      await tx
+        .update(businessMembers)
+        .set(
+          input.oldOwner === 'staff'
+            ? { role: 'staff', canViewAll: true, canTakePayments: true, canEditSetup: false }
+            : { role: 'staff', isActive: false },
+        )
+        .where(eq(businessMembers.id, o.id));
+    }
+    await tx
+      .update(businessMembers)
+      .set({ role: 'owner', canViewAll: true, canTakePayments: true, canEditSetup: true })
+      .where(eq(businessMembers.id, next.id));
+    await audit(tx, adminUserId, businessId, 'change_owner', input.reason, {
+      from: old.map((o) => o.email).join(', ') || null,
+      to: next.email,
+      oldOwner: input.oldOwner,
+      proof: input.proof,
+    });
   });
   return getAdminBusiness(db, businessId);
 }

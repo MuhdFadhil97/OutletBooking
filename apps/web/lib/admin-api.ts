@@ -3,9 +3,11 @@ import type {
   AdminBusinessesResponse,
   AdminBusinessFilter,
   BookingPageInput,
+  ChangeOwnerInput,
   ChangePlanInput,
   ExtendTrialInput,
   FreeMonthsInput,
+  SuspendInput,
 } from '@outletbooking/shared';
 import { API_URL } from './config';
 
@@ -98,6 +100,24 @@ export async function giveFreeMonths(id: number, input: FreeMonthsInput): Promis
 
 export async function changePlan(id: number, input: ChangePlanInput): Promise<Result<AdminBusinessDetail>> {
   return toResult(await call(`/admin/businesses/${id}/change-plan`, input));
+}
+
+/** Locks the owner/staff app and the booking page; the owner sees the reason. */
+export async function suspendBusiness(id: number, input: SuspendInput): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/suspend`, input));
+}
+
+export async function unsuspendBusiness(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/unsuspend`, { reason }));
+}
+
+export async function changeOwner(id: number, input: ChangeOwnerInput): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/change-owner`, input));
+}
+
+/** Emails the owner M1 "Confirm your email" again (refused once confirmed). */
+export async function resendConfirmEmail(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/confirm-email`, { reason }));
 }
 
 /** Emails the owner the same reset link as E1 "Forgot password". */

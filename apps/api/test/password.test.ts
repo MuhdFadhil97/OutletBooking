@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { sessions, users, verifications } from '@outletbooking/db';
+import { settleBackground } from '../src/background';
 import { createTestContext, signupInput } from './helpers';
 
 const ctx = createTestContext();
@@ -9,6 +10,9 @@ beforeEach(async () => {
   await ctx.reset();
   await ctx.db.delete(verifications);
   expect((await ctx.post('/signup', signupInput())).status).toBe(201);
+  // Sign-up sends M1 (confirm email) in the background; these tests look at the reset email only.
+  await settleBackground();
+  ctx.outbox.length = 0;
 });
 afterAll(() => ctx.close());
 
