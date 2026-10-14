@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ContactForm } from '@/components/ContactForm';
-import { links } from '@/lib/config';
+import { apiLive, links } from '@/lib/config';
 import { s } from '@/strings/en';
 
 export const metadata: Metadata = { title: s.contact.metaTitle };
@@ -16,7 +16,24 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         {c.intro}
       </p>
       <div className="grid contact-grid">
-        <ContactForm initialReason={reason} />
+        {apiLive ? (
+          <ContactForm initialReason={reason} />
+        ) : (
+          // Pre-launch: no API online yet, so leads come in on WhatsApp.
+          <div className="card contact-form">
+            <p>{c.prelaunch}</p>
+            <div>
+              <a
+                className="btn"
+                href={links.whatsapp(reason === 'demo' ? c.whatsappDemo : c.whatsappMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {s.footer.whatsapp}
+              </a>
+            </div>
+          </div>
+        )}
         <aside className="card tile">
           <h3>{c.whatsappTitle}</h3>
           <p>{c.whatsappHours}</p>

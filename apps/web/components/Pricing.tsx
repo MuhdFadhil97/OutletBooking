@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { EXTRA_RESOURCE_SEN, PAID_PLANS, PLAN_PRICES } from '@outletbooking/shared';
-import { links } from '@/lib/config';
 import { formatRm } from '@/lib/money';
 import { s } from '@/strings/en';
+import { TrialButton } from './TrialButton';
 
 /** Prices come from the shared plan config (same numbers as the app's E3). */
 export function Pricing() {
@@ -23,9 +23,7 @@ export function Pricing() {
                   <li key={f}>{f}</li>
                 ))}
               </ul>
-              <a className="btn" href={links.signup}>
-                {s.cta.trial}
-              </a>
+              <TrialButton />
             </div>
           ))}
         </div>

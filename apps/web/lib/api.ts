@@ -5,6 +5,7 @@ export type SubmitResult = 'ok' | 'rate_limited' | 'error';
 
 /** I19 → POST /public/leads (no login). Sent from the browser so the API rate-limits per visitor. */
 export async function submitLead(input: LeadCreateInput): Promise<SubmitResult> {
+  if (!API_URL) return 'error';
   try {
     const res = await fetch(`${API_URL}/public/leads`, {
       method: 'POST',

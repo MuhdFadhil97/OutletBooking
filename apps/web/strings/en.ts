@@ -61,6 +61,7 @@ export const s = {
     intro:
       'One link for courts, viewings, inspections or appointments. Customers pick a time and pay a deposit. You see everything on your phone.',
     noCard: 'No card needed · set up in about 10 minutes',
+    prelaunchNote: 'Launching soon · book a demo and we’ll set you up first',
     preview: {
       business: 'Smash Arena PJ',
       subtitle: 'Book a court',
@@ -290,6 +291,8 @@ export const s = {
     whatsappTitle: 'Prefer WhatsApp?',
     whatsappHours: 'Mon – Fri, 9 AM – 6 PM',
     whatsappMessage: 'Hi OutletBooking, I have a question.',
+    prelaunch: 'The contact form opens soon. Message us on WhatsApp — we reply within one working day.',
+    whatsappDemo: 'Hi OutletBooking, I would like to book a demo.',
     companyDetails: ['FTech IT Consulting Sdn Bhd [SSM no.]', '[Office address]', '[hello@outletbooking.my]'],
   },
 

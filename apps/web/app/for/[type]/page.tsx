@@ -5,6 +5,7 @@ import { TEMPLATE_INFO, type TemplateService } from '@outletbooking/shared';
 import { BookingPreview } from '@/components/BookingPreview';
 import { Faq } from '@/components/Faq';
 import { afterTrialLine } from '@/components/Pricing';
+import { TrialButton } from '@/components/TrialButton';
 import { links } from '@/lib/config';
 import { formatRm } from '@/lib/money';
 import { s, TYPE_PAGE_SLUGS, type TypePageSlug } from '@/strings/en';
@@ -60,16 +61,18 @@ export default async function TypePage({ params }: Props) {
           <h1>{copy.headline}</h1>
           <p className="lead">{copy.intro}</p>
           <div className="actions">
-            <a className="btn" href={links.signup}>
-              {s.cta.trial}
-            </a>
-            <a className="btn2" href={links.demoBookingPage} target="_blank" rel="noopener noreferrer">
-              {s.cta.seeSample}
-            </a>
+            <TrialButton />
+            {links.demoBookingPage && (
+              <a className="btn2" href={links.demoBookingPage} target="_blank" rel="noopener noreferrer">
+                {s.cta.seeSample}
+              </a>
+            )}
           </div>
-          <p className="note">
-            <Link href="/contact">{s.cta.demo}</Link>
-          </p>
+          {links.signup && (
+            <p className="note">
+              <Link href={links.bookDemo}>{s.cta.demo}</Link>
+            </p>
+          )}
         </div>
         <BookingPreview {...copy.preview} />
       </div>
@@ -144,9 +147,7 @@ export default async function TypePage({ params }: Props) {
         <div className="wrap">
           <h2>{t.trialTitle}</h2>
           <p className="muted">{afterTrialLine()}</p>
-          <a className="btn" href={links.signup}>
-            {s.nav.trial}
-          </a>
+          <TrialButton label={s.nav.trial} />
         </div>
       </section>
     </>
