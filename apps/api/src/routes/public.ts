@@ -21,6 +21,7 @@ import {
   getPublicNextAvailable,
   getPublicQuote,
   getPublicSlots,
+  getSimilarBusinesses,
 } from '../services/public';
 import { createBookingPaymentLink, notifyPayment, syncBookingBills } from '../services/payments';
 import { notifyBooking } from '../services/push';
@@ -94,6 +95,10 @@ export const publicRoutes = new Hono<AppEnv>()
   )
   .get('/:slug', validate('param', publicSlugParam), async (c) =>
     c.json(await getPublicBusiness(c.var.db, c.req.valid('param').slug)),
+  )
+  // F6 "Did you mean", asked by the booking page after a 404.
+  .get('/:slug/similar', validate('param', publicSlugParam), async (c) =>
+    c.json(await getSimilarBusinesses(c.var.db, c.req.valid('param').slug)),
   )
   .get('/:slug/slots', validate('param', publicSlugParam), validate('query', availabilityQuerySchema), async (c) =>
     c.json(await getPublicSlots(c.var.db, c.req.valid('param').slug, c.req.valid('query'))),

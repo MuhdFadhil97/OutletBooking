@@ -6,6 +6,7 @@ import type {
   PublicBookingConfirmation,
   PublicBookingCreateInput,
   PublicBusiness,
+  PublicSimilarBusiness,
 } from '@outletbooking/shared';
 import { apiFetch } from '@/lib/api';
 import { API_URL } from '@/lib/config';
@@ -19,6 +20,9 @@ const qs = (params: Record<string, string | number | undefined>) =>
 const slugPath = (slug: string) => `/public/${encodeURIComponent(slug)}`;
 
 export const getPublicBusiness = (slug: string) => apiFetch<PublicBusiness>(slugPath(slug));
+
+/** F6 "Did you mean" after a 404. */
+export const getSimilarBusinesses = (slug: string) => apiFetch<PublicSimilarBusiness[]>(`${slugPath(slug)}/similar`);
 
 export const getPublicSlots = (slug: string, p: { serviceId: number; date: string; durationMin?: number; resourceId?: number }) =>
   apiFetch<Availability>(`${slugPath(slug)}/slots?${qs(p)}`);

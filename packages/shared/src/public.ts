@@ -3,6 +3,7 @@ import { slugSchema } from './schemas';
 import type { BookingStatus, PaymentStatus } from './bookings';
 import type { PublicListing } from './listings';
 import type { BookingField, LocationType, PriceUnit, ResourceType } from './setup';
+import type { BusinessTemplate } from './templates';
 
 /** `/public/:slug` — the business slug from the shared booking link. */
 export const publicSlugParam = z.object({ slug: slugSchema });
@@ -102,4 +103,12 @@ export interface PublicBookingConfirmation {
   /** Short booking reference shown to the customer and sent to ToyyibPay (first 6 of the token). */
   ref: string;
   business: Pick<PublicBusiness, 'slug' | 'name' | 'address' | 'phone' | 'whatsappPhone' | 'timezone'>;
+}
+
+/** F6 "Did you mean": a bookable business whose link is close to the one typed. */
+export interface PublicSimilarBusiness {
+  slug: string;
+  name: string;
+  template: BusinessTemplate;
+  address: string | null;
 }

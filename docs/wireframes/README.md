@@ -111,6 +111,7 @@ Six boards show how the screens connect — each card has the screen ID used in 
 | I22 | Web-RealEstate.dc.html | Business-type page · Real estate | Website | 7 |
 | I23 | Web-Inspection.dc.html | Business-type page · Vehicle inspection | Website | 7 |
 | F6 | Customer-NotFound.dc.html | Booking page not found (wrong or old `/b/slug`) | All | 4 |
+| F6 | Customer-Closed.dc.html | Booking page closed (owner asked to close, or data deleted) | All | 4 |
 | M1 | Email-Verify.dc.html | Email · confirm your email (after sign-up) | All | 1 |
 | M2 | Email-Reset.dc.html | Email · reset password (link opens E2) | All | 1 |
 | M3 | Email-StaffInvite.dc.html | Email · staff invite (link opens G1) | All | 2 |

@@ -5,6 +5,10 @@ import * as api from './api';
 export const usePublicBusiness = (slug: string) =>
   useQuery({ queryKey: ['public-business', slug], queryFn: () => api.getPublicBusiness(slug), enabled: !!slug });
 
+/** F6: only asked once the business itself is not found. */
+export const useSimilarBusinesses = (slug: string, enabled: boolean) =>
+  useQuery({ queryKey: ['public-similar', slug], queryFn: () => api.getSimilarBusinesses(slug), enabled: enabled && !!slug });
+
 export const usePublicSlots = (
   slug: string,
   p: { serviceId: number; date: string; durationMin?: number; resourceId?: number } | null,

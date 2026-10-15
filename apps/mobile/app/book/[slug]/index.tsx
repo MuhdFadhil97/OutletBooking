@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { addDays, format, parseISO } from 'date-fns';
@@ -14,6 +14,7 @@ import {
   type PublicBusiness,
   type PublicListing,
   type PublicService,
+  type PublicSimilarBusiness,
 } from '@outletbooking/shared';
 import { Brand } from '@/components/Brand';
 import { Button } from '@/components/ui/Button';
@@ -32,8 +33,10 @@ import {
   usePublicNextAvailable,
   usePublicQuote,
   usePublicSlots,
+  useSimilarBusinesses,
 } from '@/features/public/hooks';
 import { ApiError } from '@/lib/api';
+import { bookingUrlLabel, WEBSITE_URL } from '@/lib/config';
 import { formatDuration, formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
@@ -48,19 +51,13 @@ const STEPS = 4; // service → time → details → confirmed
 export default function BookingPage() {
   const { slug = '' } = useLocalSearchParams<{ slug: string }>();
   const { data: biz, isPending, error, refetch } = usePublicBusiness(slug);
+  const status = error instanceof ApiError ? error.status : 0;
 
   if (isPending) return <LoadingState label={b.loading} />;
   if (error) {
-    const notFound = error instanceof ApiError && [400, 404].includes(error.status);
-    if (!notFound) return <ErrorState error={error} onRetry={() => void refetch()} />;
-    return (
-      <PublicPage>
-        <Brand />
-        <Card className="p-5">
-          <Text className="text-[15px]">{b.notFound}</Text>
-        </Card>
-      </PublicPage>
-    );
+    if (status === 410) return <Closed />;
+    if (status !== 400 && status !== 404) return <ErrorState error={error} onRetry={() => void refetch()} />;
+    return <NotFound slug={slug} checkSimilar={status === 404} />;
   }
   return (
     <>
@@ -285,12 +282,16 @@ function ListingPicker({
   );
 }
 
-function BusinessHeader({ biz }: { biz: PublicBusiness }) {
-  const initials = biz.name
+const nameInitials = (name: string) =>
+  name
     .split(/\s+/)
+    .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
+    .map((w) => w[0]!.toUpperCase())
     .join('');
+
+function BusinessHeader({ biz }: { biz: PublicBusiness }) {
+  const initials = nameInitials(biz.name);
   return (
     <View className="gap-2">
       <View className="flex-row items-center gap-3">
@@ -313,6 +314,115 @@ function BusinessHeader({ biz }: { biz: PublicBusiness }) {
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** F6 · Booking page not found: wrong or old link. Suggests bookable businesses with a close link. */
+function NotFound({ slug, checkSimilar }: { slug: string; checkSimilar: boolean }) {
+  const n = b.notFound;
+  // A failed suggestion lookup just hides the list: the page already says what to do.
+  const { data: similar = [], isPending } = useSimilarBusinesses(slug, checkSimilar);
+  return (
+    <PublicPage>
+      <Head>
+        <title>{n.title}</title>
+      </Head>
+      <Brand />
+      <View className="gap-3.5 pt-4">
+        <View className="h-16 w-16 items-center justify-center self-center rounded-full bg-neutral-bg">
+          <Icon name="search" size={30} color={colors['neutral-fg']} />
+        </View>
+        <Text className="text-center text-[22px] font-extrabold" accessibilityRole="header">
+          {n.title}
+        </Text>
+        <Text className="text-center text-[15px] leading-[22px] text-muted">
+          {n.couldNotFind} <Text className="text-[15px] font-bold">{bookingUrlLabel(slug)}</Text>. {n.typo}
+        </Text>
+        {checkSimilar && isPending ? (
+          <ActivityIndicator color={colors.primary} className="py-4" accessibilityLabel={t.common.loading} />
+        ) : similar.length ? (
+          <>
+            <Text className="px-0.5 pt-1 text-[12px] font-extrabold uppercase tracking-[0.6px] text-muted">{n.didYouMean}</Text>
+            <Card className="overflow-hidden">
+              {similar.map((s, i) => (
+                <SimilarRow key={s.slug} biz={s} first={i === 0} />
+              ))}
+            </Card>
+          </>
+        ) : null}
+        <Card className="border-border bg-pressed px-3.5 py-3">
+          <Text className="text-[13px] leading-[20px]">{similar.length ? n.notRight : n.askAgain}</Text>
+        </Card>
+        <OwnBusinessLink />
+      </View>
+    </PublicPage>
+  );
+}
+
+function SimilarRow({ biz, first }: { biz: PublicSimilarBusiness; first: boolean }) {
+  const initials = nameInitials(biz.name);
+  const sub = [t.templates[biz.template].title, biz.address].filter(Boolean).join(' · ');
+  return (
+    <Pressable
+      onPress={() => router.push(`/book/${biz.slug}`)}
+      accessibilityRole="link"
+      accessibilityLabel={`${biz.name}, ${sub}`}
+      className={`min-h-16 flex-row items-center gap-3 px-3.5 py-2.5 active:bg-pressed ${first ? '' : 'border-t border-border'}`}
+    >
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary">
+        <Text className="text-[14px] font-extrabold text-white">{initials}</Text>
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-bold" numberOfLines={1}>
+          {biz.name}
+        </Text>
+        <Text className="mt-0.5 text-[12px] text-muted" numberOfLines={1}>
+          {sub}
+        </Text>
+        <Text className="mt-0.5 text-[12px] font-bold text-ok-fg" numberOfLines={1}>
+          /book/{biz.slug}
+        </Text>
+      </View>
+      <Icon name="chevron-right" size={18} color={colors['input-border']} />
+    </Pressable>
+  );
+}
+
+/** F6 · Closed: the owner asked to close the account, or its data was deleted. */
+function Closed() {
+  const c = b.closed;
+  return (
+    <PublicPage>
+      <Head>
+        <title>{c.title}</title>
+      </Head>
+      <Brand />
+      <View className="gap-4 pt-6">
+        <View className="h-16 w-16 items-center justify-center self-center rounded-full bg-pend-bg">
+          <Icon name="x" size={30} color={colors['pend-fg']} />
+        </View>
+        <Text className="text-center text-[22px] font-extrabold" accessibilityRole="header">
+          {c.title}
+        </Text>
+        <Text className="text-center text-[15px] leading-[22px] text-muted">{c.body}</Text>
+        <Card className="px-3.5 py-3">
+          <Text className="text-[14px] font-bold leading-[21px]">{c.bookedTitle}</Text>
+          <Text className="text-[14px] leading-[21px]">{c.bookedBody}</Text>
+        </Card>
+        <OwnBusinessLink />
+      </View>
+    </PublicPage>
+  );
+}
+
+function OwnBusinessLink() {
+  return (
+    <Text className="pt-6 text-center text-[13px] text-muted">
+      {b.notFound.ownBusiness}{' '}
+      <Text className="text-[13px] font-bold text-primary" accessibilityRole="link" onPress={() => void Linking.openURL(WEBSITE_URL)}>
+        {b.notFound.makeYourOwn}
+      </Text>
+    </Text>
   );
 }
 

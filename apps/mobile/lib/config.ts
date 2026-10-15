@@ -35,5 +35,8 @@ function defaultBookingBase(): string {
 
 export const PUBLIC_BOOKING_BASE = (process.env.EXPO_PUBLIC_BOOKING_URL ?? defaultBookingBase()).replace(/\/+$/, '');
 
+/** Marketing website (apps/web): "Make your own booking page" on F6. */
+export const WEBSITE_URL = (process.env.EXPO_PUBLIC_WEBSITE_URL ?? 'https://outletbooking.my').replace(/\/+$/, '');
+
 export const bookingUrl = (slug: string) => `${PUBLIC_BOOKING_BASE}/book/${slug}`;
 export const bookingUrlLabel = (slug: string) => `${PUBLIC_BOOKING_BASE.replace(/^https?:\/\//, '')}/book/${slug}`;

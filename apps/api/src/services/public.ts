@@ -1,6 +1,6 @@
 import { addDays, addMinutes, format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { and, asc, count, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, gt, ilike, inArray, isNull, or } from 'drizzle-orm';
 import {
   bookingFields,
   bookings,
@@ -29,6 +29,7 @@ import type {
   PublicBookingConfirmation,
   PublicBookingCreate,
   PublicBusiness,
+  PublicSimilarBusiness,
   ResourceType,
 } from '@outletbooking/shared';
 import { hasPlanAccess } from '@outletbooking/shared';
@@ -67,13 +68,19 @@ async function findBusiness(q: Q, slug: string) {
     .select({
       ...businessColumns,
       suspendedAt: businesses.suspendedAt,
+      closeRequestedAt: businesses.closeRequestedAt,
+      deletedAt: businesses.deletedAt,
       sub: { status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, currentPeriodEnd: subscriptions.currentPeriodEnd },
     })
     .from(businesses)
     .leftJoin(subscriptions, eq(subscriptions.businessId, businesses.id))
-    .where(and(eq(businesses.slug, slug), isNull(businesses.deletedAt)));
+    .where(eq(businesses.slug, slug));
   if (!row) throw notFound('Business');
-  const { sub, suspendedAt, ...biz } = row;
+  const { sub, suspendedAt, closeRequestedAt, deletedAt, ...biz } = row;
+  // F6 · Closed: the owner asked to close (I2) or the tenant data was deleted (I26).
+  if (closeRequestedAt || deletedAt) {
+    throw new AppError(410, 'business_closed', 'This business no longer takes bookings here.');
+  }
   // F3: paused when the owner turned booking off, the trial ended without a plan (FR-16.3),
   // or FTech suspended the business (I2 — customers are not told why).
   return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub) && suspendedAt === null };
@@ -190,6 +197,60 @@ export async function getPublicBusiness(db: Db, slug: string): Promise<PublicBus
       .map((f) => ({ ...f, fieldType: f.fieldType as PublicBusiness['bookingFields'][number]['fieldType'] })),
     listings: await publicListings(db, id),
   };
+}
+
+/** Edit distance between two short strings (slugs are at most 50 characters). */
+function levenshtein(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length]!;
+}
+
+/**
+ * F6 "Did you mean": up to 3 bookable businesses (not paused, suspended, closed or without a plan)
+ * whose slug starts with the typed one or is a few letters off. Slugs are public already, and the
+ * slug rule (3+ characters) plus the rate limit stop anyone from listing every business.
+ */
+export async function getSimilarBusinesses(db: Db, slug: string, now = new Date()): Promise<PublicSimilarBusiness[]> {
+  const typed = slug.toLowerCase();
+  const maxDistance = Math.min(3, Math.floor(typed.length / 3));
+  const words = typed.split('-').filter((w) => w.length >= 4);
+  // Candidates: same first two letters, or containing a longer word of the typed slug (a typo early on).
+  // Slugs only hold [a-z0-9-], so there are no LIKE wildcards to escape.
+  const rows = await db
+    .select({
+      slug: businesses.slug,
+      name: businesses.name,
+      template: businesses.template,
+      address: businesses.address,
+      sub: { status: subscriptions.status, trialEndsAt: subscriptions.trialEndsAt, currentPeriodEnd: subscriptions.currentPeriodEnd },
+    })
+    .from(businesses)
+    .leftJoin(subscriptions, eq(subscriptions.businessId, businesses.id))
+    .where(
+      and(
+        eq(businesses.bookingEnabled, true),
+        isNull(businesses.suspendedAt),
+        isNull(businesses.closeRequestedAt),
+        isNull(businesses.deletedAt),
+        or(ilike(businesses.slug, `${typed.slice(0, 2)}%`), ...words.map((w) => ilike(businesses.slug, `%${w}%`))),
+      ),
+    )
+    .limit(200);
+
+  return rows
+    .filter((r) => r.slug !== typed && hasPlanAccess(r.sub, now))
+    .map((r) => ({ r, prefix: r.slug.startsWith(typed) || typed.startsWith(r.slug), distance: levenshtein(r.slug, typed) }))
+    .filter((m) => m.prefix || m.distance <= maxDistance)
+    .sort((x, y) => Number(y.prefix) - Number(x.prefix) || x.distance - y.distance || x.r.slug.localeCompare(y.r.slug))
+    .slice(0, 3)
+    .map(({ r }) => ({ slug: r.slug, name: r.name, template: r.template as PublicSimilarBusiness['template'], address: r.address }));
 }
 
 /** Free slots for customers: booking window (advance notice, max days ahead) applies. */

@@ -821,7 +821,24 @@ export const en = {
   },
   book: {
     loading: 'Opening booking page…',
-    notFound: 'This booking link is not valid. Check the link with the business.',
+    /** F6 · wrong or old link */
+    notFound: {
+      title: 'Booking page not found',
+      couldNotFind: 'We couldn’t find',
+      typo: 'The link may have a typo.',
+      didYouMean: 'Did you mean',
+      notRight: 'Not the right one? Ask the business to send their link again on WhatsApp, or scan the QR code at their counter.',
+      askAgain: 'Ask the business to send their link again on WhatsApp, or scan the QR code at their counter.',
+      ownBusiness: 'Own a business?',
+      makeYourOwn: 'Make your own booking page',
+    },
+    /** F6 · closed (owner asked to close, or data deleted) */
+    closed: {
+      title: 'This business no longer takes bookings here',
+      body: 'The booking page for this link has been closed. Please contact the business directly.',
+      bookedTitle: 'Already booked with them?',
+      bookedBody: 'Use the WhatsApp or phone number from your booking confirmation to check with the business.',
+    },
     pageTitle: (name: string) => `Book ${name}`,
     services: 'Services',
     noServices: 'No services are listed yet.',
