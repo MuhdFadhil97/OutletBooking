@@ -2,6 +2,8 @@ import type {
   AdminBusinessDetail,
   AdminBusinessesResponse,
   AcceptAdminInviteInput,
+  AdminAccount,
+  ChangeAdminPasswordInput,
   AdminPlanCatalog,
   AdminBusinessFilter,
   AdminInviteInfo,
@@ -35,6 +37,14 @@ export interface Reply {
   body: unknown;
 }
 
+/** Set when the API said the session ended after 8 hours of no activity (FR-21.8); read once by the sign-in redirect. */
+let idleExpired = false;
+export function takeIdleExpired(): boolean {
+  const value = idleExpired;
+  idleExpired = false;
+  return value;
+}
+
 export async function call(path: string, body?: unknown): Promise<Reply> {
   if (!API_URL) return { status: 0, body: null };
   try {
@@ -44,7 +54,9 @@ export async function call(path: string, body?: unknown): Promise<Reply> {
       headers: body === undefined ? undefined : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { status: res.status, body: await res.json().catch(() => null) };
+    const json: unknown = await res.json().catch(() => null);
+    if (res.status === 401 && errorCodeOf(json) === 'session_idle_expired') idleExpired = true;
+    return { status: res.status, body: json };
   } catch {
     return { status: 0, body: null };
   }
@@ -231,4 +243,33 @@ export async function getPlanCatalog(): Promise<Result<AdminPlanCatalog>> {
 
 export async function savePlanCatalog(input: UpdatePlansInput): Promise<Result<AdminPlanCatalog>> {
   return toResult(await call('/admin/plans', input));
+}
+
+/** I29 My account (every admin) */
+export async function getAccount(): Promise<Result<AdminAccount>> {
+  return toResult(await call('/admin/account'));
+}
+
+export async function changePassword(input: ChangeAdminPasswordInput): Promise<Result<{ signedOutDevices: number }>> {
+  return toResult(await call('/admin/account/password', input));
+}
+
+export async function makeNewBackupCodes(password: string): Promise<Result<{ backupCodes: string[] }>> {
+  return toResult(await call('/admin/account/backup-codes', { password }));
+}
+
+export async function startMovePhone(password: string): Promise<Result<{ totpUri: string; expiresAt: string }>> {
+  return toResult(await call('/admin/account/two-factor/move', { password }));
+}
+
+export async function confirmMovePhone(code: string): Promise<Result<{ backupCodes: string[]; signedOutDevices: number }>> {
+  return toResult(await call('/admin/account/two-factor/move/confirm', { code }));
+}
+
+export async function signOutDevice(id: number): Promise<Result<{ ok: true }>> {
+  return toResult(await call(`/admin/account/devices/${id}/sign-out`, {}));
+}
+
+export async function signOutOtherDevices(): Promise<Result<{ signedOut: number }>> {
+  return toResult(await call('/admin/account/devices/sign-out-others', {}));
 }

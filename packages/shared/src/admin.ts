@@ -49,6 +49,11 @@ export const ADMIN_ACTIONS = [
   'privacy_request_update',
   'support_case_update',
   'note',
+  // I29 my account: an admin's own security changes
+  'change_password',
+  'new_backup_codes',
+  'move_two_factor',
+  'sign_out_devices',
 ] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 
@@ -470,3 +475,62 @@ export interface AdminPlanCatalog {
   /** Businesses on each plan today (they keep their limit until the next renewal or plan change). */
   businessesByPlan: Record<PaidPlan, number>;
 }
+
+// ------------------------------------------------------------ I29 my account (every admin, own account only)
+
+/** FR-21.8: admin sessions end after this many hours of no activity. */
+export const ADMIN_IDLE_HOURS = 8;
+/** Admin passwords are longer than the 8 characters owners need (I29 wireframe). */
+export const ADMIN_PASSWORD_MIN_LENGTH = 12;
+/** Backup codes Better Auth makes at a time. */
+export const ADMIN_BACKUP_CODE_COUNT = 10;
+/** How long a "move to a new phone" QR code can be confirmed. */
+export const ADMIN_MOVE_PHONE_MINUTES = 10;
+
+export const changeAdminPasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password').max(128),
+  newPassword: z
+    .string()
+    .min(ADMIN_PASSWORD_MIN_LENGTH, `At least ${ADMIN_PASSWORD_MIN_LENGTH} characters`)
+    .max(128),
+});
+export type ChangeAdminPasswordInput = z.infer<typeof changeAdminPasswordSchema>;
+
+/** New backup codes / start moving two-step to a new phone: the password is asked again. */
+export const adminPasswordConfirmSchema = z.object({ password: z.string().min(1, 'Enter your password').max(128) });
+export type AdminPasswordConfirmInput = z.infer<typeof adminPasswordConfirmSchema>;
+
+export const confirmNewPhoneSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code') });
+export type ConfirmNewPhoneInput = z.infer<typeof confirmNewPhoneSchema>;
+
+export interface AdminDevice {
+  id: number;
+  /** The session making this request. */
+  current: boolean;
+  /** "Chrome · Windows" (from the browser's user agent). */
+  device: string;
+  ipAddress: string | null;
+  signedInAt: string;
+  lastActiveAt: string;
+}
+
+/** GET /admin/account */
+export interface AdminAccount {
+  name: string;
+  email: string;
+  role: AdminRole;
+  twoFactorEnabled: boolean;
+  /** Backup codes not used yet, of `backupCodesTotal`. */
+  backupCodesLeft: number;
+  backupCodesTotal: number;
+  devices: AdminDevice[];
+}
+
+/** Error codes the My account screens react to. */
+export const ADMIN_ACCOUNT_ERRORS = {
+  wrongPassword: 'wrong_password',
+  /** The 6-digit code from the new phone is wrong (or the setup timed out). */
+  wrongCode: 'wrong_code',
+  moveExpired: 'move_expired',
+  idleExpired: 'session_idle_expired',
+} as const;

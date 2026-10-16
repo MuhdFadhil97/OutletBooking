@@ -1,8 +1,11 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import {
   adminBusinessQuery,
   adminNoteSchema,
+  adminPasswordConfirmSchema,
   adminUserActionSchema,
+  changeAdminPasswordSchema,
+  confirmNewPhoneSchema,
   changeAdminRoleSchema,
   inviteAdminSchema,
   auditLogFilters,
@@ -19,8 +22,8 @@ import {
   unsuspendSchema,
   updatePlansSchema,
 } from '@outletbooking/shared';
+import { requireAdminSession } from '../middleware/admin-session';
 import { requirePlatformAdmin, requireSuperAdmin } from '../middleware/platform-admin';
-import { requireSession } from '../middleware/session';
 import {
   addAdminNote,
   changeOwner,
@@ -38,6 +41,15 @@ import {
   suspendBusiness,
   unsuspendBusiness,
 } from '../services/admin';
+import {
+  changeAdminPassword,
+  confirmMovePhone,
+  getAdminAccount,
+  makeNewBackupCodes,
+  signOutDevice,
+  signOutOtherDevices,
+  startMovePhone,
+} from '../services/admin-account';
 import { listTrials } from '../services/admin-trials';
 import { getAdminPlanCatalog, updatePlanCatalog } from '../services/plan-catalog';
 import {
@@ -51,9 +63,15 @@ import {
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
-/** I1 / I2 / I7 / I9 / I10 / I12 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
+/** Where a request came from, for the sign-in log when a password is asked again. */
+const requestMeta = (c: Context<AppEnv>) => ({
+  ipAddress: c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || null,
+  userAgent: c.req.header('user-agent') ?? null,
+});
+
+/** I1 / I2 / I7 / I9 / I10 / I12 / I29 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
 export const adminRoutes = new Hono<AppEnv>()
-  .use(requireSession, requirePlatformAdmin)
+  .use(requireAdminSession, requirePlatformAdmin)
   .get('/me', (c) => c.json(c.var.admin))
   .get('/businesses', validate('query', adminBusinessQuery), async (c) =>
     c.json(await listAdminBusinesses(c.var.db, c.req.valid('query'))),
@@ -104,6 +122,34 @@ export const adminRoutes = new Hono<AppEnv>()
     c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),
   )
   .get('/admins', async (c) => c.json(await listAdminUsers(c.var.db)))
+  // I29 my account: every admin, their own account only (the user id always comes from the session).
+  .get('/account', async (c) =>
+    c.json(await getAdminAccount(c.var.db, c.var.auth, c.var.admin, Number(c.var.session.session.id))),
+  )
+  .post('/account/password', validate('json', changeAdminPasswordSchema), async (c) =>
+    c.json(
+      await changeAdminPassword(c.var.db, c.var.userId, Number(c.var.session.session.id), c.req.valid('json'), requestMeta(c)),
+    ),
+  )
+  .post('/account/backup-codes', validate('json', adminPasswordConfirmSchema), async (c) =>
+    c.json(await makeNewBackupCodes(c.var.db, c.var.auth, c.var.userId, c.req.valid('json').password, requestMeta(c))),
+  )
+  .post('/account/two-factor/move', validate('json', adminPasswordConfirmSchema), async (c) =>
+    c.json(await startMovePhone(c.var.db, c.var.auth, c.var.admin, c.req.valid('json').password, requestMeta(c))),
+  )
+  .post('/account/two-factor/move/confirm', validate('json', confirmNewPhoneSchema), async (c) =>
+    c.json(
+      await confirmMovePhone(c.var.db, c.var.auth, c.var.userId, Number(c.var.session.session.id), c.req.valid('json').code),
+    ),
+  )
+  .post('/account/devices/sign-out-others', async (c) => {
+    const signedOut = await signOutOtherDevices(c.var.db, c.var.userId, Number(c.var.session.session.id));
+    return c.json({ signedOut });
+  })
+  .post('/account/devices/:id/sign-out', validate('param', idParam), async (c) => {
+    await signOutDevice(c.var.db, c.var.userId, Number(c.var.session.session.id), c.req.valid('param').id);
+    return c.json({ ok: true });
+  })
   // I12 plans & prices: super admins only.
   .get('/plans', requireSuperAdmin, async (c) => c.json(await getAdminPlanCatalog(c.var.db)))
   .post('/plans', requireSuperAdmin, validate('json', updatePlansSchema), async (c) =>

@@ -50,7 +50,13 @@ export async function adminLockedUntil(db: Db, userId: number, now = new Date())
 }
 
 /** Counts a wrong password (the count resets 15 minutes after the last one). Returns true when now locked. */
-export async function recordAdminPasswordFailure(db: Db, userId: number, meta: SignInMeta): Promise<boolean> {
+export async function recordAdminPasswordFailure(
+  db: Db,
+  userId: number,
+  meta: SignInMeta,
+  /** `account` = the password was asked again inside My account (I29), not at sign-in. */
+  context: 'sign_in' | 'account' = 'sign_in',
+): Promise<boolean> {
   return db.transaction(async (tx) => {
     // One counter row per admin; serialise concurrent wrong passwords.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('admin-sign-in'), ${userId})`);
@@ -71,8 +77,12 @@ export async function recordAdminPasswordFailure(db: Db, userId: number, meta: S
     await tx.insert(adminAuditLog).values({
       adminUserId: userId,
       action: 'sign_in_failed',
-      reason: locked ? `Wrong password ${failures} times — locked for ${ADMIN_LOCK_MINUTES} minutes` : 'Wrong password',
-      details: { step: 'password', failures, locked, ipAddress: meta.ipAddress ?? null, userAgent: meta.userAgent ?? null },
+      reason: locked
+        ? `Wrong password ${failures} times — locked for ${ADMIN_LOCK_MINUTES} minutes`
+        : context === 'account'
+          ? 'Wrong password in My account'
+          : 'Wrong password',
+      details: { step: context === 'account' ? 'account' : 'password', failures, locked, ipAddress: meta.ipAddress ?? null, userAgent: meta.userAgent ?? null },
     });
     return locked;
   });

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { AdminMe } from '@outletbooking/shared';
 import { Logo } from '@/components/Logo';
+import { takeIdleExpired } from '@/lib/admin-api';
 import { getAdminMe, signOut } from '@/lib/admin-auth';
 import { s } from '@/strings/en';
 
@@ -53,13 +54,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
     void getAdminMe().then((me) => {
       if (me.kind === 'ok') setAdmin(me.admin);
       else if (me.kind === 'error') setFailed(true);
-      else router.replace('/admin/login');
+      else router.replace(takeIdleExpired() ? '/admin/login?expired=1' : '/admin/login');
     });
   }, [router]);
 
   useEffect(load, [load]);
 
-  const signedOut = useCallback(() => router.replace('/admin/login'), [router]);
+  const signedOut = useCallback(() => router.replace(takeIdleExpired() ? '/admin/login?expired=1' : '/admin/login'), [router]);
 
   if (!admin) {
     return (
@@ -120,10 +121,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <span className="avatar" aria-hidden="true">
               {initials(admin.name)}
             </span>
-            <div>
+            <Link
+              href="/admin/account"
+              className="admin-me-link"
+              aria-current={pathname.startsWith('/admin/account') ? 'page' : undefined}
+            >
               <div className="admin-me-name">{admin.name}</div>
-              <div className="muted small">{t.roles[admin.role]}</div>
-            </div>
+              <div className="muted small">
+                {t.roles[admin.role]} · {t.account.menuLink}
+              </div>
+            </Link>
             <button
               type="button"
               className="btn2 btn-sm"

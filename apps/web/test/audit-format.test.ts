@@ -35,6 +35,13 @@ describe('I9 audit "Change" column', () => {
     expect(auditChange({ action: 'update_plans', details: {} })).toBe('—');
   });
 
+  it('my account changes show how many devices were signed out', () => {
+    expect(auditChange({ action: 'change_password', details: { signedOutDevices: 2 } })).toBe('2 other devices signed out');
+    expect(auditChange({ action: 'move_two_factor', details: { signedOutDevices: 1 } })).toBe('1 other device signed out');
+    expect(auditChange({ action: 'sign_out_devices', details: { count: 3 } })).toBe('3 devices signed out');
+    expect(auditChange({ action: 'new_backup_codes', details: {} })).toBe('—');
+  });
+
   it('sign-ins', () => {
     expect(auditChange({ action: 'sign_in', details: { method: 'totp', firstSetup: true } })).toBe('Two-step code · two-step set up');
     expect(auditChange({ action: 'sign_in_failed', details: { failures: 2, locked: false } })).toBe('Wrong password (2 in a row)');

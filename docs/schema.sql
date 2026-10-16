@@ -576,7 +576,8 @@ CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
                    'send_deletion_notice','hold_deletion','release_deletion','delete_business_data',
                    'record_payment','record_refund','recheck_payment','retry_job',
                    'update_plans','update_platform_settings','add_admin','change_admin_role','remove_admin','reset_two_factor',
-                   'send_announcement','privacy_request_update','support_case_update','note')),
+                   'send_announcement','privacy_request_update','support_case_update','note',
+                   'change_password','new_backup_codes','move_two_factor','sign_out_devices')),  -- I29 my account
   reason         text        NOT NULL,
   details        jsonb       NOT NULL DEFAULT '{}'::jsonb,
   created_at     timestamptz NOT NULL DEFAULT now(),

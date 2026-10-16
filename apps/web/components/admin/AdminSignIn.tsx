@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ADMIN_LOCK_MINUTES, ADMIN_MAX_SIGN_IN_FAILURES } from '@outletbooking/shared';
 import {
   getAdminMe,
@@ -13,6 +13,7 @@ import {
   type CodeResult,
 } from '@/lib/admin-auth';
 import { s } from '@/strings/en';
+import { BackupCodes } from './BackupCodes';
 import { SetupQr } from './SetupQr';
 
 type Step =
@@ -30,6 +31,11 @@ export function AdminSignIn() {
   const [error, setError] = useState<string | null>(null);
   // Kept in memory only, for the first-time setup call (Better Auth asks for the password again).
   const password = useRef('');
+  // Sent here by the 8-hour idle sign-out (/admin/login?expired=1).
+  const [expired, setExpired] = useState(false);
+  useEffect(() => {
+    setExpired(new URLSearchParams(window.location.search).get('expired') === '1');
+  }, []);
 
   function fail(message: string) {
     setError(message);
@@ -194,6 +200,11 @@ export function AdminSignIn() {
   return (
     <form method="post" className="card admin-card" onSubmit={onPassword} noValidate>
       <h1>{t.signIn.title}</h1>
+      {expired && (
+        <p className="alert alert-warn" role="status">
+          {t.idleExpired}
+        </p>
+      )}
       <label className="fld">
         <span className="lbl">{t.signIn.email}</span>
         <input className="inp" name="email" type="email" autoComplete="username" autoFocus required />
@@ -224,29 +235,5 @@ function CodeInput() {
       autoFocus
       required
     />
-  );
-}
-
-function BackupCodes({ codes }: { codes: string[] }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="backup-codes">
-      <ul>
-        {codes.map((c) => (
-          <li key={c}>
-            <code>{c}</code>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className="btn2 btn-sm"
-        onClick={() => {
-          void navigator.clipboard?.writeText(codes.join('\n')).then(() => setCopied(true));
-        }}
-      >
-        {copied ? t.setup.copied : t.setup.copy}
-      </button>
-    </div>
   );
 }

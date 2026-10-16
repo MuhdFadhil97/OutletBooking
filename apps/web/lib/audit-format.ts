@@ -66,6 +66,15 @@ export function auditChange(entry: Pick<AuditEntry, 'action' | 'details'>): stri
       const plan = str(d, 'plan');
       return plan ? `${s.admin.plans[plan] ?? plan}: ${changes}` : changes;
     }
+    case 'change_password':
+    case 'move_two_factor': {
+      const n = num(d, 'signedOutDevices') ?? 0;
+      return n > 0 ? `${n} other device${n === 1 ? '' : 's'} signed out` : c.none;
+    }
+    case 'sign_out_devices': {
+      const n = num(d, 'count') ?? 0;
+      return n > 0 ? `${n} device${n === 1 ? '' : 's'} signed out` : c.none;
+    }
     case 'sign_in_failed':
       if (d.locked === true) return c.locked(ADMIN_LOCK_MINUTES);
       return c.wrongPassword(num(d, 'failures') ?? 1);

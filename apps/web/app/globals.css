@@ -1191,6 +1191,76 @@ textarea.inp {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.admin-me-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.admin-me-link:hover .admin-me-name,
+.admin-me-link[aria-current='page'] .admin-me-name {
+  color: var(--primary);
+}
+.fld-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 420px;
+}
+.account-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+.account-facts {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+.account-facts dt {
+  color: var(--muted);
+}
+.account-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.panel {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f6f8f7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.panel h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.device-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.device-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.device-list li:last-child {
+  border-bottom: 0;
+}
+.device-title {
+  font-weight: 700;
+}
 .users-bottom {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
