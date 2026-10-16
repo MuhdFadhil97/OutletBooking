@@ -28,3 +28,6 @@ next-env.d.ts
 *.tsbuildinfo
 # Netlify
 .netlify/
+
+# Re-created by next dev
+apps/web/AGENTS.md
