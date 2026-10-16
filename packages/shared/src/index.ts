@@ -23,3 +23,4 @@ export * from './admin';
 export * from './website';
 export * from './support';
 export * from './billing';
+export * from './admin-payments';

@@ -65,3 +65,36 @@ export function receiptEmail(i: ReceiptEmailInput): RenderedEmail {
     websiteUrl: i.websiteUrl,
   });
 }
+
+export interface RefundEmailInput {
+  receiptNo: string;
+  planName: string;
+  refundSen: number;
+  /** "Full refund" or "Part refund". */
+  kind: 'full' | 'part';
+  /** Malaysia day the refund was paid, "17 Oct 2026". */
+  paidOn: string;
+  planEnded: boolean;
+  accountUrl: string;
+  websiteUrl: string;
+}
+
+/** Refund note for a plan payment, naming the original receipt (docs/wireframes/Admin-PaymentDetail.dc.html). */
+export function refundEmail(i: RefundEmailInput): RenderedEmail {
+  return renderEmail({
+    subject: `Refund for receipt ${i.receiptNo} — OutletBooking`,
+    preview: `We refunded ${rmText(i.refundSen)} for your ${i.planName} plan`,
+    heading: i.kind === 'full' ? 'Your payment was refunded' : 'Part of your payment was refunded',
+    paragraphs: [
+      [`We paid back `, { bold: rmText(i.refundSen) }, ` by bank transfer on ${i.paidOn} for the `, { bold: `${i.planName} plan` }, `.`],
+      [`This refund is for receipt no. `, { bold: i.receiptNo }, `. It can take 1–3 working days to show in your bank account.`],
+      i.planEnded
+        ? 'Your plan has ended with this refund. You can choose a plan again any time from the app or billing page.'
+        : 'Your plan stays active for the period you paid for.',
+    ],
+    button: { label: 'View billing & receipts', url: i.accountUrl },
+    notes: ['Questions about this refund? Reply to this email or WhatsApp us.'],
+    footer: 'You got this email because a refund was recorded for your OutletBooking plan payment.',
+    websiteUrl: i.websiteUrl,
+  });
+}

@@ -20,6 +20,20 @@ describe('I9 audit "Change" column', () => {
     expect(auditChange({ action: 'give_free_months', details: { months: 1, plan: 'business', to: '2026-11-11T02:00:00Z' } })).toBe(
       '1 free month · Business until 11 Nov 2026',
     );
+    expect(
+      auditChange({
+        action: 'record_payment',
+        details: { amountSen: 9900, plan: 'business', receiptNo: 'OB-2026-000123', bankRef: 'MBB-1' },
+      }),
+    ).toBe('RM 99.00 · Business · receipt OB-2026-000123 · ref MBB-1');
+    expect(auditChange({ action: 'record_payment', details: {} })).toBe('—');
+    expect(
+      auditChange({
+        action: 'record_refund',
+        details: { amountSen: 9900, receiptNo: 'OB-2026-000125', bankRef: 'OUT-9', planAfter: 'end_now' },
+      }),
+    ).toBe('RM 99.00 refunded · receipt OB-2026-000125 · ref OUT-9 · plan ended');
+    expect(auditChange({ action: 'resend_link', details: { link: 'receipt' } })).toBe('Receipt email');
     expect(auditChange({ action: 'pause_booking_page', details: {} })).toBe('Booking page live → paused');
     expect(auditChange({ action: 'resend_link', details: { link: 'password_reset' } })).toBe('Password reset link');
     expect(

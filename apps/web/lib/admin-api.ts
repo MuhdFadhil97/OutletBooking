@@ -5,6 +5,13 @@ import type {
   AddSupportNoteInput,
   CreateSupportCaseInput,
   LeadStatus,
+  PlanPaymentDetail,
+  PlanPaymentFilter,
+  PlanPaymentsResponse,
+  RecordBankTransferInput,
+  RecordBankTransferResult,
+  RecordPlanRefundInput,
+  RecordPlanRefundResult,
   SupportCaseDetail,
   SupportCaseRow,
   SupportLead,
@@ -321,4 +328,69 @@ export async function assignSupportCase(id: number, adminUserId: number | null):
 
 export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
   return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
+}
+
+/** I8 plan payments: newest first; pass the last id as `beforeId` for older ones. */
+export async function listPlanPayments(q: string, filter: PlanPaymentFilter, beforeId?: number): Promise<Result<PlanPaymentsResponse>> {
+  const params = new URLSearchParams({ filter });
+  if (q.trim()) params.set('q', q.trim());
+  if (beforeId) params.set('beforeId', String(beforeId));
+  return toResult(await call(`/admin/payments?${params}`));
+}
+
+/** I8 "Record a bank transfer". A bank reference that is already recorded comes back as `duplicate`. */
+export async function recordBankTransfer(
+  input: RecordBankTransferInput,
+): Promise<Result<RecordBankTransferResult> | { kind: 'duplicate' }> {
+  const reply = await call('/admin/payments/bank-transfer', input);
+  if (reply.status === 409 && errorCodeOf(reply.body) === 'duplicate_reference') return { kind: 'duplicate' };
+  return toResult(reply);
+}
+
+/** I8 "Export CSV": the file the API builds for this search and filter (sent with the session cookie). */
+export async function exportPlanPayments(
+  q: string,
+  filter: PlanPaymentFilter,
+): Promise<{ kind: 'ok'; file: Blob; filename: string } | { kind: 'signed_out' } | { kind: 'error' }> {
+  if (!API_URL) return { kind: 'error' };
+  const params = new URLSearchParams({ filter });
+  if (q.trim()) params.set('q', q.trim());
+  try {
+    const res = await fetch(`${API_URL}/admin/payments/export?${params}`, { credentials: 'include' });
+    if (res.status === 401 || res.status === 403) return { kind: 'signed_out' };
+    if (!res.ok) return { kind: 'error' };
+    const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'plan-payments.csv';
+    return { kind: 'ok', file: await res.blob(), filename };
+  } catch {
+    return { kind: 'error' };
+  }
+}
+
+/** I24 payment detail. `ref` is the bill code, never an integer id. */
+export async function getPlanPayment(ref: string): Promise<Result<PlanPaymentDetail>> {
+  return toResult(await call(`/admin/payments/${encodeURIComponent(ref)}`));
+}
+
+export async function resendPlanReceipt(ref: string, reason: string): Promise<Result<{ sentTo: string }>> {
+  return toResult(await call(`/admin/payments/${encodeURIComponent(ref)}/resend-receipt`, { reason }));
+}
+
+export async function recordPlanRefund(ref: string, input: RecordPlanRefundInput): Promise<Result<RecordPlanRefundResult>> {
+  return toResult(await call(`/admin/payments/${encodeURIComponent(ref)}/refund`, input));
+}
+
+/** I24 "Download receipt": the PDF, fetched with the session cookie. */
+export async function downloadPlanReceipt(
+  ref: string,
+): Promise<{ kind: 'ok'; file: Blob; filename: string } | { kind: 'signed_out' } | { kind: 'error' }> {
+  if (!API_URL) return { kind: 'error' };
+  try {
+    const res = await fetch(`${API_URL}/admin/payments/${encodeURIComponent(ref)}/receipt.pdf`, { credentials: 'include' });
+    if (res.status === 401 || res.status === 403) return { kind: 'signed_out' };
+    if (!res.ok) return { kind: 'error' };
+    const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'receipt.pdf';
+    return { kind: 'ok', file: await res.blob(), filename };
+  } catch {
+    return { kind: 'error' };
+  }
 }

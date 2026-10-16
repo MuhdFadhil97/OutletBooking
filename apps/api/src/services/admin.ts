@@ -305,7 +305,7 @@ async function selectAudit(db: Db | Tx, where: SQL[], limit: number): Promise<Au
 }
 
 /** One CSV cell. Text starting with = + - @ is prefixed with ' so spreadsheets never run it as a formula. */
-function csvCell(value: string): string {
+export function csvCell(value: string): string {
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }

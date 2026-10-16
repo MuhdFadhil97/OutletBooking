@@ -97,9 +97,9 @@ export function nextPlanPeriod(
 
 // ------------------------------------------------------------ overview and receipt details
 
-const methodLabel = (m: string | null) => (m === 'duitnow_qr' ? 'DuitNow QR' : m === 'fpx' ? 'FPX' : (m ?? 'ToyyibPay'));
+const methodLabel = (m: string | null) => (m === 'bank_transfer' ? 'Bank transfer' : m === 'duitnow_qr' ? 'DuitNow QR' : m === 'fpx' ? 'FPX' : (m ?? 'ToyyibPay'));
 
-interface Snapshot {
+export interface PlanReceiptSnapshot {
   companyName?: string;
   ssmNo?: string | null;
   tin?: string | null;
@@ -269,7 +269,7 @@ export async function createCheckout(
     throw err;
   }
 
-  const snapshot: Snapshot = {
+  const snapshot: PlanReceiptSnapshot = {
     companyName: details.companyName,
     ssmNo: details.ssmNo ?? null,
     tin: details.tin ?? null,
@@ -296,7 +296,7 @@ export async function createCheckout(
 type PaymentRow = typeof payments.$inferSelect;
 
 function toBillingPayment(p: PaymentRow): BillingPayment {
-  const snap = (p.receiptSnapshot ?? {}) as Snapshot;
+  const snap = (p.receiptSnapshot ?? {}) as PlanReceiptSnapshot;
   return {
     ref: p.billCode ?? '',
     status: p.status as PlanPaymentStatus,
@@ -311,6 +311,39 @@ function toBillingPayment(p: PaymentRow): BillingPayment {
     periodEnd: snap.periodEnd ?? null,
     createdAt: p.createdAt.toISOString(),
   };
+}
+
+/**
+ * One paid month on the subscription, whoever paid (ToyyibPay here, a recorded bank transfer in I8): works out the
+ * period, takes the next receipt number and writes plan, status, period and resource limit.
+ * Call inside the payment's transaction with the subscription row locked.
+ */
+export async function applyPaidMonth(
+  tx: Tx,
+  sub: { id: number; status: string; trialEndsAt: Date; currentPeriodEnd: Date | null },
+  plan: PlanCatalogEntry,
+  businessId: number,
+  now: Date,
+): Promise<{ period: PlanPeriod; receiptNo: string; description: string }> {
+  const period = nextPlanPeriod(sub, now);
+  const [res] = await tx.execute<{ n: string }>(sql`select nextval('receipt_no_seq')::text as n`);
+  const receiptNo = formatReceiptNo(Number(formatInTimeZone(now, TZ, 'yyyy')), Number(res!.n));
+  const description = `${plan.name} plan · ${periodText(period.start, period.end)}`;
+  const [resourceRow] = await tx.execute<{ n: number }>(
+    sql`select count(*)::int as n from resources where business_id = ${businessId} and deleted_at is null and is_active`,
+  );
+  await tx
+    .update(subscriptions)
+    .set({
+      plan: plan.code,
+      status: 'active',
+      currentPeriodStart: period.start,
+      currentPeriodEnd: period.end,
+      // Resources the business already has stay bookable; each one above the limit is billed as an extra.
+      resourceLimit: Math.max(plan.resourceLimit, resourceRow?.n ?? 0),
+    })
+    .where(eq(subscriptions.id, sub.id));
+  return { period, receiptNo, description };
 }
 
 export interface PlanSyncResult {
@@ -367,31 +400,13 @@ export async function syncPlanPayment(
 
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.id, locked.subscriptionId!)).for('update');
     if (!sub) throw notFound('Subscription');
-    const snap = (locked.receiptSnapshot ?? {}) as Snapshot;
+    const snap = (locked.receiptSnapshot ?? {}) as PlanReceiptSnapshot;
     const catalog = await getPlanCatalog(tx);
     const plan = catalog.plans.find((p) => p.code === snap.plan);
     if (!plan) throw new AppError(500, 'unknown_plan', 'The plan on this payment no longer exists');
 
-    const period = nextPlanPeriod(sub, now);
-    const [res] = await tx.execute<{ n: string }>(sql`select nextval('receipt_no_seq')::text as n`);
-    const receiptNo = formatReceiptNo(Number(formatInTimeZone(now, TZ, 'yyyy')), Number(res!.n));
-    const description = `${plan.name} plan · ${periodText(period.start, period.end)}`;
+    const { period, receiptNo, description } = await applyPaidMonth(tx, sub, plan, locked.businessId, now);
     const method = ok.billpaymentChannel?.toLowerCase().includes('duitnow') ? 'duitnow_qr' : 'fpx';
-
-    const [resourceRow] = await tx.execute<{ n: number }>(
-      sql`select count(*)::int as n from resources where business_id = ${locked.businessId} and deleted_at is null and is_active`,
-    );
-    await tx
-      .update(subscriptions)
-      .set({
-        plan: plan.code,
-        status: 'active',
-        currentPeriodStart: period.start,
-        currentPeriodEnd: period.end,
-        // Resources the business already has stay bookable; each one above the limit is billed as an extra.
-        resourceLimit: Math.max(plan.resourceLimit, resourceRow?.n ?? 0),
-      })
-      .where(eq(subscriptions.id, sub.id));
 
     const [updated] = await tx
       .update(payments)
@@ -407,7 +422,7 @@ export async function syncPlanPayment(
           periodStart: period.start.toISOString(),
           periodEnd: period.end.toISOString(),
           description,
-        } satisfies Snapshot,
+        } satisfies PlanReceiptSnapshot,
       })
       .where(eq(payments.id, locked.id))
       .returning();
@@ -425,14 +440,14 @@ export async function handlePlanCallback(deps: BillingDeps, form: Record<string,
 // ------------------------------------------------------------ receipts
 
 /** Email the receipt (PDF attached) to the receipt address saved with the payment. */
-export async function sendReceiptEmail(deps: BillingDeps, billCode: string): Promise<void> {
+export async function sendReceiptEmail(deps: Pick<BillingDeps, 'db' | 'env' | 'mailer'>, billCode: string): Promise<void> {
   const [p] = await deps.db
     .select()
     .from(payments)
     .where(and(eq(payments.billCode, billCode), eq(payments.purpose, 'subscription'), eq(payments.status, 'paid')))
     .limit(1);
   if (!p || !p.receiptNo || !p.paidAt) return;
-  const snap = (p.receiptSnapshot ?? {}) as Snapshot;
+  const snap = (p.receiptSnapshot ?? {}) as PlanReceiptSnapshot;
   if (!snap.receiptEmail) return;
   const pdf = await renderReceiptPdf(receiptPdfInput(p, snap));
   const email = receiptEmail({
@@ -453,7 +468,7 @@ export async function sendReceiptEmail(deps: BillingDeps, billCode: string): Pro
   });
 }
 
-function receiptPdfInput(p: PaymentRow, snap: Snapshot) {
+export function receiptPdfInput(p: PaymentRow, snap: PlanReceiptSnapshot) {
   return {
     receiptNo: p.receiptNo!,
     paidAt: p.paidAt!,
@@ -483,7 +498,7 @@ export async function getReceiptPdf(db: Db, businessId: number, billCode: string
     )
     .limit(1);
   if (!p || !p.receiptNo || !p.paidAt) throw new AppError(404, BILLING_ERRORS.notFound, 'Receipt not found');
-  const snap = (p.receiptSnapshot ?? {}) as Snapshot;
+  const snap = (p.receiptSnapshot ?? {}) as PlanReceiptSnapshot;
   return { filename: `${p.receiptNo}.pdf`, pdf: await renderReceiptPdf(receiptPdfInput(p, snap)) };
 }
 

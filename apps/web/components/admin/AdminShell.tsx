@@ -15,7 +15,7 @@ type NavKey = keyof typeof t.shell.nav;
 /** Sidebar from Flow-6: every admin page. Pages not built yet are shown but not linked. */
 /** `superOnly` pages are hidden from Support admins (the API refuses them too). */
 const NAV: { group?: keyof typeof t.shell.groups; items: { key: NavKey; href?: string; superOnly?: boolean }[] }[] = [
-  { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials', href: '/admin/trials' }, { key: 'payments' }, { key: 'support', href: '/admin/support' }] },
+  { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials', href: '/admin/trials' }, { key: 'payments', href: '/admin/payments' }, { key: 'support', href: '/admin/support' }] },
   { group: 'privacy', items: [{ key: 'privacy' }, { key: 'deletion' }, { key: 'audit', href: '/admin/audit' }] },
   { group: 'platform', items: [{ key: 'health' }, { key: 'announcements' }, { key: 'users', href: '/admin/users', superOnly: true }, { key: 'plans', href: '/admin/plans', superOnly: true }] },
 ];

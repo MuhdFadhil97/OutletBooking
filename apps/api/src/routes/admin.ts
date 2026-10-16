@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono';
+import { z } from 'zod';
 import {
   adminBusinessQuery,
   adminNoteSchema,
@@ -17,6 +18,10 @@ import {
   freeMonthsSchema,
   idParam,
   ownerLinkSchema,
+  planPaymentsQuery,
+  recordBankTransferSchema,
+  recordPlanRefundSchema,
+  resendPlanReceiptSchema,
   suspendSchema,
   trialsQuery,
   unsuspendSchema,
@@ -51,6 +56,8 @@ import {
   signOutOtherDevices,
   startMovePhone,
 } from '../services/admin-account';
+import { exportPlanPaymentsCsv, listPlanPayments, recordBankTransfer } from '../services/admin-payments';
+import { getPlanPaymentDetail, getPlanReceiptPdfForAdmin, recordPlanRefund, resendPlanReceipt } from '../services/admin-payment-detail';
 import { listTrials } from '../services/admin-trials';
 import { getAdminPlanCatalog, updatePlanCatalog } from '../services/plan-catalog';
 import {
@@ -63,6 +70,8 @@ import {
 } from '../services/admin-users';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
+
+const refParam = z.object({ ref: z.string().trim().min(3).max(60) });
 
 /** Where a request came from, for the sign-in log when a password is asked again. */
 const requestMeta = (c: Context<AppEnv>) => ({
@@ -121,6 +130,36 @@ export const adminRoutes = new Hono<AppEnv>()
   )
   .post('/businesses/:id/notes', validate('param', idParam), validate('json', adminNoteSchema), async (c) =>
     c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),
+  )
+  // I8 plan payments: every admin role may list and record a bank transfer (FR-20.2).
+  .get('/payments', validate('query', planPaymentsQuery), async (c) => c.json(await listPlanPayments(c.var.db, c.req.valid('query'))))
+  .get('/payments/export', validate('query', planPaymentsQuery), async (c) => {
+    const csv = await exportPlanPaymentsCsv(c.var.db, c.req.valid('query'));
+    const day = new Date().toISOString().slice(0, 10);
+    return c.body(csv, 200, {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': `attachment; filename="outletbooking-plan-payments-${day}.csv"`,
+      'cache-control': 'no-store',
+    });
+  })
+  .post('/payments/bank-transfer', validate('json', recordBankTransferSchema), async (c) =>
+    c.json(await recordBankTransfer(c.var, c.var.userId, c.req.valid('json')), 201),
+  )
+  // I24 payment detail & refund. The reference is the bill code (never the integer id).
+  .get('/payments/:ref', validate('param', refParam), async (c) => c.json(await getPlanPaymentDetail(c.var.db, c.req.valid('param').ref)))
+  .get('/payments/:ref/receipt.pdf', validate('param', refParam), async (c) => {
+    const { filename, pdf } = await getPlanReceiptPdfForAdmin(c.var.db, c.req.valid('param').ref);
+    return c.body(new Uint8Array(pdf), 200, {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="${filename}"`,
+      'cache-control': 'no-store',
+    });
+  })
+  .post('/payments/:ref/resend-receipt', validate('param', refParam), validate('json', resendPlanReceiptSchema), async (c) =>
+    c.json(await resendPlanReceipt(c.var, c.var.userId, c.req.valid('param').ref, c.req.valid('json').reason)),
+  )
+  .post('/payments/:ref/refund', validate('param', refParam), validate('json', recordPlanRefundSchema), async (c) =>
+    c.json(await recordPlanRefund(c.var, c.var.userId, c.req.valid('param').ref, c.req.valid('json')), 201),
   )
   .get('/admins', async (c) => c.json(await listAdminUsers(c.var.db)))
   // I11 support cases and website leads: every admin.

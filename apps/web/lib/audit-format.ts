@@ -1,6 +1,7 @@
 import { ADMIN_LOCK_MINUTES, type AuditEntry } from '@outletbooking/shared';
 import { s } from '../strings/en';
 import { formatDate } from './admin-format';
+import { formatRmFull } from './money';
 
 const c = s.admin.audit.change;
 const planName = (code: string) => s.admin.plans[code] ?? code;
@@ -34,6 +35,18 @@ export function auditChange(entry: Pick<AuditEntry, 'action' | 'details'>): stri
       const to = str(d, 'to');
       if (!from || !to) break;
       return c.plan(planName(from), planName(to));
+    }
+    case 'record_payment': {
+      const amount = num(d, 'amountSen');
+      const receipt = str(d, 'receiptNo');
+      if (amount === null || !receipt) break;
+      return c.recordPayment(formatRmFull(amount), planName(str(d, 'plan') ?? ''), receipt, str(d, 'bankRef') ?? '—');
+    }
+    case 'record_refund': {
+      const amount = num(d, 'amountSen');
+      const receipt = str(d, 'receiptNo');
+      if (amount === null || !receipt) break;
+      return c.recordRefund(formatRmFull(amount), receipt, str(d, 'bankRef') ?? '—', str(d, 'planAfter') === 'end_now');
     }
     case 'pause_booking_page':
       return c.pageOff;

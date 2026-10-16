@@ -159,7 +159,15 @@ export async function getReport(
     db
       .select({ n: sql<number>`coalesce(sum(${refunds.amountSen}), 0)::int` })
       .from(refunds)
-      .where(and(eq(refunds.businessId, businessId), gte(refunds.createdAt, range.start), lt(refunds.createdAt, range.end))),
+      // Booking refunds only: FTech's refunds of a plan payment (booking_id null, I24) are not the business's money.
+      .where(
+        and(
+          eq(refunds.businessId, businessId),
+          isNotNull(refunds.bookingId),
+          gte(refunds.createdAt, range.start),
+          lt(refunds.createdAt, range.end),
+        ),
+      ),
   ]);
 
   const inPeriod = rows.filter((b) => b.startAt >= range.start);
