@@ -1,12 +1,15 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { twoFactor } from 'better-auth/plugins';
+import { and, eq } from 'drizzle-orm';
+import { magicLink, twoFactor } from 'better-auth/plugins';
 import { expo } from '@better-auth/expo';
-import { accounts, sessions, twoFactors, users, verifications, type Db } from '@outletbooking/db';
-import { ADMIN_LOCK_MINUTES, ADMIN_MAX_SIGN_IN_FAILURES } from '@outletbooking/shared';
+import { accounts, platformAdmins, sessions, twoFactors, users, verifications, type Db } from '@outletbooking/db';
+import { ADMIN_LOCK_MINUTES, ADMIN_MAX_SIGN_IN_FAILURES, WEB_SIGN_IN_LINK_MINUTES } from '@outletbooking/shared';
 import type { Env } from './env';
+import { signInLinkEmail } from './services/billing-emails';
 import { businessNameOf, CONFIRM_LINK_HOURS, confirmEmail } from './services/confirm-email';
 import { createMailer, type Mailer } from './services/mailer';
+import { parkHandoffLink } from './services/web-links';
 import { RESET_LINK_MINUTES, resetPasswordEmail, resetPasswordUrl } from './services/password-emails';
 
 export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env)) {
@@ -60,6 +63,28 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       twoFactor({
         issuer: 'OutletBooking Admin',
         accountLockout: { maxFailedAttempts: ADMIN_MAX_SIGN_IN_FAILURES, durationSeconds: ADMIN_LOCK_MINUTES * 60 },
+      }),
+      // I13 / I14: one-time email link to the plan payment pages on the website (15 minutes, single use).
+      // Only reachable through POST /billing/sign-in-link and the app handoff; Better Auth's own public
+      // /sign-in/magic-link route is blocked in app.ts. Platform admins never get one: their sign-in needs
+      // the two-step code, which a link would skip.
+      magicLink({
+        expiresIn: WEB_SIGN_IN_LINK_MINUTES * 60,
+        allowedAttempts: 1,
+        disableSignUp: true,
+        sendMagicLink: async ({ email, url, metadata }) => {
+          const [who] = await db
+            .select({ confirmed: users.emailVerified, adminId: platformAdmins.id })
+            .from(users)
+            .leftJoin(platformAdmins, and(eq(platformAdmins.userId, users.id), eq(platformAdmins.isActive, true)))
+            .where(eq(users.email, email))
+            .limit(1);
+          // Never for an admin, and never for an unconfirmed email (Better Auth would delete that login).
+          if (!who || !who.confirmed || who.adminId !== null) return;
+          const handoffId = typeof metadata?.handoffId === 'string' ? metadata.handoffId : null;
+          if (handoffId) return parkHandoffLink(handoffId, url);
+          await mailer.send({ to: email, ...signInLinkEmail(url, env.WEBSITE_URL) });
+        },
       }),
     ],
   });

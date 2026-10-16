@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { links } from '@/lib/config';
+import { apiLive, links } from '@/lib/config';
 import { s } from '@/strings/en';
 
 export function SiteFooter() {
@@ -11,6 +11,8 @@ export function SiteFooter() {
           <Link href="/privacy">{s.footer.privacy}</Link>
           <Link href="/terms">{s.footer.terms}</Link>
           <Link href="/refund">{s.footer.refund}</Link>
+          {/* Owners: pay for a plan and download receipts (asks for a sign-in link if not signed in). */}
+          {apiLive && <Link href="/billing/account">{s.footer.billing}</Link>}
           <Link href="/contact">{s.footer.contact}</Link>
           <a href={links.whatsapp(s.contact.whatsappMessage)} target="_blank" rel="noopener noreferrer">
             {s.footer.whatsapp}

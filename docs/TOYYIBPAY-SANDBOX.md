@@ -52,6 +52,25 @@ These run inside the API process (`JOBS_ENABLED=true`):
 
 pg-boss keeps its tables in the `pgboss` schema of the same Postgres. On Supabase, use the **Session** pooler (5432) for the API process that runs jobs.
 
+## 6. FTech's own account: plan payments on the website
+
+Plan payments (Starter / Business, paid at `/billing`) go to **FTech's own** ToyyibPay account, never to a business's. One-time setup:
+
+1. Create a sandbox account at https://dev.toyyibpay.com (separate from any business account you used for sections 1–3) and note its **User Secret Key**.
+2. In that account create a **category** (any name, e.g. `OutletBooking plans`) and note its **category code**.
+3. Put both in `apps/api/.env` (never commit them):
+   ```
+   PLATFORM_TOYYIBPAY_SECRET_KEY=...
+   PLATFORM_TOYYIBPAY_CATEGORY_CODE=...
+   ```
+   Leave them empty and plan payment stays off (the pay page tells owners to WhatsApp FTech).
+4. Local website links need `WEBSITE_URL=http://localhost:3001` and the website origin in `TRUSTED_ORIGINS` (already in `.env.example`).
+5. Callbacks: like section 4, set `API_PUBLIC_URL` to a tunnel so ToyyibPay can reach `POST /toyyibpay/plan-callback`. Without a tunnel it still works: the page you return to re-checks the bill with ToyyibPay itself.
+
+Try it: sign in to the app as an owner **whose email is confirmed**, open Setup → Plan → Continue (or ask for a sign-in link at `/billing/sign-in`), pick a plan, pay with the sandbox FPX test bank, and you land on the receipt page. The receipt PDF is also emailed to the receipt address.
+
+An owner whose email is not confirmed yet gets the confirmation email instead of a sign-in link (Better Auth would otherwise delete their password login).
+
 ## Going live (Phase 8)
 
 Set `TOYYIBPAY_BASE_URL=https://toyyibpay.com` and `API_PUBLIC_URL=<production API URL>`. Each business then reconnects with its **live** User Secret Key.

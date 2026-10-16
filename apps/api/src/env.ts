@@ -53,6 +53,12 @@ const envSchema = z.object({
    * (Cloudflare Tunnel / ngrok). Defaults to BETTER_AUTH_URL.
    */
   API_PUBLIC_URL: z.url().optional(),
+  /**
+   * FTech's OWN ToyyibPay account for plan payments (purpose = 'subscription'). Business booking payments use
+   * each business's own key instead. Both empty = plan payment is switched off (the pay page says so).
+   */
+  PLATFORM_TOYYIBPAY_SECRET_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+  PLATFORM_TOYYIBPAY_CATEGORY_CODE: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
   /** S3-compatible file storage for S2 photos (RustFS / MinIO locally). Photos are off when unset. */
   S3_ENDPOINT: optionalUrl,
   S3_REGION: z.string().default('us-east-1'),

@@ -6,3 +6,8 @@ export function formatRm(sen: number): string {
     maximumFractionDigits: 2,
   })}`;
 }
+
+/** Integer sen → "RM 99.00" (receipts and payment pages always show sen). */
+export function formatRmFull(sen: number): string {
+  return `RM ${(sen / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}

@@ -135,3 +135,24 @@ export const subscriptions = pgTable(
     ),
   ],
 );
+
+/**
+ * I4 / I17 receipt details for plan payments: who the receipt is made out to. One row per business.
+ * Each paid plan payment keeps its own copy (`payments.receipt_snapshot`), so changing these only affects new receipts.
+ */
+export const billingDetails = pgTable('billing_details', {
+  id: idPk(),
+  businessId: integer('business_id')
+    .notNull()
+    .unique()
+    .references(() => businesses.id, { onDelete: 'cascade' }),
+  companyName: text('company_name').notNull(),
+  /** SSM registration no. (optional). */
+  ssmNo: text('ssm_no'),
+  /** Tax identification no. for a future LHDN e-Invoice (optional). */
+  tin: text('tin'),
+  address: text('address'),
+  receiptEmail: citext('receipt_email').notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

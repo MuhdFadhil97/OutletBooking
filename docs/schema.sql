@@ -465,6 +465,7 @@ CREATE TABLE payments (
   paid_at          timestamptz,
   raw_callback     jsonb,
   receipt_no       text        UNIQUE,          -- plan payments only: OB-2026-000123 from receipt_no_seq (I15, I17, M4)
+  receipt_snapshot jsonb,                       -- plan payments: receipt details + plan period as at payment time (I17 history, PDF)
   created_at       timestamptz NOT NULL DEFAULT now(),
   updated_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (business_id, id),
@@ -597,6 +598,20 @@ CREATE TABLE admin_business_notes (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX admin_business_notes_business_idx ON admin_business_notes(business_id, created_at DESC);
+
+-- Receipt details for plan payments (I4, I17): who the receipt is made out to. One row per business.
+-- Each paid plan payment keeps its own copy in payments.receipt_snapshot, so edits only affect new receipts.
+CREATE TABLE billing_details (
+  id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  business_id    integer     NOT NULL UNIQUE REFERENCES businesses(id) ON DELETE CASCADE,
+  company_name   text        NOT NULL,
+  ssm_no         text,
+  tin            text,                          -- for a future LHDN e-Invoice
+  address        text,
+  receipt_email  citext      NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
 
 -- Plans & prices (I12). Shown on the website (I3, I4) and the app (E3). Super admins only.
 CREATE TABLE plans (
@@ -865,7 +880,7 @@ BEGIN
     'working_hours','time_off','booking_fields','customers','bookings',
     'booking_attachments','payments','refunds','payment_accounts','booking_events',
     'notifications','platform_admins','admin_audit_log','two_factors','admin_business_notes',
-    'plans','platform_settings','leads','support_cases','support_notes','privacy_requests',
+    'billing_details','plans','platform_settings','leads','support_cases','support_notes','privacy_requests',
     'announcements','announcement_dismissals','payment_checks','email_events','listings','checklist_sections',
     'checklist_items','inspection_results','inspection_item_results'
   ] LOOP

@@ -238,6 +238,11 @@ export const payments = pgTable(
     rawCallback: jsonb('raw_callback'),
     /** Plan payments only: OB-2026-000123 from `receipt_no_seq` (I15, I17, M4). */
     receiptNo: text('receipt_no').unique(),
+    /**
+     * Plan payments: the receipt details and the plan period as they were when the payment was made
+     * ({companyName, ssmNo, tin, address, receiptEmail, plan, periodStart, periodEnd, description}).
+     */
+    receiptSnapshot: jsonb('receipt_snapshot'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

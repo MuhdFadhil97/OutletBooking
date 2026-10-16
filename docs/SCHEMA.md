@@ -99,6 +99,7 @@ erDiagram
 | Platform | platform_admins | FTech staff who can use the admin panel | user_id |
 | Platform | admin_audit_log | Every admin action, with reason | admin_user_id, business_id, action, reason, details |
 | Platform | two_factors | Admin two-step sign-in (Better Auth) | user_id, secret, backup_codes |
+| Payment | billing_details | Receipt details for plan payments (company, SSM, TIN, address, receipt email); each paid payment keeps a snapshot in `payments.receipt_snapshot` | company_name, ssm_no, tin, address, receipt_email |
 | Platform | plans, platform_settings | Plans & prices, trial / grace / reminder / deletion settings | code, price_sen, resource_limit, features; trial_days, grace_days |
 | Platform | admin_business_notes | Admin-only notes on a business | business_id, admin_user_id, body |
 | Platform | leads, support_cases, support_notes | Website leads and support cases | reason, consent_at; status, assigned_admin_user_id; kind, body |

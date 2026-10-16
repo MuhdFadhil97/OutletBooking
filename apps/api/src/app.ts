@@ -7,6 +7,7 @@ import type { Env } from './env';
 import { adminPasswordGuard, adminTwoFactorSignIn, twoFactorSetupGuard } from './middleware/admin-sign-in';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { adminInviteRoutes } from './routes/admin-invite';
+import { billingRoutes } from './routes/billing';
 import { planRoutes } from './routes/plans';
 import { adminRoutes } from './routes/admin';
 import { bookingFieldRoutes } from './routes/booking-fields';
@@ -88,6 +89,9 @@ export function createApp({
   });
 
   // I5 / I6 admin sign-in rules around Better Auth's routes (lockout, sign-in log, two-step for admins only).
+  // The emailed sign-in link is requested through POST /billing/sign-in-link only (same answer for every email,
+  // rate-limited, never for admins). Better Auth's own public route for it is not exposed.
+  app.post('/api/auth/sign-in/magic-link', (c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404));
   app.post('/api/auth/sign-in/email', adminPasswordGuard);
   app.post('/api/auth/two-factor/verify-totp', adminTwoFactorSignIn('totp'));
   app.post('/api/auth/two-factor/verify-backup-code', adminTwoFactorSignIn('backup_code'));
@@ -116,6 +120,7 @@ export function createApp({
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);
   app.route('/plans', planRoutes);
+  app.route('/billing', billingRoutes);
   app.route('/admin', adminRoutes);
   app.route('/admin-invite', adminInviteRoutes);
 

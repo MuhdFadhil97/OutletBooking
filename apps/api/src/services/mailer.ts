@@ -9,6 +9,8 @@ export interface MailMessage {
   text: string;
   /** The same message from the shared template (services/email-template.ts). */
   html?: string;
+  /** Files sent with the email (the plan receipt PDF). */
+  attachments?: { filename: string; content: Buffer }[];
 }
 
 export interface Mailer {
@@ -34,20 +36,30 @@ export function createMailer(config: MailerConfig, fetchFn: typeof fetch = fetch
         throw new Error('MAIL_TRANSPORT=console prints reset links to the log — use MAIL_TRANSPORT=resend in production');
       }
       return {
-        async send({ to, subject, text }) {
+        async send({ to, subject, text, attachments }) {
           if (config.NODE_ENV === 'test') return;
-          console.log(`\n[mail] To: ${to}\n[mail] Subject: ${subject}\n${text}\n`);
+          const files = attachments?.map((a) => `[mail] Attachment: ${a.filename} (${a.content.length} bytes)\n`).join('') ?? '';
+          console.log(`\n[mail] To: ${to}\n[mail] Subject: ${subject}\n${files}${text}\n`);
         },
       };
     case 'resend': {
       const { RESEND_API_KEY: apiKey, MAIL_FROM: from } = config;
       if (!apiKey || !from) throw new Error('MAIL_TRANSPORT=resend needs RESEND_API_KEY and MAIL_FROM');
       return {
-        async send({ to, subject, text, html }) {
+        async send({ to, subject, text, html, attachments }) {
           const res = await fetchFn(RESEND_URL, {
             method: 'POST',
             headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-            body: JSON.stringify({ from, to: [to], subject, text, ...(html ? { html } : {}) }),
+            body: JSON.stringify({
+              from,
+              to: [to],
+              subject,
+              text,
+              ...(html ? { html } : {}),
+              ...(attachments?.length
+                ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content.toString('base64') })) }
+                : {}),
+            }),
           });
           if (!res.ok) {
             // Never log the key or the message body (it holds the reset link).

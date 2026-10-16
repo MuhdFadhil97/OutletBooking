@@ -418,7 +418,7 @@ Grant quotations are not offered at launch (revisit after registering as a grant
 | Legal pages | Drafted by Claude in `docs/legal/` (privacy notice EN + BM, terms, refund policy); lawyer review before launch |
 
 **Still open**
-- Plan renewal: automatic recurring charge or manual renewal with reminder? (Web billing page shows a placeholder.)
+- ~~Plan renewal: automatic recurring charge or manual renewal with reminder?~~ **Decided (MVP): manual renewal with reminders.** FPX / DuitNow cannot be charged automatically, so the owner pays the next month from the billing page; reminders go out N days before the plan ends (I12 setting).
 - Domain: `outletbooking.my` registered (Hostinger). Still to do: secure the app name on Play Store
 - Pilot businesses: identify 1–2 per niche (agency, inspection centre, sports centre)
 - Real estate: is the resource the agent or the property? (Recommended: agent as resource, property as booking field)

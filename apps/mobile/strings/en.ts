@@ -1278,6 +1278,9 @@ export const en = {
     grantMessage: (business: string) => `Hi FTech, I'd like a quotation for the MSME Digital Grant for ${business}.`,
     continueWith: (plan: string, amount: string) => `Continue with ${plan} · ${amount}`,
     payNote: 'Opens outletbooking.my to pay securely by FPX or DuitNow. Cancel anytime.',
+    billingReceipts: 'Billing & receipts',
+    billingNote: 'Your receipts and receipt details (SSM, TIN) are on the website. We sign you in automatically.',
+    billingOpenError: 'Could not open billing. Check your connection and try again.',
   },
   trialEnded: {
     title: 'Your free trial has ended',

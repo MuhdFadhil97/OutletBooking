@@ -14,17 +14,20 @@ import { testDatabaseUrl } from './test-db-url';
 
 export const WEB_ORIGIN = 'http://localhost:8081';
 
-export function createTestContext() {
+/** `envOverrides` change or add environment settings for one test file (e.g. the platform ToyyibPay keys). */
+export function createTestContext(envOverrides: Record<string, string> = {}) {
   const url = testDatabaseUrl();
   const env = loadEnv({
     NODE_ENV: 'test',
     DATABASE_URL: url,
     BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-1234',
     BETTER_AUTH_URL: 'http://localhost:3000',
-    TRUSTED_ORIGINS: `${WEB_ORIGIN},outletbooking://`,
+    // The website (WEBSITE_URL) is trusted too: Better Auth checks the redirect of the emailed sign-in link.
+    TRUSTED_ORIGINS: `${WEB_ORIGIN},outletbooking://,https://outletbooking.my`,
     APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     API_PUBLIC_URL: 'https://api.test',
     JOBS_ENABLED: 'false',
+    ...envOverrides,
   });
   const { db, sql } = createDb(url, { max: 5 });
   /** Every email the API "sent" during the test. */

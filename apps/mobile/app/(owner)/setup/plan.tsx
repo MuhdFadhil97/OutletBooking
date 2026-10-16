@@ -19,7 +19,9 @@ import { ErrorState, LoadingState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { whatsappUrl } from '@/features/bookings/format';
 import { useMe } from '@/features/me/hooks';
+import { getWebBillingLink } from '@/features/plan/api';
 import { usePlanInfo } from '@/features/plan/hooks';
+import { ApiError } from '@/lib/api';
 import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
@@ -31,6 +33,8 @@ export default function PlanScreen() {
   const info = usePlanInfo();
   const { me, refetch: refetchMe } = useMe();
   const [picked, setPicked] = useState<PaidPlan | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
 
   // Coming back from the website after paying: refresh the plan and the trial banner.
   useFocusEffect(
@@ -51,6 +55,25 @@ export default function PlanScreen() {
     );
   }
 
+  /**
+   * Opens the website already signed in. The pay page falls back to the plain link if the call fails (the website
+   * then asks for an email link); Billing & receipts has no plain link, so it shows the error.
+   */
+  async function openWebsite(target: { plan: PaidPlan; fallbackUrl: string } | { plan?: undefined; fallbackUrl?: undefined }) {
+    setOpening(true);
+    setOpenError(null);
+    try {
+      const { url } = await getWebBillingLink(target.plan ? { plan: target.plan, page: 'pay' } : { page: 'account' });
+      await Linking.openURL(url);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'email_not_confirmed') setOpenError(err.message);
+      else if (target.fallbackUrl) await Linking.openURL(target.fallbackUrl);
+      else setOpenError(s.billingOpenError);
+    } finally {
+      setOpening(false);
+    }
+  }
+
   const current = p.plan !== 'trial' && p.hasAccess ? p.plan : null;
   // Prices and limits are set by FTech (admin I12). A plan hidden from the website is only shown to its own customers.
   const catalog = p.plans ?? DEFAULT_PLANS;
@@ -65,8 +88,11 @@ export default function PlanScreen() {
       subtitle={subtitle(p, tz)}
       footer={
         <View className="gap-2.5">
-          <Button title={s.continueWith(s.names[plan], price)} onPress={() => void Linking.openURL(p.payUrls[plan])} />
+          {openError ? <Text className="text-center text-[13px] text-danger">{openError}</Text> : null}
+          <Button title={s.continueWith(s.names[plan], price)} loading={opening} onPress={() => void openWebsite({ plan, fallbackUrl: p.payUrls[plan] })} />
+          <Button title={s.billingReceipts} variant="secondary" disabled={opening} onPress={() => void openWebsite({})} />
           <Text className="text-center text-[12px] text-muted">{s.payNote}</Text>
+          <Text className="text-center text-[12px] text-muted">{s.billingNote}</Text>
         </View>
       }
     >

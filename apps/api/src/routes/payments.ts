@@ -4,6 +4,8 @@ import { runInBackground } from '../background';
 import { rateLimit } from '../middleware/rate-limit';
 import { requireSession } from '../middleware/session';
 import { requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
+import { handlePlanCallback } from '../services/billing';
+import { afterPlanPaid, billingDeps } from './billing';
 import {
   checkTestPayment,
   connectToyyibPay,
@@ -53,6 +55,18 @@ export const toyyibPayRoutes = new Hono<AppEnv>()
       if (result) runInBackground('notify payment', () => notifyPayment(paymentDeps(c), result));
     } catch (err) {
       console.error('[toyyibpay] callback failed', err);
+    }
+    return c.text('OK');
+  })
+  // Plan payments (website): FTech's own ToyyibPay account. Same rule: the re-check decides, never the body.
+  .post('/plan-callback', async (c) => {
+    const body = await c.req.parseBody();
+    const form = Object.fromEntries(Object.entries(body).map(([k, v]) => [k, typeof v === 'string' ? v : '']));
+    try {
+      const deps = billingDeps(c);
+      afterPlanPaid(deps, await handlePlanCallback(deps, form));
+    } catch (err) {
+      console.error('[toyyibpay] plan callback failed', err);
     }
     return c.text('OK');
   })
