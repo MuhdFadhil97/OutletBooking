@@ -9,6 +9,7 @@ import {
   type SubscriptionStatus,
 } from '@outletbooking/shared';
 import { notFound } from '../errors';
+import { getPlanCatalog } from './plan-catalog';
 
 /** I4 plan payment page on the website. The business is identified by its slug, never the integer id. */
 export const planPayUrl = (websiteUrl: string, slug: string, plan: PaidPlan) => {
@@ -20,7 +21,7 @@ export const planPayUrl = (websiteUrl: string, slug: string, plan: PaidPlan) => 
 
 /** E3 choose a plan / E4 trial ended: current plan, what the business uses, where to pay. */
 export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string, now = new Date()): Promise<PlanInfo> {
-  const [[row], [res], [staff]] = await Promise.all([
+  const [[row], [res], [staff], catalog] = await Promise.all([
     db
       .select({
         slug: businesses.slug,
@@ -41,6 +42,7 @@ export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string
       .select({ n: count() })
       .from(businessMembers)
       .where(and(eq(businessMembers.businessId, businessId), eq(businessMembers.role, 'staff'), eq(businessMembers.isActive, true))),
+    getPlanCatalog(db),
   ]);
   if (!row) throw notFound('Business');
 
@@ -57,7 +59,8 @@ export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string
     hasAccess: hasPlanAccess({ status, trialEndsAt, currentPeriodEnd: row.currentPeriodEnd }, now),
     resourceCount,
     staffCount,
-    recommended: recommendedPlan(resourceCount, staffCount),
+    recommended: recommendedPlan(resourceCount, staffCount, catalog.plans.find((p) => p.code === 'starter')?.resourceLimit),
+    plans: catalog.plans,
     payUrls: Object.fromEntries(PAID_PLANS.map((p) => [p, planPayUrl(websiteUrl, row.slug, p)])) as Record<PaidPlan, string>,
   };
 }

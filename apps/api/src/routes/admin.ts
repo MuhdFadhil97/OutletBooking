@@ -17,6 +17,7 @@ import {
   suspendSchema,
   trialsQuery,
   unsuspendSchema,
+  updatePlansSchema,
 } from '@outletbooking/shared';
 import { requirePlatformAdmin, requireSuperAdmin } from '../middleware/platform-admin';
 import { requireSession } from '../middleware/session';
@@ -38,6 +39,7 @@ import {
   unsuspendBusiness,
 } from '../services/admin';
 import { listTrials } from '../services/admin-trials';
+import { getAdminPlanCatalog, updatePlanCatalog } from '../services/plan-catalog';
 import {
   changeAdminRole,
   inviteAdmin,
@@ -49,7 +51,7 @@ import {
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
-/** I1 / I2 / I7 / I9 / I10 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
+/** I1 / I2 / I7 / I9 / I10 / I12 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
 export const adminRoutes = new Hono<AppEnv>()
   .use(requireSession, requirePlatformAdmin)
   .get('/me', (c) => c.json(c.var.admin))
@@ -102,6 +104,11 @@ export const adminRoutes = new Hono<AppEnv>()
     c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),
   )
   .get('/admins', async (c) => c.json(await listAdminUsers(c.var.db)))
+  // I12 plans & prices: super admins only.
+  .get('/plans', requireSuperAdmin, async (c) => c.json(await getAdminPlanCatalog(c.var.db)))
+  .post('/plans', requireSuperAdmin, validate('json', updatePlansSchema), async (c) =>
+    c.json(await updatePlanCatalog(c.var.db, c.var.userId, c.req.valid('json'))),
+  )
   // I10 admin users: super admins only.
   .get('/users', requireSuperAdmin, async (c) => c.json(await listAdminUserRows(c.var.db)))
   .post('/users', requireSuperAdmin, validate('json', inviteAdminSchema), async (c) =>

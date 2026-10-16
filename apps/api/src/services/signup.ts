@@ -1,10 +1,12 @@
 import { hashPassword } from 'better-auth/crypto';
 import { accounts, applyTemplate, businesses, businessMembers, subscriptions, users, type Db } from '@outletbooking/db';
-import { LEGAL_VERSION, TEMPLATE_INFO, type SignupInput } from '@outletbooking/shared';
+import { DEFAULT_TRIAL_DAYS, LEGAL_VERSION, TEMPLATE_INFO, type SignupInput } from '@outletbooking/shared';
 import { AppError, pgErrorInfo } from '../errors';
+import { getPlanCatalog } from './plan-catalog';
 import { isReservedSlug } from './slugs';
 
-export const TRIAL_DAYS = 7;
+/** Used only if the platform settings row is missing; the real length is set in I12. */
+export const TRIAL_DAYS = DEFAULT_TRIAL_DAYS;
 
 export interface SignupResult {
   userId: number;
@@ -14,7 +16,7 @@ export interface SignupResult {
 }
 
 /**
- * Creates user + credential account + business + owner membership + 7-day trial
+ * Creates user + credential account + business + owner membership + trial (length from I12)
  * + template sample services / booking fields in ONE transaction. Any failure (e.g. slug or email taken) rolls everything back.
  *
  * We insert the Better Auth rows ourselves (same password hasher) because Better
@@ -26,7 +28,8 @@ export async function signupOwner(db: Db, input: SignupInput, now: Date = new Da
   }
   const passwordHash = await hashPassword(input.password);
   const template = TEMPLATE_INFO[input.template];
-  const trialEndsAt = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  const { settings } = await getPlanCatalog(db);
+  const trialEndsAt = new Date(now.getTime() + settings.trialDays * 24 * 60 * 60 * 1000);
 
   try {
     return await db.transaction(async (tx) => {

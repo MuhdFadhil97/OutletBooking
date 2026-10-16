@@ -7,6 +7,7 @@ import type { Env } from './env';
 import { adminPasswordGuard, adminTwoFactorSignIn, twoFactorSetupGuard } from './middleware/admin-sign-in';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { adminInviteRoutes } from './routes/admin-invite';
+import { planRoutes } from './routes/plans';
 import { adminRoutes } from './routes/admin';
 import { bookingFieldRoutes } from './routes/booking-fields';
 import { bookingRoutes } from './routes/bookings';
@@ -114,6 +115,7 @@ export function createApp({
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);
+  app.route('/plans', planRoutes);
   app.route('/admin', adminRoutes);
   app.route('/admin-invite', adminInviteRoutes);
 

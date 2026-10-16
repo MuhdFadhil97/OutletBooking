@@ -3,12 +3,12 @@ import { Linking, Pressable, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
-  EXTRA_RESOURCE_SEN,
-  PAID_PLANS,
-  PLAN_PRICES,
-  planMonthlySen,
+  DEFAULT_PLANS,
+  PLAN_FEATURES,
+  planEntryMonthlySen,
   SUPPORT_WHATSAPP,
   type PaidPlan,
+  type PlanCatalogEntry,
   type PlanInfo,
 } from '@outletbooking/shared';
 import { StackScreen } from '@/components/StackScreen';
@@ -52,8 +52,12 @@ export default function PlanScreen() {
   }
 
   const current = p.plan !== 'trial' && p.hasAccess ? p.plan : null;
-  const plan = picked ?? current ?? p.recommended;
-  const price = formatRM(planMonthlySen(plan, p.resourceCount));
+  // Prices and limits are set by FTech (admin I12). A plan hidden from the website is only shown to its own customers.
+  const catalog = p.plans ?? DEFAULT_PLANS;
+  const shown = catalog.filter((c) => c.isPublic || c.code === current);
+  const entry = shown.find((c) => c.code === (picked ?? current ?? p.recommended)) ?? shown[0] ?? DEFAULT_PLANS[0]!;
+  const plan = entry.code;
+  const price = formatRM(planEntryMonthlySen(entry, p.resourceCount));
 
   return (
     <StackScreen
@@ -70,21 +74,21 @@ export default function PlanScreen() {
         {s.youHave(s.count(p.resourceCount, label), `${p.staffCount} ${s.staffWord}`)}
       </Text>
 
-      {PAID_PLANS.map((key) => (
+      {shown.map((c) => (
         <PlanCard
-          key={key}
-          plan={key}
+          key={c.code}
+          entry={c}
           info={p}
           label={label}
-          selected={key === plan}
-          current={key === current}
-          onPress={() => setPicked(key)}
+          selected={c.code === plan}
+          current={c.code === current}
+          onPress={() => setPicked(c.code)}
         />
       ))}
 
       <Card className="flex-row items-center justify-between px-3.5 py-3">
         <Text className="flex-1 text-[14px]">{s.extra(label)}</Text>
-        <Text className="text-[14px] font-bold">{s.extraPrice(formatRM(EXTRA_RESOURCE_SEN))}</Text>
+        <Text className="text-[14px] font-bold">{s.extraPrice(formatRM(entry.extraResourceSen))}</Text>
       </Card>
 
       <Pressable
@@ -113,23 +117,27 @@ function subtitle(p: PlanInfo, tz: string): string {
 }
 
 function PlanCard({
-  plan,
+  entry,
   info,
   label,
   selected,
   current,
   onPress,
 }: {
-  plan: PaidPlan;
+  entry: PlanCatalogEntry;
   info: PlanInfo;
   label: string;
   selected: boolean;
   current: boolean;
   onPress: () => void;
 }) {
-  const { priceSen, resourceLimit } = PLAN_PRICES[plan];
+  const { code: plan, priceSen, resourceLimit } = entry;
   const over = info.resourceCount > resourceLimit;
-  const features = [s.upTo(resourceLimit, label), ...s.features[plan]];
+  const features = [
+    s.upTo(resourceLimit, label),
+    ...s.featuresBase,
+    ...PLAN_FEATURES.filter((f) => entry.features[f]).map((f) => s.features[f]),
+  ];
   const badge = current ? s.current : plan === info.recommended ? s.bestForYou : null;
   return (
     <Pressable
@@ -160,7 +168,7 @@ function PlanCard({
       </View>
       {over ? (
         <Text className="text-[13px] font-bold text-pend-fg">
-          {s.yourPrice(s.count(info.resourceCount, label), formatRM(planMonthlySen(plan, info.resourceCount)))}
+          {s.yourPrice(s.count(info.resourceCount, label), formatRM(planEntryMonthlySen(entry, info.resourceCount)))}
         </Text>
       ) : null}
     </Pressable>

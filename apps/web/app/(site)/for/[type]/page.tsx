@@ -47,6 +47,7 @@ export default async function TypePage({ params }: Props) {
   const copy = s.typePage.pages[template];
   const info = TEMPLATE_INFO[template];
   const t = s.typePage;
+  const afterTrial = await afterTrialLine();
 
   return (
     <>
@@ -146,7 +147,7 @@ export default async function TypePage({ params }: Props) {
       <section className="band trial-band">
         <div className="wrap">
           <h2>{t.trialTitle}</h2>
-          <p className="muted">{afterTrialLine()}</p>
+          <p className="muted">{afterTrial}</p>
           <TrialButton label={s.nav.trial} />
         </div>
       </section>

@@ -21,7 +21,6 @@ import {
   AUDIT_EXPORT_MAX_ROWS,
   hasPlanAccess,
   PAID_PLANS,
-  PLAN_PRICES,
   type AdminAction,
   type AdminBusinessDetail,
   type AdminBusinessesResponse,
@@ -47,6 +46,7 @@ import {
 import type { Auth } from '../auth';
 import type { Env } from '../env';
 import { sendConfirmEmail } from './confirm-email';
+import { planResourceLimit } from './plan-catalog';
 import type { Mailer } from './mailer';
 import { AppError, notFound } from '../errors';
 
@@ -611,7 +611,7 @@ export async function giveFreeMonths(
         currentPeriodStart: paying ? sub.currentPeriodStart : now,
         currentPeriodEnd: newEnd,
         freeUntil: newEnd,
-        resourceLimit: PLAN_PRICES[plan].resourceLimit,
+        resourceLimit: await planResourceLimit(tx, plan),
       })
       .where(eq(subscriptions.id, sub.id));
     await audit(tx, adminUserId, businessId, 'give_free_months', input.reason, {
@@ -644,7 +644,7 @@ export async function changePlan(
     if (sub.plan === input.plan) throw new AppError(409, 'no_change', `This business is already on ${input.plan}`);
     await tx
       .update(subscriptions)
-      .set({ plan: input.plan, resourceLimit: PLAN_PRICES[input.plan].resourceLimit })
+      .set({ plan: input.plan, resourceLimit: await planResourceLimit(tx, input.plan) })
       .where(eq(subscriptions.id, sub.id));
     await audit(tx, adminUserId, businessId, 'change_plan', input.reason, { from: sub.plan, to: input.plan });
   });

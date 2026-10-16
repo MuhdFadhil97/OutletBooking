@@ -2,6 +2,7 @@ import type {
   AdminBusinessDetail,
   AdminBusinessesResponse,
   AcceptAdminInviteInput,
+  AdminPlanCatalog,
   AdminBusinessFilter,
   AdminInviteInfo,
   AdminRole,
@@ -18,6 +19,7 @@ import type {
   SuspendInput,
   TrialFilter,
   TrialsResponse,
+  UpdatePlansInput,
 } from '@outletbooking/shared';
 import { API_URL } from './config';
 
@@ -220,4 +222,13 @@ export async function getAdminInvite(token: string): Promise<InviteResult> {
 export async function acceptAdminInvite(token: string, input: AcceptAdminInviteInput): Promise<{ kind: 'ok' } | InviteFailure> {
   const r = await call(`/admin-invite/${encodeURIComponent(token)}/accept`, input);
   return r.status === 200 ? { kind: 'ok' } : inviteFailure(r);
+}
+
+/** I12 (super admins only) */
+export async function getPlanCatalog(): Promise<Result<AdminPlanCatalog>> {
+  return toResult(await call('/admin/plans'));
+}
+
+export async function savePlanCatalog(input: UpdatePlansInput): Promise<Result<AdminPlanCatalog>> {
+  return toResult(await call('/admin/plans', input));
 }

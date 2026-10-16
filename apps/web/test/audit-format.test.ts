@@ -27,6 +27,14 @@ describe('I9 audit "Change" column', () => {
     ).toBe('a@x.my → b@x.my · old owner kept as staff');
   });
 
+  it('plans & prices and platform settings show the saved before → after', () => {
+    expect(
+      auditChange({ action: 'update_plans', details: { plan: 'starter', changes: 'price RM 49 → RM 59; resources 3 → 5' } }),
+    ).toBe('Starter: price RM 49 → RM 59; resources 3 → 5');
+    expect(auditChange({ action: 'update_platform_settings', details: { changes: 'trial 7 → 14 days' } })).toBe('trial 7 → 14 days');
+    expect(auditChange({ action: 'update_plans', details: {} })).toBe('—');
+  });
+
   it('sign-ins', () => {
     expect(auditChange({ action: 'sign_in', details: { method: 'totp', firstSetup: true } })).toBe('Two-step code · two-step set up');
     expect(auditChange({ action: 'sign_in_failed', details: { failures: 2, locked: false } })).toBe('Wrong password (2 in a row)');

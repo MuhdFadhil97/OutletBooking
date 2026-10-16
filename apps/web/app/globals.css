@@ -1137,6 +1137,60 @@ textarea.inp {
 .reason-form textarea.inp {
   min-height: 64px;
 }
+.plans-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.plan-edit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plan-edit-head h2 {
+  margin: 0;
+}
+.plan-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.plan-features {
+  border: 0;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
+@media (max-width: 1100px) {
+  .plans-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .users-bottom {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);

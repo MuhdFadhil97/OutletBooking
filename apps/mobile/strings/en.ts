@@ -1263,9 +1263,12 @@ export const en = {
     bestForYou: 'Best for you',
     current: 'Current plan',
     upTo: (n: number, label: string) => `Up to ${n} ${label.toLowerCase()}s`,
+    /** Always listed, then the plan's feature flags from I12 (admin Plans & prices). */
+    featuresBase: ['Unlimited bookings', 'WhatsApp reminder list'],
     features: {
-      starter: ['Unlimited bookings', 'Online payment & deposits', 'WhatsApp reminder list'],
-      business: ['Everything in Starter', 'Staff app, roles & permissions', 'Reports & customer history'],
+      online_payment: 'Online payment & deposits',
+      staff_app: 'Staff app, roles & permissions',
+      reports: 'Reports & customer history',
     },
     extra: (label: string) => `Extra ${label.toLowerCase()} above the limit`,
     extraPrice: (amount: string) => `${amount} / month`,

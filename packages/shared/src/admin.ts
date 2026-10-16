@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { emailSchema, passwordSchema } from './schemas';
-import { hasPlanAccess, PAID_PLANS, type PlanAccessInput } from './plans';
+import {
+  hasPlanAccess,
+  PAID_PLANS,
+  type PaidPlan,
+  type PlanAccessInput,
+  type PlanCatalogEntry,
+  type PlanSettings,
+} from './plans';
 import type { MemberRole, SubscriptionStatus } from './types';
 import type { BusinessTemplate } from './templates';
 
@@ -409,3 +416,57 @@ export const ADMIN_USER_ERRORS = {
   lastSuperAdmin: 'last_super_admin',
   inviteExpired: 'invite_expired',
 } as const;
+
+// ------------------------------------------------------------ I12 plans & prices (super admin only)
+
+/** Limits of the I12 form. Money is integer sen; the form shows RM. */
+export const PLAN_LIMITS = {
+  maxPriceSen: 1_000_000,
+  maxResourceLimit: 1000,
+  maxExtraResourceSen: 100_000,
+  maxReminderDays: 5,
+} as const;
+
+export const planEditSchema = z.object({
+  code: z.enum(PAID_PLANS),
+  priceSen: z.number().int().min(100, 'Price must be at least RM 1').max(PLAN_LIMITS.maxPriceSen, 'Price is too high'),
+  resourceLimit: z.number().int().min(1, 'At least 1 resource').max(PLAN_LIMITS.maxResourceLimit),
+  extraResourceSen: z.number().int().min(0).max(PLAN_LIMITS.maxExtraResourceSen),
+  features: z.object({ online_payment: z.boolean(), staff_app: z.boolean(), reports: z.boolean() }),
+  isPublic: z.boolean(),
+});
+export type PlanEditInput = z.infer<typeof planEditSchema>;
+
+export const planSettingsSchema = z.object({
+  trialDays: z.number().int().min(1, 'At least 1 day').max(90, 'At most 90 days'),
+  graceDays: z.number().int().min(0).max(30, 'At most 30 days'),
+  renewalReminderDays: z
+    .array(z.number().int().min(1).max(30, 'Reminders are 1 to 30 days before'))
+    .max(PLAN_LIMITS.maxReminderDays, `At most ${PLAN_LIMITS.maxReminderDays} reminders`),
+});
+
+/** Save I12: both plans and the settings in one go, with a reason. Names are fixed (Starter, Business). */
+export const updatePlansSchema = z
+  .object({
+    plans: z.array(planEditSchema),
+    settings: planSettingsSchema,
+    reason: adminReason,
+  })
+  .superRefine((v, ctx) => {
+    const codes = v.plans.map((p) => p.code);
+    if (codes.length !== PAID_PLANS.length || PAID_PLANS.some((c) => !codes.includes(c))) {
+      ctx.addIssue({ code: 'custom', path: ['plans'], message: 'Send both plans: starter and business' });
+    }
+    if (!v.plans.some((p) => p.isPublic)) {
+      ctx.addIssue({ code: 'custom', path: ['plans'], message: 'At least one plan must be shown on the website' });
+    }
+  });
+export type UpdatePlansInput = z.infer<typeof updatePlansSchema>;
+
+/** GET /admin/plans */
+export interface AdminPlanCatalog {
+  plans: PlanCatalogEntry[];
+  settings: PlanSettings;
+  /** Businesses on each plan today (they keep their limit until the next renewal or plan change). */
+  businessesByPlan: Record<PaidPlan, number>;
+}

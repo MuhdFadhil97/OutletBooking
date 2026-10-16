@@ -16,7 +16,7 @@ type NavKey = keyof typeof t.shell.nav;
 const NAV: { group?: keyof typeof t.shell.groups; items: { key: NavKey; href?: string; superOnly?: boolean }[] }[] = [
   { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials', href: '/admin/trials' }, { key: 'payments' }, { key: 'support' }] },
   { group: 'privacy', items: [{ key: 'privacy' }, { key: 'deletion' }, { key: 'audit', href: '/admin/audit' }] },
-  { group: 'platform', items: [{ key: 'health' }, { key: 'announcements' }, { key: 'users', href: '/admin/users', superOnly: true }, { key: 'plans', superOnly: true }] },
+  { group: 'platform', items: [{ key: 'health' }, { key: 'announcements' }, { key: 'users', href: '/admin/users', superOnly: true }, { key: 'plans', href: '/admin/plans', superOnly: true }] },
 ];
 
 interface AdminContext {

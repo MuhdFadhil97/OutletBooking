@@ -140,14 +140,17 @@ export const s = {
   pricing: {
     title: 'Simple pricing',
     perMonth: '/ month',
-    plans: {
-      starter: { name: 'Starter', features: ['Unlimited bookings', 'Online payment & deposits'] },
-      business: { name: 'Business', features: ['Staff app & roles', 'Reports & customer history'] },
+    unlimited: 'Unlimited bookings',
+    /** Plan feature flags from I12. */
+    features: {
+      online_payment: 'Online payment & deposits',
+      staff_app: 'Staff app & roles',
+      reports: 'Reports & customer history',
     },
     upTo: (n: number) => `Up to ${n} bookable resources`,
-    extra: (rm: string) => `Extra resource ${rm} / month. More than 10?`,
+    extra: (rm: string, most: number) => `Extra resource ${rm} / month. More than ${most}?`,
     talk: 'Talk to us',
-    afterTrial: (starter: string, business: string) => `Starter ${starter} · Business ${business} per month after the trial`,
+    afterTrial: (prices: string) => `${prices} per month after the trial`,
   },
 
   typePage: {
@@ -409,6 +412,50 @@ export const s = {
         users: 'Admin users',
         plans: 'Plans & prices',
       },
+    },
+    /** I12 · Plans & prices (super admins only). */
+    planEditor: {
+      title: 'Plans & prices',
+      subtitle: 'What the website and app show, and what owners pay',
+      superOnly: 'Only a super admin can change plans and prices.',
+      shownOnWebsite: 'Shown on website',
+      hiddenOnWebsite: 'Hidden from website',
+      price: 'Price / month (RM)',
+      resources: 'Bookable resources',
+      extra: 'Extra resource (RM / month)',
+      features: {
+        online_payment: 'Online payment & deposits',
+        staff_app: 'Staff app & roles',
+        reports: 'Reports & customer history',
+      },
+      onPlan: (n: number) => `${n} business${n === 1 ? '' : 'es'} on this plan now`,
+      trialTitle: 'Trial & renewal',
+      trialDays: 'Free trial length (days)',
+      trialHint:
+        'Used for every new sign-up. The website, the app and the Terms still say “7-day” in their wording — update those texts if you change this.',
+      graceDays: 'Grace days after plan ends',
+      graceHint: 'Booking page stays live this long after a missed renewal.',
+      reminders: 'Renewal reminders (days before)',
+      remindersHint: 'Separate numbers with commas, e.g. 7, 3, 1.',
+      notActive: 'Saved, but not used yet: it starts working when plan renewals go live with plan payments.',
+      reason: 'Reason for change (saved in audit log)',
+      reasonPlaceholder: 'e.g. Launch pricing',
+      save: 'Save changes',
+      saving: 'Saving…',
+      saved: 'Saved. New prices apply to new payments and the next renewal.',
+      unsaved: 'You have unsaved changes.',
+      saveError: 'Could not save. Check your connection and try again.',
+      errors: {
+        price: 'Enter a price of RM 1 or more.',
+        resources: 'Enter a whole number of 1 or more.',
+        extra: 'Enter an amount of RM 0 or more.',
+        trialDays: 'Enter 1 to 90 days.',
+        graceDays: 'Enter 0 to 30 days.',
+        reminders: 'Use whole numbers from 1 to 30, up to 5 of them.',
+        public: 'At least one plan must be shown on the website.',
+      },
+      footnote:
+        'Super admins only. New prices apply to new payments and the next renewal — periods already paid keep their price. Starter and Business are seeded; the number of plans is fixed for the MVP. Plan features are shown to customers but are not used to lock anything yet.',
     },
     /** I10 · Admin users (super admins only). */
     users: {

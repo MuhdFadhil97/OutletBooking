@@ -58,6 +58,14 @@ export function auditChange(entry: Pick<AuditEntry, 'action' | 'details'>): stri
       if (!method) break;
       return (c.signIn[method] ?? method) + (d.firstSetup === true ? c.firstSetup : '');
     }
+    case 'update_plans':
+    case 'update_platform_settings': {
+      // The API writes the readable before → after ("price RM 49 → RM 59; resources 3 → 5").
+      const changes = str(d, 'changes');
+      if (!changes) break;
+      const plan = str(d, 'plan');
+      return plan ? `${s.admin.plans[plan] ?? plan}: ${changes}` : changes;
+    }
     case 'sign_in_failed':
       if (d.locked === true) return c.locked(ADMIN_LOCK_MINUTES);
       return c.wrongPassword(num(d, 'failures') ?? 1);
