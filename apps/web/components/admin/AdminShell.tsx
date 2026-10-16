@@ -12,10 +12,11 @@ const t = s.admin;
 
 type NavKey = keyof typeof t.shell.nav;
 /** Sidebar from Flow-6: every admin page. Pages not built yet are shown but not linked. */
-const NAV: { group?: keyof typeof t.shell.groups; items: { key: NavKey; href?: string }[] }[] = [
-  { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials' }, { key: 'payments' }, { key: 'support' }] },
-  { group: 'privacy', items: [{ key: 'privacy' }, { key: 'deletion' }, { key: 'audit' }] },
-  { group: 'platform', items: [{ key: 'health' }, { key: 'announcements' }, { key: 'users' }, { key: 'plans' }] },
+/** `superOnly` pages are hidden from Support admins (the API refuses them too). */
+const NAV: { group?: keyof typeof t.shell.groups; items: { key: NavKey; href?: string; superOnly?: boolean }[] }[] = [
+  { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials', href: '/admin/trials' }, { key: 'payments' }, { key: 'support' }] },
+  { group: 'privacy', items: [{ key: 'privacy' }, { key: 'deletion' }, { key: 'audit', href: '/admin/audit' }] },
+  { group: 'platform', items: [{ key: 'health' }, { key: 'announcements' }, { key: 'users', href: '/admin/users', superOnly: true }, { key: 'plans', superOnly: true }] },
 ];
 
 interface AdminContext {
@@ -93,7 +94,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             {NAV.map((section, i) => (
               <div key={i} className="side-group">
                 {section.group && <div className="side-heading">{t.shell.groups[section.group]}</div>}
-                {section.items.map((item) =>
+                {section.items
+                  .filter((item) => !item.superOnly || admin.role === 'super_admin')
+                  .map((item) =>
                   item.href ? (
                     <Link
                       key={item.key}

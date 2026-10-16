@@ -1,6 +1,6 @@
-import { and, asc, count, desc, eq, gte, isNull, ne, sql, sum, type SQL } from 'drizzle-orm';
-import { addMonths } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { and, asc, count, desc, eq, gte, isNull, lt, ne, sql, sum, type SQL } from 'drizzle-orm';
+import { addDays, addMonths } from 'date-fns';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import {
   adminAuditLog,
   bookings,
@@ -18,6 +18,7 @@ import {
 } from '@outletbooking/db';
 import {
   adminPlanState,
+  AUDIT_EXPORT_MAX_ROWS,
   hasPlanAccess,
   PAID_PLANS,
   PLAN_PRICES,
@@ -28,7 +29,9 @@ import {
   type AdminBusinessRow,
   type AdminKpis,
   type AdminMe,
+  type AdminUserOption,
   type AuditEntry,
+  type AuditLogFilters,
   type AuditLogQuery,
   type BookingPageInput,
   type BusinessTemplate,
@@ -243,10 +246,35 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
   };
 }
 
-/** I2 audit log (one business) or the whole platform's log, newest first. */
-export async function listAuditLog(db: Db | Tx, query: AuditLogQuery): Promise<AuditEntry[]> {
+/** Start of a Malaysia calendar day ("2026-10-11") as a UTC instant. */
+const startOfMalaysiaDay = (ymd: string) => fromZonedTime(`${ymd}T00:00:00`, TZ);
+
+function auditWhere(filters: AuditLogFilters): SQL[] {
   const where: SQL[] = [];
-  if (query.businessId) where.push(eq(adminAuditLog.businessId, query.businessId));
+  if (filters.businessId) where.push(eq(adminAuditLog.businessId, filters.businessId));
+  if (filters.adminId) where.push(eq(adminAuditLog.adminUserId, filters.adminId));
+  if (filters.action) where.push(eq(adminAuditLog.action, filters.action));
+  if (filters.business) {
+    // strpos, not LIKE, so "%" and "_" in the search are plain characters.
+    const needle = filters.business.toLowerCase();
+    where.push(sql`(strpos(lower(${businesses.name}), ${needle}) > 0 or strpos(lower(${businesses.slug}), ${needle}) > 0)`);
+  }
+  if (filters.from) where.push(gte(adminAuditLog.createdAt, startOfMalaysiaDay(filters.from)));
+  if (filters.to) where.push(lt(adminAuditLog.createdAt, addDays(startOfMalaysiaDay(filters.to), 1)));
+  return where;
+}
+
+/**
+ * I2 audit log (one business) and I9 the whole platform's log with filters, newest first.
+ * Read only: nothing in the API updates or deletes audit rows.
+ */
+export async function listAuditLog(db: Db | Tx, query: AuditLogQuery): Promise<AuditEntry[]> {
+  const where = auditWhere(query);
+  if (query.beforeId) where.push(lt(adminAuditLog.id, query.beforeId));
+  return selectAudit(db, where, query.limit);
+}
+
+async function selectAudit(db: Db | Tx, where: SQL[], limit: number): Promise<AuditEntry[]> {
   const rows = await db
     .select({
       id: adminAuditLog.id,
@@ -263,8 +291,8 @@ export async function listAuditLog(db: Db | Tx, query: AuditLogQuery): Promise<A
     .innerJoin(users, eq(users.id, adminAuditLog.adminUserId))
     .leftJoin(businesses, eq(businesses.id, adminAuditLog.businessId))
     .where(and(...where))
-    .orderBy(desc(adminAuditLog.createdAt), desc(adminAuditLog.id))
-    .limit(query.limit);
+    .orderBy(desc(adminAuditLog.id))
+    .limit(limit);
   return rows.map((r) => ({
     id: r.id,
     action: r.action as AdminAction,
@@ -274,6 +302,45 @@ export async function listAuditLog(db: Db | Tx, query: AuditLogQuery): Promise<A
     business: r.businessId !== null && r.businessName !== null ? { id: r.businessId, name: r.businessName } : null,
     createdAt: r.createdAt.toISOString(),
   }));
+}
+
+/** One CSV cell. Text starting with = + - @ is prefixed with ' so spreadsheets never run it as a formula. */
+function csvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+/**
+ * I9 "Export CSV": the filtered log, newest first, at most AUDIT_EXPORT_MAX_ROWS rows.
+ * Times are Malaysia time. Details are the raw JSON saved with the entry (before → after).
+ */
+export async function exportAuditLogCsv(db: Db, filters: AuditLogFilters): Promise<string> {
+  const entries = await selectAudit(db, auditWhere(filters), AUDIT_EXPORT_MAX_ROWS);
+  const header = ['When (Malaysia time)', 'Admin', 'Action', 'Business', 'Reason', 'Details'];
+  const lines = entries.map((e) =>
+    [
+      formatInTimeZone(new Date(e.createdAt), TZ, 'yyyy-MM-dd HH:mm:ss'),
+      e.admin.name,
+      e.action,
+      e.business?.name ?? '',
+      e.reason,
+      Object.keys(e.details).length ? JSON.stringify(e.details) : '',
+    ]
+      .map(csvCell)
+      .join(','),
+  );
+  // BOM so Excel opens the file as UTF-8 (names with accents, "→").
+  return `﻿${[header.join(','), ...lines].join('\r\n')}\r\n`;
+}
+
+/** I9 "Admin" filter: everyone who is or was a platform admin, active first, then by name. */
+export async function listAdminUsers(db: Db): Promise<AdminUserOption[]> {
+  const rows = await db
+    .select({ userId: users.id, name: users.name, role: platformAdmins.role, isActive: platformAdmins.isActive })
+    .from(platformAdmins)
+    .innerJoin(users, eq(users.id, platformAdmins.userId))
+    .orderBy(desc(platformAdmins.isActive), asc(users.name));
+  return rows.map((r) => ({ ...r, role: r.role === 'super_admin' ? 'super_admin' : 'support' }));
 }
 
 /** Rule 17: the change and its audit row are written in the same transaction. */

@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
-  adminReason,
   FREE_MONTH_OPTIONS,
   OLD_OWNER_OPTIONS,
   PAID_PLANS,
@@ -40,6 +39,7 @@ import {
 import { APP_URL } from '@/lib/config';
 import { s } from '@/strings/en';
 import { useAdmin } from './AdminShell';
+import { ReasonForm } from './ReasonForm';
 import { endDate, isFree, planName } from './status';
 
 const t = s.admin;
@@ -730,79 +730,6 @@ function AccountActions({ biz, save, onDone }: FormProps) {
       )}
       <p className="muted small">{g.later}</p>
     </section>
-  );
-}
-
-/**
- * Every admin change needs a reason (3–500 characters), saved in the audit log.
- * `onSubmit` returns an error to show, or null when it worked (the form then clears).
- */
-function ReasonForm({
-  label,
-  placeholder = d.reasonPlaceholder,
-  submit,
-  danger,
-  disabled,
-  onSubmit,
-  onCancel,
-}: {
-  label: string;
-  placeholder?: string;
-  submit: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onSubmit: (reason: string) => Promise<string | null>;
-  onCancel?: () => void;
-}) {
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handle(ev: FormEvent<HTMLFormElement>) {
-    ev.preventDefault();
-    const parsed = adminReason.safeParse(reason);
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? null);
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const err = await onSubmit(parsed.data);
-    setBusy(false);
-    if (err) setError(err);
-    else setReason('');
-  }
-
-  return (
-    <form method="post" className="reason-form" onSubmit={handle} noValidate>
-      <label className="fld">
-        <span className="lbl">{label}</span>
-        <textarea
-          className="inp"
-          rows={2}
-          value={reason}
-          placeholder={placeholder}
-          maxLength={500}
-          onChange={(ev) => setReason(ev.target.value)}
-          aria-invalid={error ? true : undefined}
-        />
-      </label>
-      {error && (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="actions">
-        <button className={danger ? 'btn btn-danger' : 'btn'} type="submit" disabled={busy || disabled}>
-          {busy ? d.saving : submit}
-        </button>
-        {onCancel && (
-          <button className="btn2" type="button" onClick={onCancel} disabled={busy}>
-            {d.cancel}
-          </button>
-        )}
-      </div>
-    </form>
   );
 }
 

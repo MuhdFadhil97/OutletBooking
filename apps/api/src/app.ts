@@ -6,6 +6,7 @@ import type { Auth } from './auth';
 import type { Env } from './env';
 import { adminPasswordGuard, adminTwoFactorSignIn, twoFactorSetupGuard } from './middleware/admin-sign-in';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { adminInviteRoutes } from './routes/admin-invite';
 import { adminRoutes } from './routes/admin';
 import { bookingFieldRoutes } from './routes/booking-fields';
 import { bookingRoutes } from './routes/bookings';
@@ -68,6 +69,8 @@ export function createApp({
       credentials: true,
       allowHeaders: ['Content-Type', 'Authorization', 'expo-origin'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      // I9 CSV export: the website reads the file name.
+      exposeHeaders: ['Content-Disposition'],
       maxAge: 600,
     }),
   );
@@ -112,6 +115,7 @@ export function createApp({
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);
   app.route('/admin', adminRoutes);
+  app.route('/admin-invite', adminInviteRoutes);
 
   app.onError(errorHandler);
   app.notFound(notFoundHandler);

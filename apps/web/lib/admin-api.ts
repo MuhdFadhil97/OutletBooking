@@ -1,13 +1,23 @@
 import type {
   AdminBusinessDetail,
   AdminBusinessesResponse,
+  AcceptAdminInviteInput,
   AdminBusinessFilter,
+  AdminInviteInfo,
+  AdminRole,
+  AdminUserRow,
+  AdminUserOption,
+  AuditEntry,
+  AuditLogFilters,
   BookingPageInput,
   ChangeOwnerInput,
   ChangePlanInput,
   ExtendTrialInput,
+  InviteAdminInput,
   FreeMonthsInput,
   SuspendInput,
+  TrialFilter,
+  TrialsResponse,
 } from '@outletbooking/shared';
 import { API_URL } from './config';
 
@@ -63,6 +73,8 @@ export type Result<T> =
 
 function toResult<T>(r: Reply): Result<T> {
   if (r.status >= 200 && r.status < 300) return { kind: 'ok', data: r.body as T };
+  // A support admin on a super-admin page is still signed in: say why instead.
+  if (r.status === 403 && errorCodeOf(r.body) === 'super_admin_only') return { kind: 'refused', message: errorMessageOf(r.body) ?? '' };
   if (r.status === 401 || r.status === 403) return { kind: 'signed_out' };
   if (r.status === 404) return { kind: 'not_found' };
   const message = errorMessageOf(r.body);
@@ -75,6 +87,13 @@ export async function listBusinesses(q: string, filter: AdminBusinessFilter): Pr
   const params = new URLSearchParams({ filter });
   if (q.trim()) params.set('q', q.trim());
   return toResult(await call(`/admin/businesses?${params}`));
+}
+
+/** I7 */
+export async function listTrials(q: string, filter: TrialFilter): Promise<Result<TrialsResponse>> {
+  const params = new URLSearchParams({ filter });
+  if (q.trim()) params.set('q', q.trim());
+  return toResult(await call(`/admin/trials?${params}`));
 }
 
 /** I2 */
@@ -123,4 +142,82 @@ export async function resendConfirmEmail(id: number, reason: string): Promise<Re
 /** Emails the owner the same reset link as E1 "Forgot password". */
 export async function sendOwnerPasswordReset(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
   return toResult(await call(`/admin/businesses/${id}/password-reset`, { reason }));
+}
+
+/** I9 filters as a query string (empty values left out). */
+export function auditParams(filters: AuditLogFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  return params;
+}
+
+/** I9: newest first; pass the last entry's id as `beforeId` to load older ones. */
+export async function listAuditLog(filters: AuditLogFilters, limit: number, beforeId?: number): Promise<Result<AuditEntry[]>> {
+  const params = auditParams(filters);
+  params.set('limit', String(limit));
+  if (beforeId) params.set('beforeId', String(beforeId));
+  return toResult(await call(`/admin/audit-log?${params}`));
+}
+
+/** I9 "Admin" filter. */
+export async function listAdmins(): Promise<Result<AdminUserOption[]>> {
+  return toResult(await call('/admin/admins'));
+}
+
+/** I9 "Export CSV": the file the API builds for these filters (sent with the session cookie). */
+export async function exportAuditLog(
+  filters: AuditLogFilters,
+): Promise<{ kind: 'ok'; file: Blob; filename: string } | { kind: 'signed_out' } | { kind: 'error' }> {
+  if (!API_URL) return { kind: 'error' };
+  try {
+    const res = await fetch(`${API_URL}/admin/audit-log/export?${auditParams(filters)}`, { credentials: 'include' });
+    if (res.status === 401 || res.status === 403) return { kind: 'signed_out' };
+    if (!res.ok) return { kind: 'error' };
+    const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'audit-log.csv';
+    return { kind: 'ok', file: await res.blob(), filename };
+  } catch {
+    return { kind: 'error' };
+  }
+}
+
+/** I10 (super admins only) */
+export async function listAdminUsers(): Promise<Result<AdminUserRow[]>> {
+  return toResult(await call('/admin/users'));
+}
+
+export async function inviteAdmin(input: InviteAdminInput): Promise<Result<AdminUserRow[]>> {
+  return toResult(await call('/admin/users', input));
+}
+
+export async function changeAdminRole(userId: number, role: AdminRole, reason: string): Promise<Result<AdminUserRow[]>> {
+  return toResult(await call(`/admin/users/${userId}/role`, { role, reason }));
+}
+
+export type AdminUserAction = 'reset-two-factor' | 'remove' | 'resend-invite';
+
+/** Reset two-step, remove (also cancels an invite) or resend an invite link. */
+export async function adminUserAction(userId: number, action: AdminUserAction, reason: string): Promise<Result<AdminUserRow[]>> {
+  return toResult(await call(`/admin/users/${userId}/${action}`, { reason }));
+}
+
+/** I10 invite link (public, no session). */
+export type InviteResult = { kind: 'ok'; data: AdminInviteInfo } | { kind: 'invalid' } | { kind: 'expired' } | { kind: 'error' };
+type InviteFailure = Exclude<InviteResult, { kind: 'ok' }>;
+
+function inviteFailure(r: Reply): InviteFailure {
+  if (r.status === 400 || r.status === 404) return { kind: 'invalid' };
+  if (r.status === 410) return { kind: 'expired' };
+  return { kind: 'error' };
+}
+
+export async function getAdminInvite(token: string): Promise<InviteResult> {
+  const r = await call(`/admin-invite/${encodeURIComponent(token)}`);
+  return r.status === 200 ? { kind: 'ok', data: r.body as AdminInviteInfo } : inviteFailure(r);
+}
+
+export async function acceptAdminInvite(token: string, input: AcceptAdminInviteInput): Promise<{ kind: 'ok' } | InviteFailure> {
+  const r = await call(`/admin-invite/${encodeURIComponent(token)}/accept`, input);
+  return r.status === 200 ? { kind: 'ok' } : inviteFailure(r);
 }

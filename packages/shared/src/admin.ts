@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { emailSchema, passwordSchema } from './schemas';
 import { hasPlanAccess, PAID_PLANS, type PlanAccessInput } from './plans';
 import type { MemberRole, SubscriptionStatus } from './types';
 import type { BusinessTemplate } from './templates';
@@ -153,10 +154,31 @@ export type ChangeOwnerInput = z.infer<typeof changeOwnerSchema>;
 export const adminNoteSchema = z.object({ reason: adminReason });
 export type AdminNoteInput = z.infer<typeof adminNoteSchema>;
 
-export const auditLogQuery = z.object({
+const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+
+/** I9 filters (all optional, combined with AND). Dates are Malaysia calendar days, both ends included. */
+const auditLogFilterFields = z.object({
   businessId: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  adminId: z.coerce.number().int().positive().optional(),
+  action: z.enum(ADMIN_ACTIONS).optional(),
+  /** Business name or link, partial match. */
+  business: z.string().trim().min(1).max(100).optional(),
+  from: ymd.optional(),
+  to: ymd.optional(),
 });
+const datesInOrder = (v: { from?: string; to?: string }) => !v.from || !v.to || v.from <= v.to;
+const datesMessage = { message: 'The start date is after the end date', path: ['from'] };
+
+export const auditLogFilters = auditLogFilterFields.refine(datesInOrder, datesMessage);
+export type AuditLogFilters = z.infer<typeof auditLogFilters>;
+
+export const auditLogQuery = auditLogFilterFields
+  .extend({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    /** "Load more": entries older than this entry id (ids grow with time). */
+    beforeId: z.coerce.number().int().positive().optional(),
+  })
+  .refine(datesInOrder, datesMessage);
 export type AuditLogQuery = z.infer<typeof auditLogQuery>;
 
 export interface AdminMe {
@@ -165,6 +187,17 @@ export interface AdminMe {
   email: string;
   role: AdminRole;
 }
+
+/** I9 "Admin" filter (and later I10): everyone who is or was a platform admin. */
+export interface AdminUserOption {
+  userId: number;
+  name: string;
+  role: AdminRole;
+  isActive: boolean;
+}
+
+/** Most audit rows the I9 CSV export holds. */
+export const AUDIT_EXPORT_MAX_ROWS = 10_000;
 
 export interface AdminSubscription {
   plan: string;
@@ -253,3 +286,126 @@ export interface AdminBusinessDetail extends AdminBusinessRow {
   invitations: AdminInvitation[];
   auditLog: AuditEntry[];
 }
+
+// ------------------------------------------------------------ I7 trials ending
+
+/** I7 chips. "soon" = ends within 3 days; "week" (default) = within 7; "ended" = ended in the last 30 days, never paid. */
+export const TRIAL_FILTERS = ['soon', 'week', 'ended', 'never'] as const;
+export type TrialFilter = (typeof TRIAL_FILTERS)[number];
+/** I7: days before the trial end that count as "soon" / "this week", and how far back "ended, not paid" looks. */
+export const TRIAL_SOON_DAYS = 3;
+export const TRIAL_WEEK_DAYS = 7;
+export const TRIAL_ENDED_LOOKBACK_DAYS = 30;
+/** I7 KPI "Trial → paid": trials that ended in this many days. */
+export const TRIAL_CONVERSION_DAYS = 90;
+
+export const trialsQuery = z.object({
+  /** Business name, link or phone. */
+  q: z.string().trim().max(100).optional(),
+  filter: z.enum(TRIAL_FILTERS).default('week'),
+});
+export type TrialsQuery = z.infer<typeof trialsQuery>;
+
+/** connected = own ToyyibPay connected (H1); not_needed = no service takes a deposit or full payment. */
+export type TrialPaymentState = 'connected' | 'not_yet' | 'not_needed';
+
+export interface TrialRow {
+  id: number;
+  name: string;
+  template: BusinessTemplate;
+  ownerName: string | null;
+  /** WhatsApp number, else business phone, else owner's mobile (E.164). */
+  phone: string | null;
+  trialEndsAt: string;
+  /** Malaysia calendar days until the trial end (0 = today, negative = ended). */
+  daysLeft: number;
+  ended: boolean;
+  /** FTech extended this trial before (pilot). */
+  extended: boolean;
+  bookingEnabled: boolean;
+  /** D8 setup steps done (account counts as done). */
+  setupDone: number;
+  setupTotal: number;
+  /** Bookings made up to the trial end (any status). */
+  bookingsInTrial: number;
+  payments: TrialPaymentState;
+  /** Last time the owner or staff used the app (session refreshed), null if never / signed out. */
+  lastActiveAt: string | null;
+}
+
+export interface TrialKpis {
+  /** Still on trial; ends today or tomorrow. */
+  endsSoon: number;
+  endThisWeek: number;
+  endedNotPaid: number;
+  /** Trials that ended in the last 90 days and paid for a plan; null when none ended. */
+  conversion: { paid: number; ended: number } | null;
+}
+
+export interface TrialsResponse {
+  kpis: TrialKpis;
+  trials: TrialRow[];
+}
+
+// ------------------------------------------------------------ I10 admin users (super admin only)
+
+/** I10: how long an admin invite link works. */
+export const ADMIN_INVITE_DAYS = 7;
+
+/** active = can sign in; invited = has not set a password yet; removed = no access (kept for the audit log). */
+export type AdminUserStatus = 'active' | 'invited' | 'removed';
+
+export interface AdminUserRow {
+  userId: number;
+  name: string;
+  email: string;
+  role: AdminRole;
+  status: AdminUserStatus;
+  twoFactorEnabled: boolean;
+  /** Latest successful sign-in (from the audit log), null if never. */
+  lastSignInAt: string | null;
+  /** Invited: when the current link stops working (null = no link, e.g. expired and cleaned up). */
+  inviteExpiresAt: string | null;
+}
+
+export const inviteAdminSchema = z.object({
+  email: emailSchema,
+  role: z.enum(ADMIN_ROLES),
+  reason: adminReason,
+});
+export type InviteAdminInput = z.infer<typeof inviteAdminSchema>;
+
+export const changeAdminRoleSchema = z.object({ role: z.enum(ADMIN_ROLES), reason: adminReason });
+export type ChangeAdminRoleInput = z.infer<typeof changeAdminRoleSchema>;
+
+/** Reset two-step, remove, resend or cancel an invite. */
+export const adminUserActionSchema = z.object({ reason: adminReason });
+export type AdminUserActionInput = z.infer<typeof adminUserActionSchema>;
+
+/** The secret in an admin invite link (/admin/invite/<token>). */
+export const adminInviteTokenParam = z.object({ token: z.string().regex(/^[a-f0-9]{48}$/, 'Invalid invite link') });
+
+/** What the invite page shows before the new admin sets a password. */
+export interface AdminInviteInfo {
+  email: string;
+  role: AdminRole;
+  invitedBy: string | null;
+  expiresAt: string;
+}
+
+export const acceptAdminInviteSchema = z.object({
+  name: z.string().trim().min(2, 'Enter your name').max(100),
+  password: passwordSchema,
+});
+export type AcceptAdminInviteInput = z.infer<typeof acceptAdminInviteSchema>;
+
+/** Error codes the admin users screens react to. */
+export const ADMIN_USER_ERRORS = {
+  superAdminOnly: 'super_admin_only',
+  /** The email already logs in to a business (owner or staff): admins need a separate login. */
+  emailInUse: 'email_in_use',
+  alreadyAdmin: 'already_admin',
+  notYourself: 'not_yourself',
+  lastSuperAdmin: 'last_super_admin',
+  inviteExpired: 'invite_expired',
+} as const;

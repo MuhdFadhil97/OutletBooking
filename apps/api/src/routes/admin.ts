@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 import {
   adminBusinessQuery,
   adminNoteSchema,
+  adminUserActionSchema,
+  changeAdminRoleSchema,
+  inviteAdminSchema,
+  auditLogFilters,
   auditLogQuery,
   bookingPageSchema,
   changeOwnerSchema,
@@ -11,35 +15,48 @@ import {
   idParam,
   ownerLinkSchema,
   suspendSchema,
+  trialsQuery,
   unsuspendSchema,
 } from '@outletbooking/shared';
-import { requirePlatformAdmin } from '../middleware/platform-admin';
+import { requirePlatformAdmin, requireSuperAdmin } from '../middleware/platform-admin';
 import { requireSession } from '../middleware/session';
 import {
   addAdminNote,
   changeOwner,
   changePlan,
+  exportAuditLogCsv,
   extendTrial,
   giveFreeMonths,
   sendOwnerPasswordReset,
   getAdminBusiness,
   listAdminBusinesses,
+  listAdminUsers,
   listAuditLog,
   resendOwnerConfirmEmail,
   setBookingPage,
   suspendBusiness,
   unsuspendBusiness,
 } from '../services/admin';
+import { listTrials } from '../services/admin-trials';
+import {
+  changeAdminRole,
+  inviteAdmin,
+  listAdminUserRows,
+  removeAdmin,
+  resendAdminInvite,
+  resetAdminTwoFactor,
+} from '../services/admin-users';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
-/** I1 / I2 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
+/** I1 / I2 / I7 / I9 / I10 platform admin (apps/web /admin). Every change needs a reason and writes admin_audit_log. */
 export const adminRoutes = new Hono<AppEnv>()
   .use(requireSession, requirePlatformAdmin)
   .get('/me', (c) => c.json(c.var.admin))
   .get('/businesses', validate('query', adminBusinessQuery), async (c) =>
     c.json(await listAdminBusinesses(c.var.db, c.req.valid('query'))),
   )
+  .get('/trials', validate('query', trialsQuery), async (c) => c.json(await listTrials(c.var.db, c.req.valid('query'))))
   .get('/businesses/:id', validate('param', idParam), async (c) =>
     c.json(await getAdminBusiness(c.var.db, c.req.valid('param').id)),
   )
@@ -84,4 +101,33 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/businesses/:id/notes', validate('param', idParam), validate('json', adminNoteSchema), async (c) =>
     c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),
   )
-  .get('/audit-log', validate('query', auditLogQuery), async (c) => c.json(await listAuditLog(c.var.db, c.req.valid('query'))));
+  .get('/admins', async (c) => c.json(await listAdminUsers(c.var.db)))
+  // I10 admin users: super admins only.
+  .get('/users', requireSuperAdmin, async (c) => c.json(await listAdminUserRows(c.var.db)))
+  .post('/users', requireSuperAdmin, validate('json', inviteAdminSchema), async (c) =>
+    c.json(await inviteAdmin(c.var.db, c.var.mailer, c.var.env, c.var.userId, c.req.valid('json')), 201),
+  )
+  .post('/users/:id/role', requireSuperAdmin, validate('param', idParam), validate('json', changeAdminRoleSchema), async (c) =>
+    c.json(await changeAdminRole(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
+  )
+  .post('/users/:id/reset-two-factor', requireSuperAdmin, validate('param', idParam), validate('json', adminUserActionSchema), async (c) =>
+    c.json(await resetAdminTwoFactor(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason)),
+  )
+  .post('/users/:id/remove', requireSuperAdmin, validate('param', idParam), validate('json', adminUserActionSchema), async (c) =>
+    c.json(await removeAdmin(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason)),
+  )
+  .post('/users/:id/resend-invite', requireSuperAdmin, validate('param', idParam), validate('json', adminUserActionSchema), async (c) =>
+    c.json(
+      await resendAdminInvite(c.var.db, c.var.mailer, c.var.env, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason),
+    ),
+  )
+  .get('/audit-log', validate('query', auditLogQuery), async (c) => c.json(await listAuditLog(c.var.db, c.req.valid('query'))))
+  .get('/audit-log/export', validate('query', auditLogFilters), async (c) => {
+    const csv = await exportAuditLogCsv(c.var.db, c.req.valid('query'));
+    const day = new Date().toISOString().slice(0, 10);
+    return c.body(csv, 200, {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': `attachment; filename="outletbooking-audit-log-${day}.csv"`,
+      'cache-control': 'no-store',
+    });
+  });

@@ -4,6 +4,9 @@ import { LEGAL_COMPANY } from '@outletbooking/shared';
  * The one template for every transactional email (M1–M7, docs/wireframes/Email-*.dc.html):
  * logo bar, heading, paragraphs, one green button, small notes, "copy this link", grey footer.
  * Inline styles and tables only, so Gmail / Outlook / phone mail apps show it the same.
+ * Desktop Outlook (Word engine) needs extra care: it ignores padding on links and does not pass the font
+ * down to nested cells (and shows Times New Roman when the first font is not installed), so every cell
+ * names the font, an `[if mso]` style forces Segoe UI, and the button is drawn with VML for Outlook only.
  * Every email also gets a plain-text version.
  */
 
@@ -41,6 +44,11 @@ const C = {
   muted: '#56625B',
 };
 const FONT = "Manrope, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+/** Desktop Outlook only: a font it always has. */
+const MSO_FONT = "'Segoe UI', Arial, sans-serif";
+
+/** Outlook draws the VML button at a fixed size: wide enough for the label at 15px bold. */
+const buttonWidth = (label: string) => Math.max(180, Math.round(label.length * 9 + 56));
 
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -54,32 +62,48 @@ export function renderEmail(e: EmailContent): RenderedEmail {
   const privacyUrl = new URL('/privacy', e.websiteUrl).toString();
   const url = escapeHtml(e.button.url);
   const p = (inner: string, style = '') =>
-    `<tr><td style="padding:0 0 16px 0;font-size:15px;line-height:1.6;color:${C.text};${style}">${inner}</td></tr>`;
+    `<tr><td style="padding:0 0 16px 0;font-family:${FONT};font-size:15px;line-height:1.6;color:${C.text};${style}">${inner}</td></tr>`;
+  const label = escapeHtml(e.button.label);
+  const button = `<tr><td style="padding:4px 0 20px 0;">
+<!--[if mso]>
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:48px;v-text-anchor:middle;width:${buttonWidth(e.button.label)}px;" arcsize="25%" stroke="f" fillcolor="${C.primary}">
+<w:anchorlock/>
+<center style="color:#FFFFFF;font-family:${MSO_FONT};font-size:15px;font-weight:bold;">${label}</center>
+</v:roundrect>
+<![endif]-->
+<!--[if !mso]><!-->
+<a href="${url}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:${C.primary};color:#FFFFFF;font-family:${FONT};font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">${label}</a>
+<!--<![endif]-->
+</td></tr>`;
   const small = (inner: string) => p(inner, `font-size:13px;color:${C.muted};`);
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(e.subject)}</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<style>body, table, td, a, center { font-family: ${MSO_FONT} !important; }</style>
+<![endif]-->
 </head>
 <body style="margin:0;padding:0;background:${C.bg};">
 <div style="display:none;max-height:0;overflow:hidden;">${escapeHtml(e.preview)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};font-family:${FONT};">
 <tr><td align="center" style="padding:24px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border:1px solid ${C.border};border-radius:14px;">
-<tr><td style="padding:20px 28px;border-bottom:1px solid ${C.border};font-size:18px;font-weight:800;color:${C.primary};">OutletBooking</td></tr>
+<tr><td style="padding:20px 28px;border-bottom:1px solid ${C.border};font-family:${FONT};font-size:18px;font-weight:800;color:${C.primary};">OutletBooking</td></tr>
 <tr><td style="padding:28px 28px 12px 28px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="padding:0 0 16px 0;font-size:24px;font-weight:800;line-height:1.3;color:${C.text};">${escapeHtml(e.heading)}</td></tr>
+<tr><td style="padding:0 0 16px 0;font-family:${FONT};font-size:24px;font-weight:800;line-height:1.3;color:${C.text};">${escapeHtml(e.heading)}</td></tr>
 ${e.paragraphs.map((para) => p(parts(para).map(partHtml).join(''))).join('\n')}
-<tr><td style="padding:0 0 16px 0;"><a href="${url}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:${C.primary};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;">${escapeHtml(e.button.label)}</a></td></tr>
+${button}
 ${e.notes.map((n) => small(escapeHtml(n))).join('\n')}
 ${small(`Button not working? Copy this link into your browser:<br><a href="${url}" style="color:${C.primary};word-break:break-all;">${url}</a>`)}
 </table>
 </td></tr>
-<tr><td style="padding:18px 28px;background:${C.bg};border-radius:0 0 14px 14px;font-size:12px;line-height:1.6;color:${C.muted};">${escapeHtml(e.footer)}<br>${escapeHtml(LEGAL_COMPANY)} · <a href="${escapeHtml(privacyUrl)}" style="color:${C.primary};">Privacy notice</a></td></tr>
+<tr><td style="padding:18px 28px;background:${C.bg};border-radius:0 0 14px 14px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.muted};">${escapeHtml(e.footer)}<br>${escapeHtml(LEGAL_COMPANY)} · <a href="${escapeHtml(privacyUrl)}" style="color:${C.primary};">Privacy notice</a></td></tr>
 </table>
 </td></tr>
 </table>

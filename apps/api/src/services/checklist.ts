@@ -4,7 +4,7 @@ import type { ChecklistUpdate, SetupChecklist, SetupStep } from '@outletbooking/
 import { notFound } from '../errors';
 
 /** Keys in businesses.settings for what only the app knows (no schema change needed). */
-const LINK_SHARED_KEY = 'checklistLinkSharedAt';
+export const LINK_SHARED_KEY = 'checklistLinkSharedAt';
 const HIDDEN_KEY = 'checklistHiddenAt';
 
 /**

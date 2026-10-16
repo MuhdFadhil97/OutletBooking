@@ -15,6 +15,7 @@ import {
   adminPlanState,
   type AdminBusinessDetail,
   type AdminBusinessesResponse,
+  type AdminUserOption,
   type AuditEntry,
   type MeResponse,
   type PlanInfo,
@@ -93,7 +94,7 @@ describe('adminPlanState', () => {
 describe('access', () => {
   it('needs a login and a platform_admins row — business owners are refused', async () => {
     expect((await ctx.get('/admin/me')).status).toBe(401);
-    for (const path of ['/admin/me', '/admin/businesses', `/admin/businesses/${bizB}`, '/admin/audit-log']) {
+    for (const path of ['/admin/me', '/admin/businesses', `/admin/businesses/${bizB}`, '/admin/audit-log', '/admin/audit-log/export', '/admin/admins']) {
       expect((await ctx.get(path, ownerA)).status).toBe(403);
     }
     const res = await ctx.send('POST', `/admin/businesses/${bizB}/extend-trial`, ownerA, { days: 30, reason: 'Pilot' });
@@ -459,5 +460,92 @@ describe('I2 detail never exposes payment secrets', () => {
     });
     expect(detail.subscription!.hasAccess).toBe(true);
     expect(Math.abs(new Date(detail.subscription!.trialEndsAt).getTime() - (Date.now() + 5 * DAY))).toBeLessThan(HOUR);
+  });
+});
+
+describe('I9 audit log', () => {
+  let nurul = 0;
+  /** Malaysia time is UTC+8: 2026-10-10 23:30 MYT = 2026-10-10T15:30Z. */
+  const at = (iso: string) => new Date(iso);
+
+  beforeAll(async () => {
+    nurul = await ctx.createUser('Nurul A', 'nurul@ftech.my');
+    await ctx.db.insert(platformAdmins).values({ userId: nurul, role: 'support', isActive: false });
+  });
+
+  beforeEach(async () => {
+    await ctx.db.insert(adminAuditLog).values([
+      { adminUserId, businessId: bizA, action: 'extend_trial', reason: 'Pilot', createdAt: at('2026-10-09T16:30:00Z'),
+        details: { from: '2026-10-17T15:59:59.999Z', to: '2026-11-16T15:59:59.999Z', days: 30, previousStatus: 'trialing' } },
+      { adminUserId: nurul, businessId: bizB, action: 'pause_booking_page', reason: '=HYPERLINK("x")', createdAt: at('2026-10-10T15:30:00Z') },
+      { adminUserId, businessId: null, action: 'sign_in', reason: 'Signed in with a two-step code', createdAt: at('2026-10-10T16:30:00Z') },
+      { adminUserId, businessId: bizB, action: 'note', reason: 'Called, "busy", call back', createdAt: at('2026-10-11T02:00:00Z') },
+    ]);
+  });
+
+  const list = async (qs: string) => {
+    const res = await ctx.get(`/admin/audit-log${qs}`, admin);
+    expect(res.status).toBe(200);
+    return ((await res.json()) as AuditEntry[]).map((e) => e.action);
+  };
+
+  it('lists newest first and filters by admin, action and business name or link', async () => {
+    expect(await list('')).toEqual(['note', 'sign_in', 'pause_booking_page', 'extend_trial']);
+    expect(await list(`?adminId=${nurul}`)).toEqual(['pause_booking_page']);
+    expect(await list('?action=extend_trial')).toEqual(['extend_trial']);
+    expect(await list('?business=semak')).toEqual(['note', 'pause_booking_page']);
+    expect(await list('?business=ADMIN-A')).toEqual(['extend_trial']);
+    expect(await list('?business=%25')).toEqual([]);
+    expect(await list(`?businessId=${bizB}&adminId=${adminUserId}`)).toEqual(['note']);
+  });
+
+  it('date range uses Malaysia calendar days, both ends included', async () => {
+    // 10 Oct MYT = 2026-10-09T16:00Z … 2026-10-10T16:00Z
+    expect(await list('?from=2026-10-10&to=2026-10-10')).toEqual(['pause_booking_page', 'extend_trial']);
+    expect(await list('?from=2026-10-11')).toEqual(['note', 'sign_in']);
+    expect(await list('?to=2026-10-09')).toEqual([]);
+    expect((await ctx.get('/admin/audit-log?from=2026-10-12&to=2026-10-11', admin)).status).toBe(400);
+    expect((await ctx.get('/admin/audit-log?action=delete_everything', admin)).status).toBe(400);
+  });
+
+  it('pages with limit and beforeId', async () => {
+    const first = (await (await ctx.get('/admin/audit-log?limit=2', admin)).json()) as AuditEntry[];
+    expect(first.map((e) => e.action)).toEqual(['note', 'sign_in']);
+    expect(await list(`?limit=2&beforeId=${first[1]!.id}`)).toEqual(['pause_booking_page', 'extend_trial']);
+  });
+
+  it('exports the filtered log as CSV in Malaysia time, safe to open in a spreadsheet', async () => {
+    const res = await ctx.get('/admin/audit-log/export?business=semak', admin);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/csv');
+    expect(res.headers.get('content-disposition')).toMatch(/attachment; filename="outletbooking-audit-log-.*\.csv"/);
+    const body = new Uint8Array(await res.arrayBuffer());
+    expect([...body.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // UTF-8 BOM for Excel
+    const lines = new TextDecoder().decode(body).trimEnd().split('\r\n');
+    expect(lines).toEqual([
+      'When (Malaysia time),Admin,Action,Business,Reason,Details',
+      '2026-10-11 10:00:00,FTech Admin,note,SemakAuto,"Called, ""busy"", call back",',
+      `2026-10-10 23:30:00,Nurul A,pause_booking_page,SemakAuto,"'=HYPERLINK(""x"")",`,
+    ]);
+    const all = await (await ctx.get('/admin/audit-log/export', admin)).text();
+    expect(all).toContain('extend_trial,Smash Arena,Pilot,"{');
+    expect(all).toContain('""from"":""2026-10-17T15:59:59.999Z""');
+  });
+
+  it('lists admins for the filter, including removed ones', async () => {
+    const res = await ctx.get('/admin/admins', admin);
+    expect(res.status).toBe(200);
+    expect((await res.json()) as AdminUserOption[]).toEqual([
+      { userId: adminUserId, name: 'FTech Admin', role: 'support', isActive: true },
+      { userId: nurul, name: 'Nurul A', role: 'support', isActive: false },
+    ]);
+  });
+
+  it('there is no way to change or delete an entry', async () => {
+    const [entry] = (await (await ctx.get('/admin/audit-log?limit=1', admin)).json()) as AuditEntry[];
+    for (const method of ['PUT', 'PATCH', 'DELETE'] as const) {
+      expect((await ctx.send(method, `/admin/audit-log/${entry!.id}`, admin, { reason: 'x' })).status).toBe(404);
+    }
+    expect(await auditRows()).toHaveLength(4);
   });
 });
