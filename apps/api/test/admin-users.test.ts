@@ -14,7 +14,11 @@ let supportId = 0;
 
 const errCode = async (res: Response) => ((await res.json()) as { error: { code: string } }).error.code;
 const auditOf = async (action: string) =>
-  ctx.db.select().from(adminAuditLog).where(eq(adminAuditLog.action, action as typeof adminAuditLog.$inferSelect.action));
+  ctx.db
+    .select()
+    .from(adminAuditLog)
+    .where(eq(adminAuditLog.action, action as typeof adminAuditLog.$inferSelect.action))
+    .orderBy(adminAuditLog.id);
 const rows = async () => {
   const res = await ctx.get('/admin/users', superCookie);
   expect(res.status).toBe(200);

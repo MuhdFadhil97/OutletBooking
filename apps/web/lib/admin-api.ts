@@ -2,6 +2,14 @@ import type {
   AdminBusinessDetail,
   AdminBusinessesResponse,
   AcceptAdminInviteInput,
+  AddSupportNoteInput,
+  CreateSupportCaseInput,
+  LeadStatus,
+  SupportCaseDetail,
+  SupportCaseRow,
+  SupportLead,
+  SupportStatus,
+  SupportSummary,
   AdminAccount,
   ChangeAdminPasswordInput,
   AdminPlanCatalog,
@@ -272,4 +280,45 @@ export async function signOutDevice(id: number): Promise<Result<{ ok: true }>> {
 
 export async function signOutOtherDevices(): Promise<Result<{ signedOut: number }>> {
   return toResult(await call('/admin/account/devices/sign-out-others', {}));
+}
+
+/** I11 support (every admin) */
+export async function getSupportSummary(): Promise<Result<SupportSummary>> {
+  return toResult(await call('/admin/support/summary'));
+}
+
+export async function listSupportCases(status: SupportStatus, q: string): Promise<Result<SupportCaseRow[]>> {
+  const params = new URLSearchParams({ status });
+  if (q.trim()) params.set('q', q.trim());
+  return toResult(await call(`/admin/support/cases?${params}`));
+}
+
+export async function listSupportLeads(q: string): Promise<Result<SupportLead[]>> {
+  const params = new URLSearchParams({ status: 'active' });
+  if (q.trim()) params.set('q', q.trim());
+  return toResult(await call(`/admin/support/leads?${params}`));
+}
+
+export async function getSupportCase(id: number): Promise<Result<SupportCaseDetail>> {
+  return toResult(await call(`/admin/support/cases/${id}`));
+}
+
+export async function createSupportCase(input: CreateSupportCaseInput): Promise<Result<SupportCaseDetail>> {
+  return toResult(await call('/admin/support/cases', input));
+}
+
+export async function addSupportNote(id: number, input: AddSupportNoteInput): Promise<Result<SupportCaseDetail>> {
+  return toResult(await call(`/admin/support/cases/${id}/notes`, input));
+}
+
+export async function setSupportStatus(id: number, status: SupportStatus): Promise<Result<SupportCaseDetail>> {
+  return toResult(await call(`/admin/support/cases/${id}/status`, { status }));
+}
+
+export async function assignSupportCase(id: number, adminUserId: number | null): Promise<Result<SupportCaseDetail>> {
+  return toResult(await call(`/admin/support/cases/${id}/assign`, { adminUserId }));
+}
+
+export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
+  return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
 }

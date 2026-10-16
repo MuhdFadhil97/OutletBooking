@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonthsMalaysia, daysUntil, formatDate, formatDay, formatPhone, whatsappLink, ymdInMalaysia } from '../lib/admin-format';
+import { addMonthsMalaysia, daysUntil, formatDate, formatDay, formatPhone, timeAgo, whatsappLink, ymdInMalaysia } from '../lib/admin-format';
 import { formatRm } from '../lib/money';
 
 describe('admin formatting (Malaysia time)', () => {
@@ -34,5 +34,26 @@ describe('admin formatting (Malaysia time)', () => {
   it('groups thousands in ringgit', () => {
     expect(formatRm(118800)).toBe('RM 1,188');
     expect(formatRm(123456)).toBe('RM 1,234.56');
+  });
+});
+
+describe('timeAgo', () => {
+  const labels = {
+    now: 'just now',
+    minutes: (n: number) => `${n} min ago`,
+    hours: (n: number) => `${n} h ago`,
+    yesterday: 'Yesterday',
+    days: (n: number) => `${n} days ago`,
+  };
+  const now = new Date('2026-10-14T06:00:00Z'); // 2 pm Wed 14 Oct in Malaysia
+
+  it('counts minutes, hours, then Malaysia calendar days', () => {
+    expect(timeAgo('2026-10-14T05:59:40Z', labels, now)).toBe('just now');
+    expect(timeAgo('2026-10-14T05:40:00Z', labels, now)).toBe('20 min ago');
+    expect(timeAgo('2026-10-14T03:30:00Z', labels, now)).toBe('2 h ago');
+    // 11 pm Tuesday in Malaysia is 15 h ago in minutes but "Yesterday" on the calendar.
+    expect(timeAgo('2026-10-13T15:00:00Z', labels, now)).toBe('Yesterday');
+    expect(timeAgo('2026-10-11T06:00:00Z', labels, now)).toBe('3 days ago');
+    expect(timeAgo('2026-10-01T06:00:00Z', labels, now)).toBe('1 Oct 2026');
   });
 });

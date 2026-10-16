@@ -53,3 +53,19 @@ export function formatPhone(phone: string): string {
   const m = /^\+60(1\d)(\d{3,4})(\d{4})$/.exec(phone);
   return m ? `+60 ${m[1]}-${m[2]} ${m[3]}` : phone;
 }
+
+/** "just now", "20 min ago", "2 h ago", "Yesterday", "3 days ago", else the date. Malaysia calendar days. */
+export function timeAgo(
+  iso: string,
+  labels: { now: string; minutes: (n: number) => string; hours: (n: number) => string; yesterday: string; days: (n: number) => string },
+  now: Date = new Date(),
+): string {
+  const minutes = Math.floor((now.getTime() - Date.parse(iso)) / 60_000);
+  if (minutes < 1) return labels.now;
+  if (minutes < 60) return labels.minutes(minutes);
+  const days = -daysUntil(iso, now);
+  if (days <= 0) return labels.hours(Math.floor(minutes / 60));
+  if (days === 1) return labels.yesterday;
+  if (days < 7) return labels.days(days);
+  return formatDate(iso);
+}

@@ -32,7 +32,9 @@ const account = async (cookie: string) => {
   return (await res.json()) as AdminAccount;
 };
 const auditActions = async (action: string) =>
-  (await ctx.db.select().from(adminAuditLog).where(eq(adminAuditLog.adminUserId, adminId))).filter((a) => a.action === action);
+  (await ctx.db.select().from(adminAuditLog).where(eq(adminAuditLog.adminUserId, adminId)).orderBy(adminAuditLog.id)).filter(
+    (a) => a.action === action,
+  );
 
 /** Password step then authenticator code, like the real sign-in page. */
 async function signIn(opts: { userAgent?: string; code?: string; backup?: string } = {}): Promise<{ cookie: string; status: number }> {

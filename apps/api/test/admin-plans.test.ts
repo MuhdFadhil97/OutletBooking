@@ -27,7 +27,11 @@ const publicPlans = async () => {
   return (await res.json()) as PublicPlans;
 };
 const audit = (action: string) =>
-  ctx.db.select().from(adminAuditLog).where(eq(adminAuditLog.action, action as typeof adminAuditLog.$inferSelect.action));
+  ctx.db
+    .select()
+    .from(adminAuditLog)
+    .where(eq(adminAuditLog.action, action as typeof adminAuditLog.$inferSelect.action))
+    .orderBy(adminAuditLog.id);
 
 /** The current catalog as a save payload, with changes applied. */
 async function payload(
