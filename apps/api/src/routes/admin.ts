@@ -28,6 +28,7 @@ import {
   updatePlansSchema,
 } from '@outletbooking/shared';
 import { adminAnnouncementRoutes } from './admin-announcements';
+import { adminHealthRoutes } from './admin-health';
 import { adminPrivacyRoutes } from './admin-privacy';
 import { adminSupportRoutes } from './admin-support';
 import { requireAdminSession } from '../middleware/admin-session';
@@ -168,6 +169,8 @@ export const adminRoutes = new Hono<AppEnv>()
   .route('/support', adminSupportRoutes)
   // I25 privacy (PDPA) requests: every admin.
   .route('/privacy', adminPrivacyRoutes)
+  // I27 system health: every admin.
+  .route('/health', adminHealthRoutes)
   // I28 announcements to owners: super admins only (one message can reach every owner).
   .use('/announcements/*', requireSuperAdmin)
   .use('/announcements', requireSuperAdmin)

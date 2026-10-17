@@ -1,0 +1,2 @@
+ALTER TABLE "email_events" DROP CONSTRAINT "email_events_template_check";--> statement-breakpoint
+ALTER TABLE "email_events" ADD CONSTRAINT "email_events_template_check" CHECK ("email_events"."template" IN ('verify_email','reset_password','staff_invite','receipt','trial_ending','sign_in_link','deletion_notice','announcement','refund_note','plan_renewal'));

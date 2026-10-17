@@ -3,6 +3,15 @@
  *  - `resend`: Resend HTTP API (https://resend.com) — staging / production.
  *  - `console`: prints the message (with the reset link) to the API log — local development only.
  */
+import type { EmailTemplate } from '@outletbooking/shared';
+
+/** Which email this is, so delivery problems (bounces, spam reports) can be traced to a business (I27). */
+export interface MailMeta {
+  template: EmailTemplate;
+  businessId?: number | null;
+  userId?: number | null;
+}
+
 export interface MailMessage {
   to: string;
   subject: string;
@@ -11,10 +20,17 @@ export interface MailMessage {
   html?: string;
   /** Files sent with the email (the plan receipt PDF). */
   attachments?: { filename: string; content: Buffer }[];
+  /** Optional: tracked in `email_events` when the mailer is wrapped by `trackMail`. Never sent to the provider. */
+  meta?: MailMeta;
+}
+
+/** What a send returns: the provider's id for the message, when it gives one (Resend does). */
+export interface MailReceipt {
+  providerId?: string;
 }
 
 export interface Mailer {
-  send(message: MailMessage): Promise<void>;
+  send(message: MailMessage): Promise<MailReceipt | void>;
 }
 
 export type MailTransport = 'console' | 'resend';
@@ -65,6 +81,9 @@ export function createMailer(config: MailerConfig, fetchFn: typeof fetch = fetch
             // Never log the key or the message body (it holds the reset link).
             throw new Error(`Resend rejected the email (${res.status}): ${(await res.text()).slice(0, 300)}`);
           }
+          // Resend answers { id } — the webhook (I27) names the message by it.
+          const sent = (await res.json().catch(() => null)) as { id?: unknown } | null;
+          return typeof sent?.id === 'string' ? { providerId: sent.id } : {};
         },
       };
     }

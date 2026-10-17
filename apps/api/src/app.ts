@@ -18,6 +18,7 @@ import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
 import { announcementRoutes } from './routes/announcements';
+import { webhookRoutes } from './routes/webhooks';
 import { notificationRoutes } from './routes/notifications';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
@@ -32,6 +33,7 @@ import { timeOffRoutes } from './routes/time-off';
 import { paymentRoutes, toyyibPayRoutes } from './routes/payments';
 import { createMailer, type Mailer } from './services/mailer';
 import { expoPushSender, type PushSender } from './services/push';
+import { noJobMonitor, type JobMonitor } from './services/job-monitor';
 import { s3Storage, type ObjectStorage } from './services/storage';
 import { toyyibPayClient, type ToyyibPayClient } from './services/toyyibpay';
 import type { AppEnv } from './types';
@@ -48,6 +50,8 @@ export interface AppDeps {
   toyyibpay?: ToyyibPayClient;
   /** S2 photo storage; tests pass a fake. */
   storage?: ObjectStorage | null;
+  /** I27: reads failed pg-boss jobs and retries them; tests pass a fake. */
+  jobs?: JobMonitor;
 }
 
 export function createApp({
@@ -58,6 +62,7 @@ export function createApp({
   push = expoPushSender(env.EXPO_ACCESS_TOKEN),
   toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL),
   storage = s3Storage(env),
+  jobs = noJobMonitor,
 }: AppDeps) {
   const app = new Hono<AppEnv>();
 
@@ -86,6 +91,7 @@ export function createApp({
     c.set('push', push);
     c.set('toyyibpay', toyyibpay);
     c.set('storage', storage);
+    c.set('jobs', jobs);
     await next();
   });
 
@@ -118,6 +124,7 @@ export function createApp({
   app.route('/reports', reportRoutes);
   app.route('/notifications', notificationRoutes);
   app.route('/announcements', announcementRoutes);
+  app.route('/webhooks', webhookRoutes);
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);

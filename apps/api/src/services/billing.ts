@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { recordPaymentCheck, resolvePaymentChecks } from './payment-check-log';
 import { addMonths } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -357,8 +358,12 @@ export interface PlanSyncResult {
  * Safe to call any number of times (callback, return page, retries): a paid payment is never applied twice.
  * With `businessId`, only that business's payment is touched (the return page); the callback passes none.
  */
+/** What a ToyyibPay callback body says: `status_id` 1 = paid, 3 = failed, otherwise pending. */
+const callbackText = (raw?: Record<string, string>) =>
+  !raw ? null : raw.status_id === '1' || raw.status === '1' ? 'paid' : raw.status_id === '3' || raw.status === '3' ? 'failed' : 'pending';
+
 export async function syncPlanPayment(
-  deps: BillingDeps,
+  deps: Pick<BillingDeps, 'db' | 'toyyibpay'>,
   billCode: string,
   opts: { businessId?: number; raw?: Record<string, string>; now?: Date } = {},
 ): Promise<PlanSyncResult | null> {
@@ -376,10 +381,15 @@ export async function syncPlanPayment(
     txs = await deps.toyyibpay.getBillTransactions(billCode);
   } catch (err) {
     console.error('[billing] ToyyibPay re-check failed', err);
+    await recordPaymentCheck(deps.db, found.id, 'recheck_failed', callbackText(opts.raw), 'Could not reach ToyyibPay');
     return { payment: toBillingPayment(found), justPaid: false };
   }
   const ok = txs.find((t) => t.billpaymentStatus === '1');
   if (!ok) {
+    // The callback said paid but ToyyibPay does not (I27: a person should look).
+    if (callbackText(opts.raw) === 'paid') {
+      await recordPaymentCheck(deps.db, found.id, 'callback_recheck_mismatch', 'paid', txs.some((t) => t.billpaymentStatus === '3') ? 'failed' : 'pending');
+    }
     // Declined, and nothing paid since: tell the owner. A later successful retry on the same bill still counts.
     const declined = txs.some((t) => t.billpaymentStatus === '3');
     if (declined && found.status === 'pending') {
@@ -390,10 +400,11 @@ export async function syncPlanPayment(
   }
   if (ringgitToSen(ok.billpaymentAmount) < found.amountSen) {
     console.warn(`[billing] bill ${billCode}: paid ${ok.billpaymentAmount}, expected ${found.amountSen} sen — not marked paid`);
+    await recordPaymentCheck(deps.db, found.id, 'callback_recheck_mismatch', callbackText(opts.raw), `Paid RM ${ok.billpaymentAmount}, expected RM ${(found.amountSen / 100).toFixed(2)}`);
     return { payment: toBillingPayment(found), justPaid: false };
   }
 
-  return deps.db.transaction(async (tx) => {
+  const paid = await deps.db.transaction(async (tx) => {
     const [locked] = await tx.select().from(payments).where(eq(payments.id, found.id)).for('update');
     if (!locked) return null;
     if (locked.status === 'paid' || locked.status === 'refunded') return { payment: toBillingPayment(locked), justPaid: false };
@@ -428,6 +439,8 @@ export async function syncPlanPayment(
       .returning();
     return { payment: toBillingPayment(updated!), justPaid: true };
   });
+  if (paid?.justPaid) await resolvePaymentChecks(deps.db, found.id);
+  return paid;
 }
 
 /** ToyyibPay's server call after a plan payment (form POST). The hash is only logged; the re-check decides. */
@@ -465,6 +478,7 @@ export async function sendReceiptEmail(deps: Pick<BillingDeps, 'db' | 'env' | 'm
     to: snap.receiptEmail,
     ...email,
     attachments: [{ filename: `${p.receiptNo}.pdf`, content: pdf }],
+    meta: { template: 'receipt', businessId: p.businessId },
   });
 }
 

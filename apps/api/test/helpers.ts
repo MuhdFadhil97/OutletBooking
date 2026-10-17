@@ -2,10 +2,12 @@ import { createHmac } from 'node:crypto';
 import { sql as dsql } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { accounts, createDb, users } from '@outletbooking/db';
-import type { SignupInput } from '@outletbooking/shared';
+import type { FailedJobItem, SignupInput } from '@outletbooking/shared';
 import { createApp } from '../src/app';
 import { createAuth } from '../src/auth';
 import { loadEnv } from '../src/env';
+import { AppError } from '../src/errors';
+import type { JobMonitor } from '../src/services/job-monitor';
 import type { MailMessage, Mailer } from '../src/services/mailer';
 import type { PushMessage, PushSender, PushTicket } from '../src/services/push';
 import type { ObjectStorage } from '../src/services/storage';
@@ -48,7 +50,8 @@ export function createTestContext(envOverrides: Record<string, string> = {}) {
   };
   const toyyibpay = fakeToyyibPay();
   const storage = fakeStorage();
-  const app = createApp({ db, auth, env, mailer, push, toyyibpay, storage });
+  const jobs = fakeJobs();
+  const app = createApp({ db, auth, env, mailer, push, toyyibpay, storage, jobs });
 
   return {
     db,
@@ -57,6 +60,7 @@ export function createTestContext(envOverrides: Record<string, string> = {}) {
     outbox,
     pushes,
     pushErrors,
+    jobs,
     toyyibpay,
     storage,
     env,
@@ -158,6 +162,26 @@ export function fakeToyyibPay() {
     },
   };
   return client;
+}
+
+/** pg-boss stand-in (I27): push into `failed` to show a failed job; `retried` is what the admin put back in the queue. */
+export function fakeJobs() {
+  const failed: FailedJobItem[] = [];
+  const retried: { name: string; id: string }[] = [];
+  const monitor: JobMonitor & { failed: FailedJobItem[]; retried: typeof retried } = {
+    failed,
+    retried,
+    async listFailed(since) {
+      return failed.filter((j) => Date.parse(j.failedAt) >= since.getTime());
+    },
+    async retry(name, id) {
+      const i = failed.findIndex((j) => j.name === name && j.id === id);
+      if (i < 0) throw new AppError(404, 'not_found', 'Job not found');
+      failed.splice(i, 1);
+      retried.push({ name, id });
+    },
+  };
+  return monitor;
 }
 
 /** S3 stand-in: objects kept in memory; signed links are fake URLs naming the key. */

@@ -1,4 +1,6 @@
 import type {
+  RecheckResult,
+  SystemHealth,
   AnnouncementAudience,
   AnnouncementAudienceCount,
   AnnouncementRow,
@@ -339,6 +341,23 @@ export async function assignSupportCase(id: number, adminUserId: number | null):
 
 export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
   return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
+}
+
+/** I27 system health (every admin) */
+export async function getSystemHealth(): Promise<Result<SystemHealth>> {
+  return toResult(await call('/admin/health'));
+}
+
+export async function recheckPaymentCheck(id: number): Promise<Result<RecheckResult>> {
+  return toResult(await call(`/admin/health/payments/${id}/recheck`, {}));
+}
+
+export async function closePaymentCheck(id: number, reason: string): Promise<Result<null>> {
+  return toResult(await call(`/admin/health/payments/${id}/close`, { reason }));
+}
+
+export async function retryFailedJob(name: string, id: string): Promise<Result<null>> {
+  return toResult(await call(`/admin/health/jobs/${encodeURIComponent(name)}/${encodeURIComponent(id)}/retry`, {}));
 }
 
 /** I28 announcements (super admins only) */

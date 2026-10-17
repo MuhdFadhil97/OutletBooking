@@ -162,7 +162,7 @@ async function sendTrialEmail(
       planUrl: `${website}/billing/sign-in`,
       websiteUrl: website,
     });
-    for (const o of owners) await mail.mailer.send({ to: o.email, ...email });
+    for (const o of owners) await mail.mailer.send({ to: o.email, ...email, meta: { template: 'trial_ending', businessId: t.businessId } });
   } catch (err) {
     console.error('[trial-reminders] email failed for business', t.businessId, err instanceof Error ? err.message : err);
   }

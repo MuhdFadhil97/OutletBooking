@@ -1,4 +1,5 @@
 import { formatInTimeZone } from 'date-fns-tz';
+import { recordPaymentCheck, resolvePaymentChecks } from './payment-check-log';
 import { and, desc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import {
   bookings,
@@ -38,6 +39,10 @@ export interface PaymentDeps {
   toyyibpay: ToyyibPayClient;
   push: PushSender;
 }
+
+/** What a ToyyibPay callback body says: `status_id` 1 = paid, 3 = failed, otherwise pending. */
+const callbackSaysPaid = (raw?: Record<string, string>) => raw?.status_id === '1' || raw?.status === '1';
+const callbackText = (raw?: Record<string, string>) => (raw ? (callbackSaysPaid(raw) ? 'paid' : raw.status_id === '3' || raw.status === '3' ? 'failed' : 'pending') : null);
 
 /** Short reference shown to customers and sent to ToyyibPay as order_id (never the integer id). */
 export const bookingRef = (token: string) => token.slice(0, 6).toUpperCase();
@@ -455,11 +460,23 @@ export async function syncBill(deps: PaymentDeps, billCode: string, raw?: Record
   }
   if (payment.status === 'paid' || !payment.bookingId) return null;
 
-  const txs = await deps.toyyibpay.getBillTransactions(billCode);
+  let txs;
+  try {
+    txs = await deps.toyyibpay.getBillTransactions(billCode);
+  } catch (err) {
+    await recordPaymentCheck(deps.db, payment.id, 'recheck_failed', callbackText(raw), 'Could not reach ToyyibPay');
+    throw err;
+  }
   const ok = txs.find((t) => t.billpaymentStatus === '1');
-  if (!ok) return null;
+  if (!ok) {
+    // The callback said paid but ToyyibPay does not (I27: a person should look).
+    if (callbackSaysPaid(raw)) {
+      await recordPaymentCheck(deps.db, payment.id, 'callback_recheck_mismatch', 'paid', txs.some((t) => t.billpaymentStatus === '3') ? 'failed' : 'pending');
+    }
+    return null;
+  }
 
-  return deps.db.transaction(async (tx) => {
+  const result = await deps.db.transaction(async (tx) => {
     const [locked] = await tx
       .select({
         id: payments.id,
@@ -474,6 +491,8 @@ export async function syncBill(deps: PaymentDeps, billCode: string, raw?: Record
     if (!locked || locked.status === 'paid' || !locked.bookingId) return null;
     if (ringgitToSen(ok.billpaymentAmount) < locked.amountSen) {
       console.warn(`[toyyibpay] bill ${billCode}: paid ${ok.billpaymentAmount}, expected ${locked.amountSen} sen — not marked paid`);
+      // Same transaction: the payment row is locked here, so another connection would wait for it forever.
+      await recordPaymentCheck(tx, locked.id, 'callback_recheck_mismatch', callbackText(raw), `Paid RM ${ok.billpaymentAmount}, expected RM ${(locked.amountSen / 100).toFixed(2)}`);
       return null;
     }
     await tx
@@ -495,6 +514,9 @@ export async function syncBill(deps: PaymentDeps, billCode: string, raw?: Record
     });
     return { businessId: locked.businessId, bookingId: locked.bookingId, outcome, amountSen: locked.amountSen };
   });
+  // Paid: any open question about this payment is answered.
+  if (result) await resolvePaymentChecks(deps.db, payment.id);
+  return result;
 }
 
 /**

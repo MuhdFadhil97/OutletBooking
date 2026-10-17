@@ -36,6 +36,8 @@ const envSchema = z.object({
   /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */
   MAIL_FROM: z.string().min(3).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
+  /** Signing secret (whsec_…) of the Resend webhook that reports bounces and spam reports (I27). Empty = webhook off. */
+  RESEND_WEBHOOK_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
   /** Only needed when "Enhanced push security" is on in the Expo project. */
   EXPO_ACCESS_TOKEN: z.string().optional(),
   /**

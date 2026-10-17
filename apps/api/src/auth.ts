@@ -32,7 +32,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       resetPasswordTokenExpiresIn: RESET_LINK_MINUTES * 60,
       sendResetPassword: async ({ user, token }) => {
         const email = resetPasswordEmail(user.email, resetPasswordUrl(env.APP_PUBLIC_URL, token), env.WEBSITE_URL);
-        await mailer.send({ to: user.email, ...email });
+        await mailer.send({ to: user.email, ...email, meta: { template: 'reset_password', userId: Number(user.id) } });
       },
     },
     // M1. Sign-up sends it from POST /signup (services/confirm-email.ts); this covers Better Auth's own
@@ -41,7 +41,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       expiresIn: CONFIRM_LINK_HOURS * 3600,
       sendVerificationEmail: async ({ user, url }) => {
         const email = confirmEmail(user.name, await businessNameOf(db, Number(user.id)), url, env.WEBSITE_URL);
-        await mailer.send({ to: user.email, ...email });
+        await mailer.send({ to: user.email, ...email, meta: { template: 'verify_email', userId: Number(user.id) } });
       },
     },
     user: {
@@ -74,7 +74,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
         disableSignUp: true,
         sendMagicLink: async ({ email, url, metadata }) => {
           const [who] = await db
-            .select({ confirmed: users.emailVerified, adminId: platformAdmins.id })
+            .select({ id: users.id, confirmed: users.emailVerified, adminId: platformAdmins.id })
             .from(users)
             .leftJoin(platformAdmins, and(eq(platformAdmins.userId, users.id), eq(platformAdmins.isActive, true)))
             .where(eq(users.email, email))
@@ -83,7 +83,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
           if (!who || !who.confirmed || who.adminId !== null) return;
           const handoffId = typeof metadata?.handoffId === 'string' ? metadata.handoffId : null;
           if (handoffId) return parkHandoffLink(handoffId, url);
-          await mailer.send({ to: email, ...signInLinkEmail(url, env.WEBSITE_URL) });
+          await mailer.send({ to: email, ...signInLinkEmail(url, env.WEBSITE_URL), meta: { template: 'sign_in_link', userId: who.id } });
         },
       }),
     ],

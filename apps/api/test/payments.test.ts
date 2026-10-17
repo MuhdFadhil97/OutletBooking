@@ -22,6 +22,7 @@ import type {
   StaffInvitation,
 } from '@outletbooking/shared';
 import { settleBackground } from '../src/background';
+import { listPaymentChecks } from '../src/services/payment-checks';
 import { staffDaySummary, trialReminders } from '../src/services/daily';
 import { expirePendingBookings, notifyExpired, syncBill, type PaymentDeps } from '../src/services/payments';
 import { decryptSecret } from '../src/services/secrets';
@@ -198,6 +199,10 @@ describe('customer pays online (FR-09)', () => {
   it('a forged "paid" callback changes nothing: ToyyibPay is asked first', async () => {
     expect(await (await callback({ billcode: code, status: '1', order_id: b.ref, refno: 'X', hash: 'nope' })).text()).toBe('OK');
     expect(await bookingRow(b.token)).toMatchObject({ status: 'pending', paymentStatus: 'unpaid' });
+    // I27: a callback that says paid while ToyyibPay does not is put in front of a person (by booking reference, no customer details).
+    const checks = await listPaymentChecks(ctx.db);
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toMatchObject({ problem: 'callback_recheck_mismatch', callbackStatus: 'paid', recheckStatus: 'pending', kind: 'booking', bookingRef: b.ref, billCode: code });
   });
 
   it('a real payment confirms the booking once, however many callbacks arrive', async () => {
@@ -209,6 +214,7 @@ describe('customer pays online (FR-09)', () => {
     await settleBackground();
     const row = await bookingRow(b.token);
     expect(row).toMatchObject({ status: 'confirmed', paymentStatus: 'paid', expiresAt: null });
+    expect(await listPaymentChecks(ctx.db)).toEqual([]); // the open question about this bill closed itself
     expect(await ctx.db.select().from(payments).where(and(eq(payments.bookingId, row.id), eq(payments.status, 'paid')))).toHaveLength(1);
     expect(await eventTypes(row.id)).toEqual(['created', 'paid', 'confirmed']);
 

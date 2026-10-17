@@ -243,6 +243,7 @@ export async function recordPlanRefund(
           accountUrl: `${site}/billing/account`,
           websiteUrl: site,
         }),
+        meta: { template: 'refund_note', businessId: found.businessId },
       });
     } catch (err) {
       refundEmailed = false;

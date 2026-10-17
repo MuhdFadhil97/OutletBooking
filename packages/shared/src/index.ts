@@ -23,6 +23,7 @@ export * from './admin';
 export * from './website';
 export * from './support';
 export * from './privacy';
+export * from './health';
 export * from './billing';
 export * from './admin-payments';
 export * from './announcements';

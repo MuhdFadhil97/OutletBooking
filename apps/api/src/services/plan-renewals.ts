@@ -151,7 +151,7 @@ export async function planRenewals(deps: RenewalDeps, now = new Date()): Promise
     }
     for (const o of owners) {
       try {
-        await deps.mailer.send({ to: o.email, ...email });
+        await deps.mailer.send({ to: o.email, ...email, meta: { template: 'plan_renewal', businessId: row.businessId, userId: o.userId } });
       } catch (err) {
         // Never log the address or the message body.
         console.error('[plan-renewals] email failed for business', row.businessId, err instanceof Error ? err.message : err);

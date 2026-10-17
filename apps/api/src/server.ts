@@ -5,23 +5,29 @@ import { createApp } from './app';
 import { createAuth } from './auth';
 import { loadEnv } from './env';
 import { startJobs } from './jobs';
+import { pgBossMonitor } from './services/job-monitor';
+import { trackMail } from './services/mail-tracking';
 import { createMailer } from './services/mailer';
 import { expoPushSender } from './services/push';
 import { toyyibPayClient } from './services/toyyibpay';
 
 const env = loadEnv();
 const { db, sql } = createDb(env.DATABASE_URL, { prepare: env.DB_PREPARE });
-const mailer = createMailer(env);
+const mailer = trackMail(db, createMailer(env));
 const auth = createAuth(db, env, mailer);
 const push = expoPushSender(env.EXPO_ACCESS_TOKEN);
 const toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL);
-const app = createApp({ db, auth, env, mailer, push, toyyibpay });
+// pg-boss starts after the app is built; the health page's "Retry" reaches it through this holder.
+let runningBoss: Awaited<ReturnType<typeof startJobs>> | null = null;
+const app = createApp({ db, auth, env, mailer, push, toyyibpay, jobs: pgBossMonitor(db, () => runningBoss) });
 
 const jobs = env.JOBS_ENABLED
-  ? startJobs({ db, env, push, toyyibpay, mailer }).catch((err: unknown) => {
-      console.error('[jobs] failed to start — the API keeps running without background jobs', err);
-      return null;
-    })
+  ? startJobs({ db, env, push, toyyibpay, mailer })
+      .then((boss) => (runningBoss = boss))
+      .catch((err: unknown) => {
+        console.error('[jobs] failed to start — the API keeps running without background jobs', err);
+        return null;
+      })
   : Promise.resolve(null);
 
 // Listen on all interfaces so a phone on the same Wi-Fi can reach it.

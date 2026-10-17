@@ -59,6 +59,6 @@ export async function sendConfirmEmail(db: Db, mailer: Mailer, env: LinkEnv & Pi
   if (!user || user.emailVerified) return false;
   const url = await confirmEmailUrl(env, user.email);
   const email = confirmEmail(user.name, await businessNameOf(db, userId), url, env.WEBSITE_URL);
-  await mailer.send({ to: user.email, ...email });
+  await mailer.send({ to: user.email, ...email, meta: { template: 'verify_email', userId } });
   return true;
 }

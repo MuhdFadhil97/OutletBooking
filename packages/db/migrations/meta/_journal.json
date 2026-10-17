@@ -197,6 +197,13 @@
       "when": 1792158655761,
       "tag": "0027_phase7_plan_renewals",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792218043125,
+      "tag": "0028_phase7_email_events_plan_renewal",
+      "breakpoints": true
     }
   ]
 }

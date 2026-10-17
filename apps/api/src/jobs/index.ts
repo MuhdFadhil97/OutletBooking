@@ -4,6 +4,7 @@ import type { Env } from '../env';
 import { staffDaySummary, trialReminders } from '../services/daily';
 import type { Mailer } from '../services/mailer';
 import { dispatchDueAnnouncements } from '../services/admin-announcements';
+import { scanPendingPayments } from '../services/payment-checks';
 import { planRenewals } from '../services/plan-renewals';
 import { expirePendingBookings, notifyExpired, type PaymentDeps } from '../services/payments';
 import type { PushSender } from '../services/push';
@@ -17,6 +18,7 @@ const SCHEDULES = {
   'staff-day-summary': '30 7 * * *', // 7:30 AM (FR-10.2)
   'trial-reminders': '0 9 * * *', // 9:00 AM (FR-16.2)
   'announcements': '* * * * *', // send scheduled announcements that are due (I28)
+  'payment-checks': '*/10 * * * *', // re-check bills still pending after 30 minutes (I27)
   'plan-renewals': '5 9 * * *', // 9:05 AM: renewal reminders, grace and paused notices (FR-20.7)
 } as const;
 
@@ -39,6 +41,7 @@ export async function startJobs(deps: { db: Db; env: Env; push: PushSender; toyy
     'staff-day-summary': () => staffDaySummary(deps.db, deps.push),
     'trial-reminders': () => trialReminders(deps.db, deps.push, new Date(), { mailer: deps.mailer, env: deps.env }),
     announcements: () => dispatchDueAnnouncements(deps),
+    'payment-checks': () => scanPendingPayments(deps),
     'plan-renewals': () => planRenewals(deps),
   };
 

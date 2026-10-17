@@ -366,7 +366,7 @@ export const emailEvents = pgTable(
     index('email_events_user_idx').on(t.userId),
     check(
       'email_events_template_check',
-      sql`${t.template} IN ('verify_email','reset_password','staff_invite','receipt','trial_ending','sign_in_link','deletion_notice','announcement','refund_note')`,
+      sql`${t.template} IN ('verify_email','reset_password','staff_invite','receipt','trial_ending','sign_in_link','deletion_notice','announcement','refund_note','plan_renewal')`,
     ),
     check(
       'email_events_status_check',

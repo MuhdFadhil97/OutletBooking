@@ -2,6 +2,7 @@ import type { Db } from '@outletbooking/db';
 import type { AdminMe, MemberRole } from '@outletbooking/shared';
 import type { Auth, AuthSession } from './auth';
 import type { Env } from './env';
+import type { JobMonitor } from './services/job-monitor';
 import type { Mailer } from './services/mailer';
 import type { PushSender } from './services/push';
 import type { ObjectStorage } from './services/storage';
@@ -30,6 +31,8 @@ export interface AppVariables {
   env: Env;
   mailer: Mailer;
   push: PushSender;
+  /** I27: failed background jobs and retry. */
+  jobs: JobMonitor;
   toyyibpay: ToyyibPayClient;
   /** null when S3_* is not configured. */
   storage: ObjectStorage | null;

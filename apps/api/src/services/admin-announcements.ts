@@ -228,7 +228,7 @@ export async function deliverAnnouncement(
     const email = emailFor(claimed, deps.env);
     for (const o of owners) {
       try {
-        await deps.mailer.send({ to: o.email, ...email });
+        await deps.mailer.send({ to: o.email, ...email, meta: { template: 'announcement', userId: o.userId } });
       } catch (err) {
         console.error('[announcements] email failed for announcement', id, err instanceof Error ? err.message : err);
       }
