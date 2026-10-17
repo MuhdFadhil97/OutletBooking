@@ -92,6 +92,7 @@ docs/                  PRD.md, PLAN.md, SCHEMA.md, schema.sql, legal/ (privacy, 
 16. **PDPA erase** = anonymise the customer (name → "Deleted customer", phone/email/notes → NULL, `anonymized_at`), keep bookings and payments for reports.
 17. **Platform admin** routes require a row in `platform_admins`; every change writes `admin_audit_log` (with a reason) in the same transaction. Admins never see ToyyibPay keys or customer payment details.
 18. Migrate only the tables a phase needs. `docs/schema.sql` section 7 (listings, inspection checklist) needs the user's go-ahead first.
+19. **Row level security ON for every table in `public`** (Supabase publishes `public` through its Data API; our API connects as the table owner and bypasses it, so RLS with no policies = "only our API"). Migration 0030 enables it for the existing tables; any migration that creates a table must also `ALTER TABLE … ENABLE ROW LEVEL SECURITY`. `apps/api/test/rls.test.ts` fails otherwise.
 
 ## Coding rules
 - TypeScript strict; no `any`. Shared zod schemas live in `packages/shared` and are used by both API validation and app forms.
