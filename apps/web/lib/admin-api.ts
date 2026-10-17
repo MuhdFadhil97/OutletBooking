@@ -1,4 +1,11 @@
 import type {
+  CreatePrivacyRequestInput,
+  PrivacyChecklistStep,
+  PrivacyRequestDetail,
+  PrivacyRequestRow,
+  PrivacyStatus,
+  PrivacySummary,
+  PrivacyTab,
   AdminBusinessDetail,
   AdminBusinessesResponse,
   AcceptAdminInviteInput,
@@ -328,6 +335,41 @@ export async function assignSupportCase(id: number, adminUserId: number | null):
 
 export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
   return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
+}
+
+/** I25 privacy requests (every admin) */
+export async function getPrivacySummary(): Promise<Result<PrivacySummary>> {
+  return toResult(await call('/admin/privacy/summary'));
+}
+
+export async function listPrivacyRequests(tab: PrivacyTab, q: string): Promise<Result<PrivacyRequestRow[]>> {
+  const params = new URLSearchParams({ tab });
+  if (q.trim()) params.set('q', q.trim());
+  return toResult(await call(`/admin/privacy?${params}`));
+}
+
+export async function getPrivacyRequest(id: number): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call(`/admin/privacy/${id}`));
+}
+
+export async function createPrivacyRequest(input: CreatePrivacyRequestInput): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call('/admin/privacy', input));
+}
+
+export async function setPrivacyStatus(id: number, status: PrivacyStatus, reason?: string): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call(`/admin/privacy/${id}/status`, { status, ...(reason ? { reason } : {}) }));
+}
+
+export async function setPrivacyChecklist(id: number, step: PrivacyChecklistStep, done: boolean): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call(`/admin/privacy/${id}/checklist`, { step, done }));
+}
+
+export async function setPrivacyNotes(id: number, notes: string): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call(`/admin/privacy/${id}/notes`, { notes }));
+}
+
+export async function extendPrivacyRequest(id: number, reason: string): Promise<Result<PrivacyRequestDetail>> {
+  return toResult(await call(`/admin/privacy/${id}/extend`, { reason }));
 }
 
 /** I8 plan payments: newest first; pass the last id as `beforeId` for older ones. */

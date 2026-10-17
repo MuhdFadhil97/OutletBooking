@@ -1389,6 +1389,9 @@ textarea.inp {
 .kpis-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+.kpis-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .admin-note {
   padding: 12px 16px;
   background: #eef1ef;

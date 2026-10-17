@@ -22,5 +22,6 @@ export * from './inspections';
 export * from './admin';
 export * from './website';
 export * from './support';
+export * from './privacy';
 export * from './billing';
 export * from './admin-payments';

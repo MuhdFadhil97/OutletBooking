@@ -152,7 +152,8 @@ describe('H1 · connect own ToyyibPay', () => {
     expect(decryptSecret(row!.secretKeyEncrypted!, ctx.env.APP_ENCRYPTION_KEY)).toBe(KEY);
 
     const checklist = await json<{ steps: { key: string; done: boolean }[] }>(await ctx.get('/businesses/current/checklist', ownerA));
-    expect(checklist.steps.find((s) => s.key === 'payments')?.done).toBe(true);
+    // Connecting ToyyibPay is optional, so it is not a D8 checklist step.
+    expect(checklist.steps.map((s) => s.key)).not.toContain('payments');
   });
 
   it('RM 1.00 test payment: pending until ToyyibPay confirms it', async () => {
