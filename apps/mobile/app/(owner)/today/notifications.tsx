@@ -24,6 +24,9 @@ const ICONS: Record<NotificationType, { icon: IconName; bg: string; fg: string }
   reminders_sent: { icon: 'chat', bg: 'bg-soft', fg: colors.primary },
   trial_ending: { icon: 'clock', bg: 'bg-pend-bg', fg: colors['pend-fg'] },
   trial_ended: { icon: 'clock', bg: 'bg-danger-tint', fg: colors.danger },
+  plan_renewal_due: { icon: 'clock', bg: 'bg-pend-bg', fg: colors['pend-fg'] },
+  plan_grace: { icon: 'clock', bg: 'bg-pend-bg', fg: colors['pend-fg'] },
+  plan_ended: { icon: 'clock', bg: 'bg-danger-tint', fg: colors.danger },
 };
 
 /** D6 · Notifications: grouped Today / Yesterday / Earlier; tap opens the booking. */

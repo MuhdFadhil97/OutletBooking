@@ -35,6 +35,7 @@ import type {
 import { hasPlanAccess } from '@outletbooking/shared';
 import { AppError, notFound } from '../errors';
 import { bookingRef } from './payments';
+import { getGraceDays } from './plan-catalog';
 import { blockedRange, getAvailability, unbookable } from './availability';
 import { assertCustomFields, guardOverlap, resourceBranch, upsertCustomer } from './bookings';
 import { publicListings, resolveListing } from './listings';
@@ -83,7 +84,7 @@ async function findBusiness(q: Q, slug: string) {
   }
   // F3: paused when the owner turned booking off, the trial ended without a plan (FR-16.3),
   // or FTech suspended the business (I2 — customers are not told why).
-  return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub) && suspendedAt === null };
+  return { ...biz, bookingEnabled: biz.bookingEnabled && hasPlanAccess(sub, new Date(), await getGraceDays(q)) && suspendedAt === null };
 }
 
 function assertBookingOpen(biz: { bookingEnabled: boolean }) {
@@ -244,8 +245,9 @@ export async function getSimilarBusinesses(db: Db, slug: string, now = new Date(
     )
     .limit(200);
 
+  const graceDays = await getGraceDays(db);
   return rows
-    .filter((r) => r.slug !== typed && hasPlanAccess(r.sub, now))
+    .filter((r) => r.slug !== typed && hasPlanAccess(r.sub, now, graceDays))
     .map((r) => ({ r, prefix: r.slug.startsWith(typed) || typed.startsWith(r.slug), distance: levenshtein(r.slug, typed) }))
     .filter((m) => m.prefix || m.distance <= maxDistance)
     .sort((x, y) => Number(y.prefix) - Number(x.prefix) || x.distance - y.distance || x.r.slug.localeCompare(y.r.slug))

@@ -18,7 +18,7 @@ const toyyibpay = toyyibPayClient(env.TOYYIBPAY_BASE_URL);
 const app = createApp({ db, auth, env, mailer, push, toyyibpay });
 
 const jobs = env.JOBS_ENABLED
-  ? startJobs({ db, env, push, toyyibpay }).catch((err: unknown) => {
+  ? startJobs({ db, env, push, toyyibpay, mailer }).catch((err: unknown) => {
       console.error('[jobs] failed to start — the API keeps running without background jobs', err);
       return null;
     })

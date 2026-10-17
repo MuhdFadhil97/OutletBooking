@@ -3,6 +3,7 @@ import { createMiddleware } from 'hono/factory';
 import { businesses, businessMembers, subscriptions } from '@outletbooking/db';
 import { hasPlanAccess, type MemberRole } from '@outletbooking/shared';
 import { AppError, forbidden } from '../errors';
+import { getGraceDays } from '../services/plan-catalog';
 import type { AppEnv } from '../types';
 
 /** I2: refused while FTech has the business suspended for misuse. The app shows the reason from GET /me. */
@@ -63,7 +64,7 @@ function tenantMiddleware(allowSuspended: boolean) {
       canViewAll: isOwner || member.canViewAll,
       canTakePayments: isOwner || member.canTakePayments,
       canEditSetup: isOwner || member.canEditSetup,
-      planActive: hasPlanAccess(member.sub),
+      planActive: hasPlanAccess(member.sub, new Date(), await getGraceDays(c.var.db)),
       suspendReason: member.suspendReason,
     });
     await next();

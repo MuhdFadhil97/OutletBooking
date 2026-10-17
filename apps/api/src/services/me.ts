@@ -10,6 +10,7 @@ import {
   type SubscriptionStatus,
 } from '@outletbooking/shared';
 import { notFound } from '../errors';
+import { getGraceDays } from './plan-catalog';
 import type { Tenant } from '../types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -66,7 +67,7 @@ export async function getMe(db: Db, userId: number, tenant: Tenant, now: Date = 
       trialEndsAt: trialEndsAt.toISOString(),
       trialDaysLeft: daysLeft,
       isTrialActive: status === 'trialing' && daysLeft > 0,
-      hasAccess: hasPlanAccess(row.sub, now),
+      hasAccess: hasPlanAccess(row.sub, now, await getGraceDays(db)),
     },
   };
 }

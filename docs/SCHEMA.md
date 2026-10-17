@@ -161,6 +161,7 @@ erDiagram
 | I10 | `platform_admins.role` (`support` / `super_admin`), `is_active` | Super admin only: admin users, plans & prices |
 | I2 | `businesses.suspended_at` + `suspend_reason` (both or neither) | Suspended = app and booking page locked |
 | I2 | `subscriptions.free_until` | Free months given by an admin; no payment row |
+| I12 | `subscriptions.renewal_notice_for`, `renewal_notice_stage` | Which renewal notice (reminder day 7 / 3 / 1, 0 = ended, -1 = paused) was sent for which period end; the `plan-renewals` job sends each once |
 | I2 | `admin_business_notes` | Admin-only notes |
 | I2 | owner change | Update `business_members.role` for old and new owner in one transaction + `admin_audit_log` |
 | I12 | `plans`, `platform_settings` (single row, id = 1) | Seeded with Starter RM 49 / Business RM 99, 7-day trial, 3 grace days, reminders 7/3/1 days |

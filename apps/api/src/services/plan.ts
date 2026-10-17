@@ -56,7 +56,7 @@ export async function getPlanInfo(db: Db, businessId: number, websiteUrl: string
     trialEndsAt: trialEndsAt.toISOString(),
     currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
     freeUntil: row.freeUntil?.toISOString() ?? null,
-    hasAccess: hasPlanAccess({ status, trialEndsAt, currentPeriodEnd: row.currentPeriodEnd }, now),
+    hasAccess: hasPlanAccess({ status, trialEndsAt, currentPeriodEnd: row.currentPeriodEnd }, now, catalog.settings.graceDays),
     resourceCount,
     staffCount,
     recommended: recommendedPlan(resourceCount, staffCount, catalog.plans.find((p) => p.code === 'starter')?.resourceLimit),

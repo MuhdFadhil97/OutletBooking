@@ -145,7 +145,13 @@ describe('after the trial', () => {
     expect((await ctx.send('PATCH', '/businesses/current', owner, { name: 'Paid Courts' })).status).toBe(200);
     expect(((await (await ctx.get('/public/plan-a')).json()) as PublicBusiness).bookingEnabled).toBe(true);
 
+    // Just ended: the I12 grace days (3 by default) keep the app and the booking page open.
     await setSub({ currentPeriodEnd: new Date(Date.now() - HOUR) });
+    expect((await ctx.send('PATCH', '/businesses/current', owner, { name: 'In grace' })).status).toBe(200);
+    expect(((await (await ctx.get('/public/plan-a')).json()) as PublicBusiness).bookingEnabled).toBe(true);
+
+    // Past the grace days: everything closes.
+    await setSub({ currentPeriodEnd: new Date(Date.now() - 4 * 24 * HOUR) });
     expect((await ctx.send('PATCH', '/businesses/current', owner, { name: 'Late' })).status).toBe(403);
     expect(((await (await ctx.get('/public/plan-a')).json()) as PublicBusiness).bookingEnabled).toBe(false);
   });

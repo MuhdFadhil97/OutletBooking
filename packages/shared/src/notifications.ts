@@ -11,6 +11,9 @@ export const NOTIFICATION_TYPES = [
   'reminders_sent',
   'trial_ending',
   'trial_ended',
+  'plan_renewal_due',
+  'plan_grace',
+  'plan_ended',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

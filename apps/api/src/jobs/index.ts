@@ -2,6 +2,8 @@ import { PgBoss } from 'pg-boss';
 import type { Db } from '@outletbooking/db';
 import type { Env } from '../env';
 import { staffDaySummary, trialReminders } from '../services/daily';
+import type { Mailer } from '../services/mailer';
+import { planRenewals } from '../services/plan-renewals';
 import { expirePendingBookings, notifyExpired, type PaymentDeps } from '../services/payments';
 import type { PushSender } from '../services/push';
 import type { ToyyibPayClient } from '../services/toyyibpay';
@@ -13,13 +15,14 @@ const SCHEDULES = {
   'expire-pending-bookings': '* * * * *', // every minute (BR-04, FR-09.3)
   'staff-day-summary': '30 7 * * *', // 7:30 AM (FR-10.2)
   'trial-reminders': '0 9 * * *', // 9:00 AM (FR-16.2)
+  'plan-renewals': '5 9 * * *', // 9:05 AM: renewal reminders, grace and paused notices (FR-20.7)
 } as const;
 
 /**
  * pg-boss keeps its queue in Postgres (schema `pgboss`), so no Redis is needed. Uses a direct /
  * session connection (not Supabase's transaction pooler).
  */
-export async function startJobs(deps: { db: Db; env: Env; push: PushSender; toyyibpay: ToyyibPayClient }) {
+export async function startJobs(deps: { db: Db; env: Env; push: PushSender; toyyibpay: ToyyibPayClient; mailer: Mailer }) {
   const boss = new PgBoss({ connectionString: deps.env.DATABASE_URL, schema: 'pgboss' });
   boss.on('error', (err) => console.error('[jobs]', err));
   await boss.start();
@@ -32,7 +35,8 @@ export async function startJobs(deps: { db: Db; env: Env; push: PushSender; toyy
       return expired.length;
     },
     'staff-day-summary': () => staffDaySummary(deps.db, deps.push),
-    'trial-reminders': () => trialReminders(deps.db, deps.push),
+    'trial-reminders': () => trialReminders(deps.db, deps.push, new Date(), { mailer: deps.mailer, env: deps.env }),
+    'plan-renewals': () => planRenewals(deps),
   };
 
   for (const [name, cron] of Object.entries(SCHEDULES) as [keyof typeof SCHEDULES, string][]) {

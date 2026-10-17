@@ -124,6 +124,13 @@ export const subscriptions = pgTable(
     currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
     /** Free months given by an admin (I2); no payment created. */
     freeUntil: timestamp('free_until', { withTimezone: true }),
+    /**
+     * Renewal notices (reminder, grace, ended) already sent for the period that ended at `renewal_notice_for`:
+     * `renewal_notice_stage` = days before the end of the last reminder sent (7, 3, 1), 0 = "plan ended, grace
+     * running", -1 = "grace over, page paused". A new period (new end date) starts again from nothing.
+     */
+    renewalNoticeFor: timestamp('renewal_notice_for', { withTimezone: true }),
+    renewalNoticeStage: integer('renewal_notice_stage'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

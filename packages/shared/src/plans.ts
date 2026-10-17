@@ -25,23 +25,29 @@ export interface PlanAccessInput {
 
 /**
  * Can the business take bookings and make changes? (FR-16.3)
- * Trial: until trial_ends_at. Paid (active / past_due / cancelled): until current_period_end.
+ * Trial: until trial_ends_at. Paid active / past_due: until current_period_end **plus the grace days** (I12:
+ * "booking page stays live this long after a missed renewal"). Cancelled: until current_period_end, no grace.
  * Expired, or no subscription at all: no — the booking page is paused and the app is view only.
  */
-export function hasPlanAccess(sub: PlanAccessInput | null | undefined, now: Date = new Date()): boolean {
+export function hasPlanAccess(sub: PlanAccessInput | null | undefined, now: Date = new Date(), graceDays = 0): boolean {
   if (!sub) return false;
   const until = (d: Date | string) => new Date(d).getTime() > now.getTime();
   switch (sub.status) {
     case 'trialing':
       return until(sub.trialEndsAt);
     case 'active':
-      return sub.currentPeriodEnd === null || until(sub.currentPeriodEnd);
     case 'past_due':
+      return sub.currentPeriodEnd === null || until(graceEnd(sub.currentPeriodEnd, graceDays));
     case 'cancelled':
       return sub.currentPeriodEnd !== null && until(sub.currentPeriodEnd);
     default:
       return false;
   }
+}
+
+/** The instant a paid period stops giving access: its end plus the grace days. */
+export function graceEnd(periodEnd: Date | string, graceDays: number): Date {
+  return new Date(new Date(periodEnd).getTime() + Math.max(0, graceDays) * 86_400_000);
 }
 
 /**
@@ -80,7 +86,7 @@ export interface PlanCatalogEntry {
   isPublic: boolean;
 }
 
-/** I12 "Trial & renewal". Only `trialDays` is used today; grace and reminders come with plan renewals. */
+/** I12 "Trial & renewal": trial length, grace days after a missed renewal, and the renewal reminder days. */
 export interface PlanSettings {
   trialDays: number;
   graceDays: number;

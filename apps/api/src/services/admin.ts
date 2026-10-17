@@ -46,7 +46,7 @@ import {
 import type { Auth } from '../auth';
 import type { Env } from '../env';
 import { sendConfirmEmail } from './confirm-email';
-import { planResourceLimit } from './plan-catalog';
+import { getGraceDays, planResourceLimit } from './plan-catalog';
 import type { Mailer } from './mailer';
 import { AppError, notFound } from '../errors';
 
@@ -116,7 +116,7 @@ function selectBusinesses(q: Db | Tx, since: Date) {
 
 type Row = Awaited<ReturnType<ReturnType<typeof selectBusinesses>['execute']>>[number];
 
-function toRow(r: Row, now: Date): AdminBusinessRow {
+function toRow(r: Row, now: Date, graceDays: number): AdminBusinessRow {
   const sub =
     r.sub && r.sub.status !== null && r.sub.trialEndsAt !== null
       ? {
@@ -134,14 +134,14 @@ function toRow(r: Row, now: Date): AdminBusinessRow {
     template: r.template as BusinessTemplate,
     ownerName: r.owner?.name ?? null,
     phone: r.phone ?? r.owner?.phone ?? null,
-    state: adminPlanState(sub, r.trialExtended, now),
+    state: adminPlanState(sub, r.trialExtended, now, graceDays),
     subscription: sub && {
       plan: sub.plan,
       status: sub.status,
       trialEndsAt: sub.trialEndsAt.toISOString(),
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
       freeUntil: sub.freeUntil?.toISOString() ?? null,
-      hasAccess: hasPlanAccess(sub, now),
+      hasAccess: hasPlanAccess(sub, now, graceDays),
     },
     bookingEnabled: r.bookingEnabled,
     suspended: r.suspendedAt && r.suspendReason !== null ? { at: r.suspendedAt.toISOString(), reason: r.suspendReason } : null,
@@ -157,14 +157,15 @@ export async function listAdminBusinesses(
   now: Date = new Date(),
 ): Promise<AdminBusinessesResponse> {
   const since = new Date(now.getTime() - 30 * DAY_MS);
-  const [rows, [revenue]] = await Promise.all([
+  const [graceDays, rows, [revenue]] = await Promise.all([
+    getGraceDays(db),
     selectBusinesses(db, since).where(isNull(businesses.deletedAt)).orderBy(desc(businesses.createdAt)),
     db
       .select({ sen: sum(payments.amountSen) })
       .from(payments)
       .where(and(eq(payments.purpose, 'subscription'), eq(payments.status, 'paid'), gte(payments.paidAt, since))),
   ]);
-  const all = rows.map((r) => toRow(r, now));
+  const all = rows.map((r) => toRow(r, now, graceDays));
   const weekEnd = now.getTime() + 7 * DAY_MS;
   const kpis: AdminKpis = {
     businesses: all.length,
@@ -190,7 +191,8 @@ export async function listAdminBusinesses(
 /** I2: one business. Only "ToyyibPay connected" — never keys or customers' payments. */
 export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Date = new Date()): Promise<AdminBusinessDetail> {
   const since = new Date(now.getTime() - 30 * DAY_MS);
-  const [[row], [res], [staff], [account], auditLog, memberRows, inviteRows] = await Promise.all([
+  const [graceDays, [row], [res], [staff], [account], auditLog, memberRows, inviteRows] = await Promise.all([
+    getGraceDays(db),
     selectBusinesses(db, since)
       .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
       .limit(1),
@@ -229,7 +231,7 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
   ]);
   if (!row) throw notFound('Business');
   return {
-    ...toRow(row, now),
+    ...toRow(row, now, graceDays),
     owner: row.owner && row.owner.name !== null && row.owner.email !== null ? { ...row.owner, name: row.owner.name, email: row.owner.email } : null,
     whatsappPhone: row.whatsappPhone,
     resourceLabel: row.resourceLabel,
@@ -385,7 +387,7 @@ export async function extendTrial(
     await lockBusiness(tx, businessId);
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.businessId, businessId)).for('update');
     if (!sub) throw notFound('Subscription');
-    if (sub.status !== 'trialing' && hasPlanAccess(sub, now)) {
+    if (sub.status !== 'trialing' && hasPlanAccess(sub, now, await getGraceDays(tx))) {
       throw new AppError(409, 'on_paid_plan', 'This business is on a paid plan. Only trials can be extended.');
     }
 
@@ -571,8 +573,8 @@ export async function addAdminNote(db: Db, adminUserId: number, businessId: numb
 const isPaidPlan = (plan: string): plan is PaidPlan => PAID_PLANS.some((p) => p === plan);
 
 /** Paying = on a paid plan that still gives access (active / past_due / cancelled until the period ends). */
-function isPaying(sub: { status: string; trialEndsAt: Date; currentPeriodEnd: Date | null; plan: string }, now: Date) {
-  return sub.status !== 'trialing' && isPaidPlan(sub.plan) && hasPlanAccess(sub, now);
+function isPaying(sub: { status: string; trialEndsAt: Date; currentPeriodEnd: Date | null; plan: string }, now: Date, graceDays: number) {
+  return sub.status !== 'trialing' && isPaidPlan(sub.plan) && hasPlanAccess(sub, now, graceDays);
 }
 
 /**
@@ -591,7 +593,7 @@ export async function giveFreeMonths(
     await lockBusiness(tx, businessId);
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.businessId, businessId)).for('update');
     if (!sub) throw notFound('Subscription');
-    const paying = isPaying(sub, now);
+    const paying = isPaying(sub, now, await getGraceDays(tx));
     if (paying && sub.currentPeriodEnd === null) {
       throw new AppError(409, 'no_end_date', 'This plan has no end date, so free months would not change anything');
     }
@@ -638,7 +640,7 @@ export async function changePlan(
     await lockBusiness(tx, businessId);
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.businessId, businessId)).for('update');
     if (!sub) throw notFound('Subscription');
-    if (!isPaying(sub, now)) {
+    if (!isPaying(sub, now, await getGraceDays(tx))) {
       throw new AppError(409, 'not_paying', 'Only a paying business can change plan here. Give free months to start a plan.');
     }
     if (sub.plan === input.plan) throw new AppError(409, 'no_change', `This business is already on ${input.plan}`);

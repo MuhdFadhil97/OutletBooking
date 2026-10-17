@@ -61,6 +61,12 @@ export async function getPlanCatalog(q: Q): Promise<{ plans: PlanCatalogEntry[];
   return { plans: catalog, settings };
 }
 
+/** Grace days (I12): how long a paid plan keeps working after a missed renewal. One primary-key read. */
+export async function getGraceDays(q: Q): Promise<number> {
+  const [row] = await q.select({ graceDays: platformSettings.graceDays }).from(platformSettings).where(eq(platformSettings.id, 1)).limit(1);
+  return row?.graceDays ?? DEFAULT_PLAN_SETTINGS.graceDays;
+}
+
 /** Resource limit of a plan, for subscriptions.resource_limit when a plan is assigned. */
 export async function planResourceLimit(q: Q, code: string): Promise<number> {
   const { plans: catalog } = await getPlanCatalog(q);

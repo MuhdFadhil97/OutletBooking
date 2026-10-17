@@ -81,8 +81,13 @@ export type AdminBusinessFilter = (typeof ADMIN_BUSINESS_FILTERS)[number];
 export type AdminPlanState = 'trial' | 'pilot' | 'paying' | 'ended';
 
 /** No access → ended; trialing → trial (pilot once extended by FTech); otherwise paying. */
-export function adminPlanState(sub: PlanAccessInput | null, trialExtended: boolean, now: Date = new Date()): AdminPlanState {
-  if (!sub || !hasPlanAccess(sub, now)) return 'ended';
+export function adminPlanState(
+  sub: PlanAccessInput | null,
+  trialExtended: boolean,
+  now: Date = new Date(),
+  graceDays = 0,
+): AdminPlanState {
+  if (!sub || !hasPlanAccess(sub, now, graceDays)) return 'ended';
   if (sub.status === 'trialing') return trialExtended ? 'pilot' : 'trial';
   return 'paying';
 }

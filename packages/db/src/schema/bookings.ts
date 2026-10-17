@@ -348,7 +348,7 @@ export const notifications = pgTable(
     index('notifications_business_id_idx').on(t.businessId),
     check(
       'notifications_type_check',
-      sql`${t.type} IN ('booking_new','booking_paid','payment_failed','booking_cancelled','walk_in','staff_joined','reminders_sent','trial_ending','trial_ended')`,
+      sql`${t.type} IN ('booking_new','booking_paid','payment_failed','booking_cancelled','walk_in','staff_joined','reminders_sent','trial_ending','trial_ended','plan_renewal_due','plan_grace','plan_ended')`,
     ),
   ],
 );

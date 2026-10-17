@@ -201,6 +201,8 @@ CREATE TABLE subscriptions (
   current_period_start  timestamptz,
   current_period_end    timestamptz,
   free_until            timestamptz,         -- free months given by an admin (I2); no payment created
+  renewal_notice_for    timestamptz,         -- period end the renewal notices below were sent for (a new period starts again)
+  renewal_notice_stage  integer,             -- last notice sent: days before the end (7, 3, 1), 0 = ended / grace running, -1 = grace over
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
@@ -542,7 +544,8 @@ CREATE TABLE notifications (
   user_id      integer     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type         text        NOT NULL CHECK (type IN (
                  'booking_new','booking_paid','payment_failed','booking_cancelled','walk_in',
-                 'staff_joined','reminders_sent','trial_ending','trial_ended')),
+                 'staff_joined','reminders_sent','trial_ending','trial_ended',
+                 'plan_renewal_due','plan_grace','plan_ended')),
   title        text        NOT NULL,
   body         text,
   booking_id   integer,
