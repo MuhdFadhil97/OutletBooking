@@ -1,4 +1,6 @@
 import type {
+  DeletionQueue,
+  DeletionTab,
   RecheckResult,
   SystemHealth,
   AnnouncementAudience,
@@ -341,6 +343,32 @@ export async function assignSupportCase(id: number, adminUserId: number | null):
 
 export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
   return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
+}
+
+/** I26 data deletion (every admin reads; notice / hold / release are super admins only) */
+export async function getDeletionQueue(tab: DeletionTab): Promise<Result<DeletionQueue>> {
+  return toResult(await call(`/admin/deletion?tab=${tab}`));
+}
+
+export async function sendDeletionNotice(id: number): Promise<Result<null>> {
+  return toResult(await call(`/admin/deletion/${id}/notice`, {}));
+}
+
+export async function holdDeletion(id: number, reason: string): Promise<Result<null>> {
+  return toResult(await call(`/admin/deletion/${id}/hold`, { reason }));
+}
+
+export async function releaseDeletion(id: number, reason: string): Promise<Result<null>> {
+  return toResult(await call(`/admin/deletion/${id}/release`, { reason }));
+}
+
+/** I2 "Close account" and "Reopen": the owner's written request; the data is deleted 90 days later (super admins only). */
+export async function closeBusiness(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/close`, { reason }));
+}
+
+export async function reopenBusiness(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/reopen`, { reason }));
 }
 
 /** I27 system health (every admin) */

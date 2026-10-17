@@ -27,3 +27,4 @@ export * from './health';
 export * from './billing';
 export * from './admin-payments';
 export * from './announcements';
+export * from './deletion';

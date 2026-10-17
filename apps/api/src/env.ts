@@ -36,6 +36,14 @@ const envSchema = z.object({
   /** Sender, e.g. "OutletBooking <no-reply@outletbooking.my>" — domain verified in Resend. */
   MAIL_FROM: z.string().min(3).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
+  /**
+   * Turns on the daily job that deletes businesses whose notice period is over (I26). OFF by default: deleting is permanent, so
+   * each server must be switched on on purpose. The I26 page still lists, sends notices and holds with it off.
+   */
+  DATA_DELETION_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   /** Signing secret (whsec_…) of the Resend webhook that reports bounces and spam reports (I27). Empty = webhook off. */
   RESEND_WEBHOOK_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
   /** Only needed when "Enhanced push security" is on in the Expo project. */

@@ -211,3 +211,29 @@ export function renewalEmail(i: RenewalEmailInput): RenderedEmail {
     websiteUrl: i.websiteUrl,
   });
 }
+
+export interface DeletionNoticeEmailInput {
+  businessName: string;
+  /** "Fri, 13 Nov 2026" in Malaysia time. */
+  deleteOn: string;
+  /** Where to choose a plan (the website sign-in page). */
+  keepUrl: string;
+  websiteUrl: string;
+}
+
+/** M7 · Sent 30 days before data is deleted (docs/wireframes/Email-DeletionNotice.dc.html). */
+export function deletionNoticeEmail(i: DeletionNoticeEmailInput): RenderedEmail {
+  return renderEmail({
+    subject: `Your OutletBooking data will be deleted on ${i.deleteOn}`,
+    preview: 'Choose a plan or ask for a copy before then',
+    heading: `Your data will be deleted on ${i.deleteOn}`,
+    paragraphs: [
+      [{ bold: i.businessName }, ` hasn’t had an active plan for 12 months. As our Terms say, we’ll delete the business’s bookings, customers, staff accounts and settings on `, { bold: i.deleteOn }, `.`],
+      'Want to keep it? Choose a plan before then and everything switches back on.',
+    ],
+    button: { label: 'Keep my account', url: i.keepUrl },
+    notes: ['Need a copy first? Contact us and we’ll send an export to this email. Receipts for plans you paid are kept for 7 years for tax.'],
+    footer: 'Sent 30 days before data deletion, as described in the Terms and Privacy notice.',
+    websiteUrl: i.websiteUrl,
+  });
+}

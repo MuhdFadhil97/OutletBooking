@@ -571,7 +571,7 @@ CREATE TABLE platform_admins (               -- I10
 
 CREATE TABLE admin_audit_log (               -- I2: every admin action is logged
   id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  admin_user_id  integer     NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  admin_user_id  integer     REFERENCES users(id) ON DELETE RESTRICT,   -- NULL = the system itself (daily data-deletion job)
   business_id    integer     REFERENCES businesses(id) ON DELETE SET NULL,
   action         text        NOT NULL CHECK (action IN (
                    'sign_in','sign_in_failed',          -- I5/I6: every admin sign-in and wrong password (FR-20.1)

@@ -222,7 +222,7 @@ export function AuditLog() {
               {state.entries.map((e) => (
                 <tr key={e.id}>
                   <td className="nowrap">{formatDateTime(e.createdAt)}</td>
-                  <td className="nowrap">{e.admin.name}</td>
+                  <td className="nowrap">{e.admin?.name ?? a.system}</td>
                   <td className="nowrap">
                     <strong>{t.actions[e.action] ?? e.action}</strong>
                   </td>

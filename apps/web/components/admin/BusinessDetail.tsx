@@ -22,6 +22,8 @@ import {
   resendConfirmEmail,
   sendOwnerPasswordReset,
   setBookingPage,
+  closeBusiness,
+  reopenBusiness,
   suspendBusiness,
   unsuspendBusiness,
   type Result,
@@ -157,6 +159,7 @@ export function BusinessDetail({ id }: { id: number }) {
       )}
 
       {biz.suspended && <SuspendedBanner biz={biz} save={save} onDone={setFlash} />}
+      {biz.closing && <ClosedBanner biz={biz} save={save} onDone={setFlash} />}
 
       <div className="biz-grid">
         <div className="biz-col">
@@ -686,9 +689,12 @@ function SuspendedBanner({ biz, save, onDone }: FormProps) {
   );
 }
 
-/** I2 account actions: suspend for misuse (type the business name to confirm). Export / close come with I26. */
+/** I2 account actions: suspend for misuse and close on request (type the business name to confirm). */
 function AccountActions({ biz, save, onDone }: FormProps) {
+  const { admin } = useAdmin();
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [closeName, setCloseName] = useState('');
   const [name, setName] = useState('');
   const g = d.danger;
   const matches = normName(name) === normName(biz.name);
@@ -728,7 +734,77 @@ function AccountActions({ biz, save, onDone }: FormProps) {
           {g.suspendOpen}
         </button>
       )}
+      <div className="entry-title">{g.close}</div>
+      <p className="muted small">{g.closeHint}</p>
+      {biz.closing ? null : admin.role !== 'super_admin' ? (
+        <p className="muted small">{g.superOnly}</p>
+      ) : closing ? (
+        <div className="sub-form">
+          <label className="fld">
+            <span className="lbl">{g.confirmName(biz.name)}</span>
+            <input className="inp" value={closeName} autoComplete="off" onChange={(ev) => setCloseName(ev.target.value)} />
+          </label>
+          <ReasonForm
+            label={d.reason}
+            submit={g.closeSubmit}
+            danger
+            disabled={normName(closeName) !== normName(biz.name)}
+            onCancel={() => {
+              setClosing(false);
+              setCloseName('');
+            }}
+            onSubmit={async (reason) => {
+              const error = save(await closeBusiness(biz.id, reason));
+              if (!error) {
+                setClosing(false);
+                setCloseName('');
+                onDone(g.closeDone);
+              }
+              return error;
+            }}
+          />
+        </div>
+      ) : (
+        <button type="button" className="btn2 btn-sm align-start" onClick={() => setClosing(true)}>
+          {g.closeOpen}
+        </button>
+      )}
       <p className="muted small">{g.later}</p>
+    </section>
+  );
+}
+
+/** Shown at the top of I2 while the account is closed at the owner's request, with "Reopen account". */
+function ClosedBanner({ biz, save, onDone }: FormProps) {
+  const { admin } = useAdmin();
+  const [reopening, setReopening] = useState(false);
+  const g = d.danger;
+  if (!biz.closing) return null;
+  return (
+    <section className="card admin-section" role="status">
+      <p className="alert alert-error">{g.closedTitle}</p>
+      <p className="muted small">{g.closedSince(formatDateTime(biz.closing.requestedAt), biz.closing.deleteOn ? formatDateTime(biz.closing.deleteOn) : null)}</p>
+      {admin.role !== 'super_admin' ? (
+        <p className="muted small">{g.superOnly}</p>
+      ) : reopening ? (
+        <ReasonForm
+          label={d.reason}
+          submit={g.reopenSubmit}
+          onCancel={() => setReopening(false)}
+          onSubmit={async (reason) => {
+            const error = save(await reopenBusiness(biz.id, reason));
+            if (!error) {
+              setReopening(false);
+              onDone(g.reopenDone);
+            }
+            return error;
+          }}
+        />
+      ) : (
+        <button type="button" className="btn2 btn-sm align-start" onClick={() => setReopening(true)}>
+          {g.reopen}
+        </button>
+      )}
     </section>
   );
 }
@@ -740,7 +816,7 @@ function EntryList({ entries, withAction }: { entries: AuditEntry[]; withAction?
         <li key={entry.id}>
           {withAction && <div className="entry-title">{d.audit.actions[entry.action] ?? entry.action}</div>}
           <div>{withAction ? <span className="muted">“{entry.reason}”</span> : entry.reason}</div>
-          <div className="muted small">{d.audit.by(entry.admin.name, formatDateTime(entry.createdAt))}</div>
+          <div className="muted small">{d.audit.by(entry.admin?.name ?? d.audit.system, formatDateTime(entry.createdAt))}</div>
         </li>
       ))}
     </ul>

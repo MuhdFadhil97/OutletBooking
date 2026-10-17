@@ -31,9 +31,8 @@ export const adminAuditLog = pgTable(
   'admin_audit_log',
   {
     id: idPk(),
-    adminUserId: integer('admin_user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'restrict' }),
+    /** NULL = the system itself (the daily data-deletion job), not a person. */
+    adminUserId: integer('admin_user_id').references(() => users.id, { onDelete: 'restrict' }),
     businessId: integer('business_id').references(() => businesses.id, { onDelete: 'set null' }),
     action: text('action').notNull(),
     reason: text('reason').notNull(),

@@ -238,6 +238,8 @@ export interface AdminBusinessRow {
   bookingEnabled: boolean;
   /** Suspended for misuse by FTech (app and booking page locked). */
   suspended: { at: string; reason: string } | null;
+  /** The owner asked to close (I2 / I26): the booking page is closed and the data is deleted on `deleteOn`. */
+  closing: { requestedAt: string; deleteOn: string | null } | null;
   /** Bookings made in the last 30 days (any status). */
   bookings30d: number;
   createdAt: string;
@@ -264,7 +266,8 @@ export interface AuditEntry {
   action: AdminAction;
   reason: string;
   details: Record<string, string | number | boolean | null>;
-  admin: { id: number; name: string };
+  /** null = the system itself (the daily data-deletion job). */
+  admin: { id: number; name: string } | null;
   business: { id: number; name: string } | null;
   createdAt: string;
 }

@@ -16,7 +16,7 @@ type NavKey = keyof typeof t.shell.nav;
 /** `superOnly` pages are hidden from Support admins (the API refuses them too). */
 const NAV: { group?: keyof typeof t.shell.groups; items: { key: NavKey; href?: string; superOnly?: boolean }[] }[] = [
   { items: [{ key: 'businesses', href: '/admin' }, { key: 'trials', href: '/admin/trials' }, { key: 'payments', href: '/admin/payments' }, { key: 'support', href: '/admin/support' }] },
-  { group: 'privacy', items: [{ key: 'privacy', href: '/admin/privacy' }, { key: 'deletion' }, { key: 'audit', href: '/admin/audit' }] },
+  { group: 'privacy', items: [{ key: 'privacy', href: '/admin/privacy' }, { key: 'deletion', href: '/admin/deletion' }, { key: 'audit', href: '/admin/audit' }] },
   { group: 'platform', items: [{ key: 'health', href: '/admin/health' }, { key: 'announcements', href: '/admin/announcements', superOnly: true }, { key: 'users', href: '/admin/users', superOnly: true }, { key: 'plans', href: '/admin/plans', superOnly: true }] },
 ];
 

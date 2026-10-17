@@ -95,6 +95,8 @@ function selectBusinesses(q: Db | Tx, since: Date) {
       bookingEnabled: businesses.bookingEnabled,
       suspendedAt: businesses.suspendedAt,
       suspendReason: businesses.suspendReason,
+      closeRequestedAt: businesses.closeRequestedAt,
+      deletionDueAt: businesses.deletionDueAt,
       createdAt: businesses.createdAt,
       owner: { name: users.name, email: users.email, phone: users.phone },
       sub: {
@@ -145,6 +147,7 @@ function toRow(r: Row, now: Date, graceDays: number): AdminBusinessRow {
     },
     bookingEnabled: r.bookingEnabled,
     suspended: r.suspendedAt && r.suspendReason !== null ? { at: r.suspendedAt.toISOString(), reason: r.suspendReason } : null,
+    closing: r.closeRequestedAt ? { requestedAt: r.closeRequestedAt.toISOString(), deleteOn: r.deletionDueAt?.toISOString() ?? null } : null,
     bookings30d: Number(r.bookings30d),
     createdAt: r.createdAt.toISOString(),
   };
@@ -290,7 +293,7 @@ async function selectAudit(db: Db | Tx, where: SQL[], limit: number): Promise<Au
       createdAt: adminAuditLog.createdAt,
     })
     .from(adminAuditLog)
-    .innerJoin(users, eq(users.id, adminAuditLog.adminUserId))
+    .leftJoin(users, eq(users.id, adminAuditLog.adminUserId))
     .leftJoin(businesses, eq(businesses.id, adminAuditLog.businessId))
     .where(and(...where))
     .orderBy(desc(adminAuditLog.id))
@@ -300,7 +303,7 @@ async function selectAudit(db: Db | Tx, where: SQL[], limit: number): Promise<Au
     action: r.action as AdminAction,
     reason: r.reason,
     details: r.details,
-    admin: { id: r.adminId, name: r.adminName },
+    admin: r.adminId !== null && r.adminName !== null ? { id: r.adminId, name: r.adminName } : null,
     business: r.businessId !== null && r.businessName !== null ? { id: r.businessId, name: r.businessName } : null,
     createdAt: r.createdAt.toISOString(),
   }));
@@ -322,7 +325,7 @@ export async function exportAuditLogCsv(db: Db, filters: AuditLogFilters): Promi
   const lines = entries.map((e) =>
     [
       formatInTimeZone(new Date(e.createdAt), TZ, 'yyyy-MM-dd HH:mm:ss'),
-      e.admin.name,
+      e.admin?.name ?? 'System',
       e.action,
       e.business?.name ?? '',
       e.reason,

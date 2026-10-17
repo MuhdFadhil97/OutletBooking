@@ -22,12 +22,15 @@ import {
   recordBankTransferSchema,
   recordPlanRefundSchema,
   resendPlanReceiptSchema,
+  closeBusinessSchema,
   suspendSchema,
   trialsQuery,
   unsuspendSchema,
   updatePlansSchema,
 } from '@outletbooking/shared';
 import { adminAnnouncementRoutes } from './admin-announcements';
+import { closeBusiness, reopenBusiness } from '../services/admin-deletion';
+import { adminDeletionRoutes } from './admin-deletion';
 import { adminHealthRoutes } from './admin-health';
 import { adminPrivacyRoutes } from './admin-privacy';
 import { adminSupportRoutes } from './admin-support';
@@ -125,6 +128,15 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/businesses/:id/suspend', validate('param', idParam), validate('json', suspendSchema), async (c) =>
     c.json(await suspendBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
   )
+  // I2 close account (the owner's written request): super admins only. The data is deleted 90 days later (I26).
+  .post('/businesses/:id/close', requireSuperAdmin, validate('param', idParam), validate('json', closeBusinessSchema), async (c) => {
+    await closeBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason);
+    return c.json(await getAdminBusiness(c.var.db, c.req.valid('param').id));
+  })
+  .post('/businesses/:id/reopen', requireSuperAdmin, validate('param', idParam), validate('json', closeBusinessSchema), async (c) => {
+    await reopenBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason);
+    return c.json(await getAdminBusiness(c.var.db, c.req.valid('param').id));
+  })
   .post('/businesses/:id/unsuspend', validate('param', idParam), validate('json', unsuspendSchema), async (c) =>
     c.json(await unsuspendBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason)),
   )
@@ -169,6 +181,8 @@ export const adminRoutes = new Hono<AppEnv>()
   .route('/support', adminSupportRoutes)
   // I25 privacy (PDPA) requests: every admin.
   .route('/privacy', adminPrivacyRoutes)
+  // I26 data deletion: every admin reads; notice / hold / release are super admins only (checked per route).
+  .route('/deletion', adminDeletionRoutes)
   // I27 system health: every admin.
   .route('/health', adminHealthRoutes)
   // I28 announcements to owners: super admins only (one message can reach every owner).
