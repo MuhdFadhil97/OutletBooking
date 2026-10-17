@@ -1,4 +1,8 @@
 import type {
+  AnnouncementAudience,
+  AnnouncementAudienceCount,
+  AnnouncementRow,
+  CreateAnnouncementInput,
   CreatePrivacyRequestInput,
   PrivacyChecklistStep,
   PrivacyRequestDetail,
@@ -335,6 +339,29 @@ export async function assignSupportCase(id: number, adminUserId: number | null):
 
 export async function setLeadStatus(id: number, status: LeadStatus): Promise<Result<SupportLead>> {
   return toResult(await call(`/admin/support/leads/${id}/status`, { status }));
+}
+
+/** I28 announcements (super admins only) */
+export async function listAnnouncements(): Promise<Result<AnnouncementRow[]>> {
+  return toResult(await call('/admin/announcements'));
+}
+
+export async function countAnnouncementAudience(audience: AnnouncementAudience, value: string): Promise<Result<AnnouncementAudienceCount>> {
+  const params = new URLSearchParams({ audience });
+  if (audience !== 'all' && value.trim()) params.set('value', value.trim());
+  return toResult(await call(`/admin/announcements/audience?${params}`));
+}
+
+export async function createAnnouncement(input: CreateAnnouncementInput): Promise<Result<AnnouncementRow>> {
+  return toResult(await call('/admin/announcements', input));
+}
+
+export async function sendTestAnnouncement(input: CreateAnnouncementInput): Promise<Result<{ sentTo: string }>> {
+  return toResult(await call('/admin/announcements/test', input));
+}
+
+export async function cancelAnnouncement(id: number): Promise<Result<null>> {
+  return toResult(await call(`/admin/announcements/${id}/cancel`, {}));
 }
 
 /** I25 privacy requests (every admin) */

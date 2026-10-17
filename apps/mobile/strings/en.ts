@@ -147,6 +147,7 @@ export const en = {
     notifications: (n: number) => (n ? `Notifications, ${n} unread` : 'Notifications'),
     trial: (days: number) => `Free trial · ${days} ${days === 1 ? 'day' : 'days'} left`,
     choosePlan: 'Choose a plan',
+    announcementDismiss: 'Dismiss',
     bookingsToday: 'Bookings today',
     expectedRevenue: 'Expected revenue',
     checkedIn: 'Checked in',

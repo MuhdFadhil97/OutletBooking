@@ -3,6 +3,7 @@ import type { Db } from '@outletbooking/db';
 import type { Env } from '../env';
 import { staffDaySummary, trialReminders } from '../services/daily';
 import type { Mailer } from '../services/mailer';
+import { dispatchDueAnnouncements } from '../services/admin-announcements';
 import { planRenewals } from '../services/plan-renewals';
 import { expirePendingBookings, notifyExpired, type PaymentDeps } from '../services/payments';
 import type { PushSender } from '../services/push';
@@ -15,6 +16,7 @@ const SCHEDULES = {
   'expire-pending-bookings': '* * * * *', // every minute (BR-04, FR-09.3)
   'staff-day-summary': '30 7 * * *', // 7:30 AM (FR-10.2)
   'trial-reminders': '0 9 * * *', // 9:00 AM (FR-16.2)
+  'announcements': '* * * * *', // send scheduled announcements that are due (I28)
   'plan-renewals': '5 9 * * *', // 9:05 AM: renewal reminders, grace and paused notices (FR-20.7)
 } as const;
 
@@ -36,6 +38,7 @@ export async function startJobs(deps: { db: Db; env: Env; push: PushSender; toyy
     },
     'staff-day-summary': () => staffDaySummary(deps.db, deps.push),
     'trial-reminders': () => trialReminders(deps.db, deps.push, new Date(), { mailer: deps.mailer, env: deps.env }),
+    announcements: () => dispatchDueAnnouncements(deps),
     'plan-renewals': () => planRenewals(deps),
   };
 

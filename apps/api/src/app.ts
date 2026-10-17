@@ -17,6 +17,7 @@ import { customerRoutes } from './routes/customers';
 import { healthRoutes } from './routes/health';
 import { invitationRoutes } from './routes/invitations';
 import { meRoutes } from './routes/me';
+import { announcementRoutes } from './routes/announcements';
 import { notificationRoutes } from './routes/notifications';
 import { passwordRoutes } from './routes/password';
 import { publicRoutes } from './routes/public';
@@ -116,6 +117,7 @@ export function createApp({
   app.route('/customers', customerRoutes);
   app.route('/reports', reportRoutes);
   app.route('/notifications', notificationRoutes);
+  app.route('/announcements', announcementRoutes);
   app.route('/payments', paymentRoutes);
   app.route('/toyyibpay', toyyibPayRoutes);
   app.route('/public', publicRoutes);

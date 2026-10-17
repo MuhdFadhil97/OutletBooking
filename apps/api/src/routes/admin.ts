@@ -27,6 +27,7 @@ import {
   unsuspendSchema,
   updatePlansSchema,
 } from '@outletbooking/shared';
+import { adminAnnouncementRoutes } from './admin-announcements';
 import { adminPrivacyRoutes } from './admin-privacy';
 import { adminSupportRoutes } from './admin-support';
 import { requireAdminSession } from '../middleware/admin-session';
@@ -167,6 +168,10 @@ export const adminRoutes = new Hono<AppEnv>()
   .route('/support', adminSupportRoutes)
   // I25 privacy (PDPA) requests: every admin.
   .route('/privacy', adminPrivacyRoutes)
+  // I28 announcements to owners: super admins only (one message can reach every owner).
+  .use('/announcements/*', requireSuperAdmin)
+  .use('/announcements', requireSuperAdmin)
+  .route('/announcements', adminAnnouncementRoutes)
   // I29 my account: every admin, their own account only (the user id always comes from the session).
   .get('/account', async (c) =>
     c.json(await getAdminAccount(c.var.db, c.var.auth, c.var.admin, Number(c.var.session.session.id))),

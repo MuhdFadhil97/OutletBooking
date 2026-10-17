@@ -25,3 +25,4 @@ export * from './support';
 export * from './privacy';
 export * from './billing';
 export * from './admin-payments';
+export * from './announcements';

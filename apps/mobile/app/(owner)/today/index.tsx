@@ -9,6 +9,8 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/ScreenState';
 import { Tag, type TagTone } from '@/components/ui/Tag';
 import { Text } from '@/components/ui/Text';
+import { AnnouncementBanner } from '@/features/announcements/components/AnnouncementBanner';
+import { useActiveAnnouncements, useDismissAnnouncement } from '@/features/announcements/hooks';
 import { shiftDate, todayIn } from '@/features/bookings/format';
 import { useDayBookingsAll } from '@/features/bookings/hooks';
 import { openBooking, openBookingForm } from '@/features/bookings/nav';
@@ -34,6 +36,8 @@ export default function OwnerTodayScreen() {
   const checklist = useSetupChecklist();
   const updateChecklist = useUpdateChecklist();
   const notifications = useNotifications();
+  const announcements = useActiveAnnouncements(true);
+  const dismissAnnouncement = useDismissAnnouncement();
   const unread = notifications.data?.unreadCount ?? 0;
 
   useFocusEffect(
@@ -154,6 +158,10 @@ export default function OwnerTodayScreen() {
             <Text className="text-[14px] font-bold text-primary">{t.today.choosePlan}</Text>
           </Pressable>
         ) : null}
+
+        {(announcements.data ?? []).map((a) => (
+          <AnnouncementBanner key={a.id} item={a} onDismiss={() => dismissAnnouncement.mutate(a.id)} />
+        ))}
 
         {checklist.data && !checklist.data.hidden ? (
           <SetupChecklistCard
