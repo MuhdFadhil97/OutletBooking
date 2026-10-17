@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   DEFAULT_PLANS,
@@ -128,6 +128,10 @@ export default function PlanScreen() {
         <Text className="text-[13px] leading-[20px] text-info-fg">{s.grant}</Text>
         <Text className="text-[13px] font-bold text-info-fg">{s.grantAsk}</Text>
       </Pressable>
+
+      <Text className="text-[13px] font-bold text-primary" onPress={() => router.push('/refund')} accessibilityRole="link">
+        {t.legal.refundRow}
+      </Text>
     </StackScreen>
   );
 }

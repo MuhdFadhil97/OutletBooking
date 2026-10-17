@@ -1,15 +1,36 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import type { LegalDoc } from '@outletbooking/shared';
 import { t } from '@/strings/en';
 import { StackScreen } from './StackScreen';
 import { Card } from './ui/Card';
+import { Chip } from './ui/Chip';
 import { Text } from './ui/Text';
 
-/** Privacy notice / terms page (public: `/privacy`, `/terms`). Text lives in `packages/shared/src/legal.ts`. */
-export function LegalPage({ doc }: { doc: LegalDoc }) {
+/** One version of a legal text, with the name shown on its language switch ("English"). */
+export interface LegalVersion {
+  label: string;
+  doc: LegalDoc;
+}
+
+/**
+ * Privacy notice / terms / refund policy page (public: `/privacy`, `/terms`, `/refund`). The text comes from
+ * `docs/legal/*.md` through `packages/shared` (`pnpm legal:generate`). With more than one version (the privacy notice in
+ * English and Bahasa Melayu, as PDPA s.7(3) requires) a switch at the top picks the language.
+ */
+export function LegalPage({ versions }: { versions: LegalVersion[] }) {
+  const [index, setIndex] = useState(0);
+  const doc = versions[index]!.doc;
   return (
     <StackScreen title={doc.title} subtitle={t.legal.updated(doc.updated)} backHref="/">
-      <Text className="text-[15px] leading-[22px]">{doc.intro}</Text>
+      {versions.length > 1 ? (
+        <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup">
+          {versions.map((v, i) => (
+            <Chip key={v.label} role="radio" label={v.label} selected={i === index} onPress={() => setIndex(i)} />
+          ))}
+        </View>
+      ) : null}
+      {doc.intro ? <Text className="text-[15px] leading-[22px]">{doc.intro}</Text> : null}
       {doc.sections.map((section) => (
         <Card key={section.heading} className="gap-2 p-4">
           <Text className="text-[16px] font-extrabold" accessibilityRole="header">

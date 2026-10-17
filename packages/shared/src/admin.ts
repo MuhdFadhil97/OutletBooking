@@ -168,8 +168,17 @@ export const changeOwnerSchema = z.object({
 });
 export type ChangeOwnerInput = z.infer<typeof changeOwnerSchema>;
 
-export const adminNoteSchema = z.object({ reason: adminReason });
+/** I2 admin note on a business: free text only admins see. Kept in `admin_business_notes` (deleted with the business), never in the audit log. */
+export const adminNoteSchema = z.object({ body: z.string().trim().min(2, 'Write a note first').max(2000) });
 export type AdminNoteInput = z.infer<typeof adminNoteSchema>;
+
+export interface AdminNote {
+  id: number;
+  body: string;
+  /** null = a removed admin. */
+  admin: { id: number; name: string } | null;
+  createdAt: string;
+}
 
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 
@@ -304,6 +313,8 @@ export interface AdminBusinessDetail extends AdminBusinessRow {
   members: AdminMember[];
   /** Staff invitations not accepted yet (expired ones included, marked). */
   invitations: AdminInvitation[];
+  /** Admin-only notes, newest first. */
+  notes: AdminNote[];
   auditLog: AuditEntry[];
 }
 

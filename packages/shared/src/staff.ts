@@ -70,6 +70,8 @@ export interface StaffInvitation {
   canEditSetup: boolean;
   expiresAt: string; // ISO
   inviteUrl: string;
+  /** Only on a new invitation: the invite was also emailed (M3). False = the email could not be sent; share the link instead. */
+  emailed?: boolean;
 }
 
 export interface StaffListResponse {

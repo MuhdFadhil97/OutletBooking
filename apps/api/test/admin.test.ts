@@ -211,12 +211,16 @@ describe('I2 booking page switch and notes', () => {
     ]);
   });
 
-  it('adds a support note', async () => {
-    const res = await ctx.send('POST', `/admin/businesses/${bizB}/notes`, admin, { reason: 'Called owner about onboarding' });
+  it('adds a support note: the text is kept with the business, the audit log only says a note was added', async () => {
+    expect((await ctx.send('POST', `/admin/businesses/${bizB}/notes`, admin, { body: ' ' })).status).toBe(400);
+    const res = await ctx.send('POST', `/admin/businesses/${bizB}/notes`, admin, { body: 'Called owner about onboarding' });
     expect(res.status).toBe(201);
+    const detail = (await res.json()) as AdminBusinessDetail;
+    expect(detail.notes).toMatchObject([{ body: 'Called owner about onboarding', admin: { name: expect.any(String) } }]);
     const all = (await (await ctx.get('/admin/audit-log', admin)).json()) as AuditEntry[];
     expect(all).toHaveLength(1);
-    expect(all[0]).toMatchObject({ action: 'note', business: { id: bizB, name: 'SemakAuto' } });
+    expect(all[0]).toMatchObject({ action: 'note', reason: 'Note added', business: { id: bizB, name: 'SemakAuto' } });
+    expect(JSON.stringify(all)).not.toContain('Called owner');
   });
 });
 

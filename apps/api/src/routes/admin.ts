@@ -23,6 +23,7 @@ import {
   recordPlanRefundSchema,
   resendPlanReceiptSchema,
   closeBusinessSchema,
+  exportDataSchema,
   suspendSchema,
   trialsQuery,
   unsuspendSchema,
@@ -30,6 +31,7 @@ import {
 } from '@outletbooking/shared';
 import { adminAnnouncementRoutes } from './admin-announcements';
 import { closeBusiness, reopenBusiness } from '../services/admin-deletion';
+import { exportBusinessData } from '../services/admin-export';
 import { adminDeletionRoutes } from './admin-deletion';
 import { adminHealthRoutes } from './admin-health';
 import { adminPrivacyRoutes } from './admin-privacy';
@@ -128,6 +130,10 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/businesses/:id/suspend', validate('param', idParam), validate('json', suspendSchema), async (c) =>
     c.json(await suspendBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
   )
+  // I2 export data: a copy of the business's data, emailed to its owner only. Every admin role, with a reason.
+  .post('/businesses/:id/export', validate('param', idParam), validate('json', exportDataSchema), async (c) =>
+    c.json(await exportBusinessData(c.var, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason)),
+  )
   // I2 close account (the owner's written request): super admins only. The data is deleted 90 days later (I26).
   .post('/businesses/:id/close', requireSuperAdmin, validate('param', idParam), validate('json', closeBusinessSchema), async (c) => {
     await closeBusiness(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason);
@@ -144,7 +150,7 @@ export const adminRoutes = new Hono<AppEnv>()
     c.json(await changeOwner(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json'))),
   )
   .post('/businesses/:id/notes', validate('param', idParam), validate('json', adminNoteSchema), async (c) =>
-    c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').reason), 201),
+    c.json(await addAdminNote(c.var.db, c.var.userId, c.req.valid('param').id, c.req.valid('json').body), 201),
   )
   // I8 plan payments: every admin role may list and record a bank transfer (FR-20.2).
   .get('/payments', validate('query', planPaymentsQuery), async (c) => c.json(await listPlanPayments(c.var.db, c.req.valid('query'))))

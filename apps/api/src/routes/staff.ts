@@ -12,7 +12,10 @@ export const staffRoutes = new Hono<AppEnv>()
   .get('/', async (c) => c.json(await listStaff(c.var.db, c.var.tenant.businessId, c.var.env.APP_PUBLIC_URL)))
   .post('/invitations', validate('json', staffInviteSchema), async (c) =>
     c.json(
-      await inviteStaff(c.var.db, c.var.tenant.businessId, c.var.userId, c.req.valid('json'), c.var.env.APP_PUBLIC_URL),
+      await inviteStaff(c.var.db, c.var.tenant.businessId, c.var.userId, c.req.valid('json'), c.var.env.APP_PUBLIC_URL, {
+        mailer: c.var.mailer,
+        websiteUrl: c.var.env.WEBSITE_URL,
+      }),
       201,
     ),
   )

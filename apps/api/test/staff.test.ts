@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { staffInvitations } from '@outletbooking/db';
+import { businesses, staffInvitations, users } from '@outletbooking/db';
 import type { InvitationInfo, MeResponse, Resource, StaffInvitation, StaffListResponse, StaffMember } from '@outletbooking/shared';
+import { inviteStaff } from '../src/services/staff';
+import { staffAbilities } from '../src/services/billing-emails';
 import { createTestContext, signupInput } from './helpers';
 
 const ctx = createTestContext();
@@ -174,5 +176,61 @@ describe('tenant isolation (staff)', () => {
     const siti = members.find((m) => m.email === 'siti@example.com')!;
     expect((await ctx.send('PATCH', `/staff/${siti.memberId}`, ownerA, { resourceIds: [courtB.id] })).status).toBe(404);
     expect((await invite(ownerA, 'new@example.com', courtB.id)).status).toBe(404);
+  });
+});
+
+describe('M3 · the invite is also emailed', () => {
+  const mailsTo = (to: string) => ctx.outbox.filter((m) => m.to === to);
+
+  it('emails the invitee the link, who invited them, what they can do and the linked resource', async () => {
+    ctx.outbox.length = 0;
+    const inv = await json<StaffInvitation>(await invite(ownerA, 'm3@example.com', court1.id), 201);
+    expect(inv.emailed).toBe(true);
+    const [mail] = mailsTo('m3@example.com');
+    expect(mail).toBeDefined();
+    expect(mail!.subject).toBe('Arena A invited you to OutletBooking');
+    expect(mail!.text).toContain('Ali Hassan added you as Staff');
+    expect(mail!.text).toContain("see your bookings, check customers in and record payments");
+    expect(mail!.text).toContain('Court 1');
+    expect(mail!.text).toContain(inv.inviteUrl);
+    expect(mail!.text).toContain('7 days');
+    // Only the invitee gets it.
+    expect(ctx.outbox.filter((m) => m.subject.includes('invited you'))).toHaveLength(1);
+  });
+
+  it('re-inviting the same address replaces the old link and emails the new one', async () => {
+    ctx.outbox.length = 0;
+    const first = await json<StaffInvitation>(await invite(ownerA, 'm3again@example.com'), 201);
+    const second = await json<StaffInvitation>(await invite(ownerA, 'm3again@example.com'), 201);
+    expect(second.inviteUrl).not.toBe(first.inviteUrl);
+    const mails = mailsTo('m3again@example.com');
+    expect(mails).toHaveLength(2);
+    expect(mails[1]!.text).toContain(second.inviteUrl);
+    expect(mails[1]!.text).not.toContain(first.inviteUrl);
+  });
+
+  it('says what the permissions allow', () => {
+    expect(staffAbilities({ canViewAll: false, canTakePayments: false, canEditSetup: false })).toBe('see your bookings and check customers in');
+    expect(staffAbilities({ canViewAll: false, canTakePayments: true, canEditSetup: false })).toBe('see your bookings, check customers in and record payments');
+    expect(staffAbilities({ canViewAll: true, canTakePayments: true, canEditSetup: true })).toBe(
+      'see all bookings, check customers in, record payments and edit services, prices and hours',
+    );
+  });
+
+  it('an email that cannot be sent never fails the invitation: the link still works and emailed is false', async () => {
+    const [biz] = await ctx.db.select({ id: businesses.id }).from(businesses).where(eq(businesses.slug, 'staff-a'));
+    const [owner] = await ctx.db.select({ id: users.id }).from(users).where(eq(users.email, 'a@example.com'));
+    const failing = { send: async () => Promise.reject(new Error('Resend is down')) };
+    const inv = await inviteStaff(
+      ctx.db,
+      biz!.id,
+      owner!.id,
+      { email: 'm3down@example.com', resourceId: null, canViewAll: false, canTakePayments: true, canEditSetup: false },
+      'https://app.test',
+      { mailer: failing, websiteUrl: 'https://outletbooking.my' },
+    );
+    expect(inv.emailed).toBe(false);
+    const info = await json<InvitationInfo>(await ctx.get(`/invitations/${tokenOf(inv)}`));
+    expect(info).toMatchObject({ email: 'm3down@example.com', status: 'pending' });
   });
 });

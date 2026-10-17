@@ -3,6 +3,7 @@ import { addDays, addMonths } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import {
   adminAuditLog,
+  adminBusinessNotes,
   bookings,
   businesses,
   businessMembers,
@@ -194,7 +195,7 @@ export async function listAdminBusinesses(
 /** I2: one business. Only "ToyyibPay connected" — never keys or customers' payments. */
 export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Date = new Date()): Promise<AdminBusinessDetail> {
   const since = new Date(now.getTime() - 30 * DAY_MS);
-  const [graceDays, [row], [res], [staff], [account], auditLog, memberRows, inviteRows] = await Promise.all([
+  const [graceDays, [row], [res], [staff], [account], auditLog, memberRows, inviteRows, noteRows] = await Promise.all([
     getGraceDays(db),
     selectBusinesses(db, since)
       .where(and(eq(businesses.id, businessId), isNull(businesses.deletedAt)))
@@ -231,6 +232,13 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
       .from(staffInvitations)
       .where(and(eq(staffInvitations.businessId, businessId), isNull(staffInvitations.acceptedAt)))
       .orderBy(desc(staffInvitations.createdAt)),
+    db
+      .select({ id: adminBusinessNotes.id, body: adminBusinessNotes.body, createdAt: adminBusinessNotes.createdAt, adminId: users.id, adminName: users.name })
+      .from(adminBusinessNotes)
+      .leftJoin(users, eq(users.id, adminBusinessNotes.adminUserId))
+      .where(eq(adminBusinessNotes.businessId, businessId))
+      .orderBy(desc(adminBusinessNotes.id))
+      .limit(50),
   ]);
   if (!row) throw notFound('Business');
   return {
@@ -246,6 +254,12 @@ export async function getAdminBusiness(db: Db | Tx, businessId: number, now: Dat
       email: i.email,
       expiresAt: i.expiresAt.toISOString(),
       expired: i.expiresAt.getTime() <= now.getTime(),
+    })),
+    notes: noteRows.map((n) => ({
+      id: n.id,
+      body: n.body,
+      admin: n.adminId !== null && n.adminName !== null ? { id: n.adminId, name: n.adminName } : null,
+      createdAt: n.createdAt.toISOString(),
     })),
     auditLog,
   };
@@ -563,11 +577,15 @@ export async function changeOwner(db: Db, adminUserId: number, businessId: numbe
   return getAdminBusiness(db, businessId);
 }
 
-/** A support note on the business (audit log only, no change). */
-export async function addAdminNote(db: Db, adminUserId: number, businessId: number, reason: string): Promise<AdminBusinessDetail> {
+/**
+ * An admin note on the business. The text is saved in `admin_business_notes` (it can hold what an owner said, so it is deleted
+ * with the business); the audit log only records that a note was added.
+ */
+export async function addAdminNote(db: Db, adminUserId: number, businessId: number, body: string): Promise<AdminBusinessDetail> {
   await db.transaction(async (tx) => {
     await lockBusiness(tx, businessId);
-    await audit(tx, adminUserId, businessId, 'note', reason);
+    const [note] = await tx.insert(adminBusinessNotes).values({ businessId, adminUserId, body }).returning({ id: adminBusinessNotes.id });
+    await audit(tx, adminUserId, businessId, 'note', 'Note added', { noteId: note!.id });
   });
   return getAdminBusiness(db, businessId);
 }

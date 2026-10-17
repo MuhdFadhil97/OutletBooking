@@ -26,6 +26,14 @@ export type DeletionQuery = z.infer<typeof deletionQuery>;
 
 export const holdDeletionSchema = z.object({ reason: adminReason });
 export const closeBusinessSchema = z.object({ reason: adminReason });
+/** I2 "Export data": a copy of the business's data is emailed to its owner. The reason (a PDPA request, closing) goes in the audit log. */
+export const exportDataSchema = z.object({ reason: adminReason });
+
+export interface DataExportResult {
+  /** The owner's address on file: the only place the export goes. */
+  sentTo: string;
+  files: { name: string; rows: number }[];
+}
 
 export interface DeletionRow {
   id: number;

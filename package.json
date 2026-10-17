@@ -10,6 +10,8 @@
     "db:migrate": "pnpm --filter @outletbooking/db migrate",
     "db:seed": "pnpm --filter @outletbooking/db seed",
     "db:admin": "pnpm --filter @outletbooking/db admin",
+    "legal:generate": "tsx packages/shared/scripts/generate-legal.ts",
+    "legal:placeholders": "tsx packages/shared/scripts/generate-legal.ts --placeholders",
     "dev": "pnpm --filter api dev",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck"

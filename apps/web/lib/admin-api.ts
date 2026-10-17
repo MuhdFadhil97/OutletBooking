@@ -1,4 +1,5 @@
 import type {
+  DataExportResult,
   DeletionQueue,
   DeletionTab,
   RecheckResult,
@@ -153,8 +154,8 @@ export async function setBookingPage(id: number, input: BookingPageInput): Promi
   return toResult(await call(`/admin/businesses/${id}/booking-page`, input));
 }
 
-export async function addNote(id: number, reason: string): Promise<Result<AdminBusinessDetail>> {
-  return toResult(await call(`/admin/businesses/${id}/notes`, { reason }));
+export async function addNote(id: number, body: string): Promise<Result<AdminBusinessDetail>> {
+  return toResult(await call(`/admin/businesses/${id}/notes`, { body }));
 }
 
 export async function giveFreeMonths(id: number, input: FreeMonthsInput): Promise<Result<AdminBusinessDetail>> {
@@ -360,6 +361,11 @@ export async function holdDeletion(id: number, reason: string): Promise<Result<n
 
 export async function releaseDeletion(id: number, reason: string): Promise<Result<null>> {
   return toResult(await call(`/admin/deletion/${id}/release`, { reason }));
+}
+
+/** I2 "Export data": emailed to the business's owner only. */
+export async function exportBusinessData(id: number, reason: string): Promise<Result<DataExportResult>> {
+  return toResult(await call(`/admin/businesses/${id}/export`, { reason }));
 }
 
 /** I2 "Close account" and "Reopen": the owner's written request; the data is deleted 90 days later (super admins only). */

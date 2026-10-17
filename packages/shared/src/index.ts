@@ -28,3 +28,4 @@ export * from './billing';
 export * from './admin-payments';
 export * from './announcements';
 export * from './deletion';
+export * from './legal-markdown';

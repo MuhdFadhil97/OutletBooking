@@ -21,6 +21,8 @@ import type {
 } from '@outletbooking/shared';
 import { LEGAL_VERSION } from '@outletbooking/shared';
 import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
+import { staffAbilities, staffInviteEmail } from './billing-emails';
+import type { Mailer } from './mailer';
 import { assertResourcesInBusiness } from './ownership';
 
 const inviteUrl = (appPublicUrl: string, token: string) => `${appPublicUrl.replace(/\/+$/, '')}/invite/${token}`;
@@ -91,15 +93,23 @@ export async function listStaff(db: Db, businessId: number, appPublicUrl: string
   };
 }
 
-/** Creates (or re-issues) an invitation. A previous pending invite for the same email is replaced. */
+/** The 7-day invitation window, in words for the email (staff_invitations.expires_at defaults to now + 7 days). */
+const INVITE_DAYS_TEXT = '7 days';
+
+/**
+ * Creates (or re-issues) an invitation. A previous pending invite for the same email is replaced.
+ * With `mail`, the invite is also emailed (M3). The invite is saved first and an email that cannot be sent never fails it:
+ * the owner still has the link to share, and `emailed` says which happened.
+ */
 export async function inviteStaff(
   db: Db,
   businessId: number,
   invitedBy: number,
   input: StaffInvite,
   appPublicUrl: string,
+  mail?: { mailer: Mailer; websiteUrl: string },
 ): Promise<StaffInvitation> {
-  return db.transaction(async (tx) => {
+  const invitation = await db.transaction(async (tx) => {
     if (input.resourceId) await assertResourcesInBusiness(tx, businessId, [input.resourceId]);
 
     const [existing] = await tx
@@ -145,6 +155,34 @@ export async function inviteStaff(
     const { token, expiresAt, ...rest } = row!;
     return { ...rest, expiresAt: expiresAt.toISOString(), inviteUrl: inviteUrl(appPublicUrl, token) };
   });
+  if (!mail) return invitation;
+
+  let emailed = false;
+  try {
+    const [[biz], [inviter], [resource]] = await Promise.all([
+      db.select({ name: businesses.name }).from(businesses).where(eq(businesses.id, businessId)),
+      db.select({ name: users.name }).from(users).where(eq(users.id, invitedBy)),
+      input.resourceId
+        ? db.select({ name: resources.name }).from(resources).where(and(eq(resources.businessId, businessId), eq(resources.id, input.resourceId)))
+        : Promise.resolve([]),
+    ]);
+    const base = mail.websiteUrl.replace(/\/+$/, '');
+    const email = staffInviteEmail({
+      businessName: biz?.name ?? 'your business',
+      inviterName: inviter?.name ?? 'The owner',
+      abilities: staffAbilities(input),
+      linkedTo: resource?.name ?? null,
+      acceptUrl: invitation.inviteUrl,
+      expiresIn: INVITE_DAYS_TEXT,
+      websiteUrl: base,
+    });
+    await mail.mailer.send({ to: input.email, ...email, meta: { template: 'staff_invite', businessId } });
+    emailed = true;
+  } catch (err) {
+    // Never log the address or the link (it signs someone in as staff).
+    console.error('[staff] invite email failed for business', businessId, err instanceof Error ? err.message : err);
+  }
+  return { ...invitation, emailed };
 }
 
 export async function revokeInvitation(db: Db, businessId: number, id: number): Promise<void> {

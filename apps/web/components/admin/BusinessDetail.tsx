@@ -23,6 +23,7 @@ import {
   sendOwnerPasswordReset,
   setBookingPage,
   closeBusiness,
+  exportBusinessData,
   reopenBusiness,
   suspendBusiness,
   unsuspendBusiness,
@@ -120,8 +121,7 @@ export function BusinessDetail({ id }: { id: number }) {
   const { biz } = state;
   const whatsapp = biz.whatsappPhone ?? biz.owner?.phone ?? biz.phone;
   const bookingUrl = APP_URL ? `${APP_URL}/book/${biz.slug}` : null;
-  const notes = biz.auditLog.filter((e) => e.action === 'note');
-  const history = biz.auditLog.filter((e) => e.action !== 'note');
+  const history = biz.auditLog;
 
   return (
     <div className="admin-page">
@@ -171,13 +171,19 @@ export function BusinessDetail({ id }: { id: number }) {
           <OwnerStaff biz={biz} save={save} onDone={setFlash} />
           <section className="card admin-section">
             <h2>{d.notes.title}</h2>
-            {notes.length === 0 ? <p className="muted">{d.notes.empty}</p> : <EntryList entries={notes} />}
-            <ReasonForm
-              label={d.notes.label}
-              placeholder=""
-              submit={d.notes.submit}
-              onSubmit={async (reason) => save(await addNote(biz.id, reason))}
-            />
+            {biz.notes.length === 0 ? (
+              <p className="muted">{d.notes.empty}</p>
+            ) : (
+              <ul className="entries">
+                {biz.notes.map((n) => (
+                  <li key={n.id}>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{n.body}</div>
+                    <div className="muted small">{d.audit.by(n.admin?.name ?? d.audit.system, formatDateTime(n.createdAt))}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <NoteForm onSubmit={async (body) => save(await addNote(biz.id, body))} />
           </section>
 
           <section className="card admin-section">
@@ -691,10 +697,11 @@ function SuspendedBanner({ biz, save, onDone }: FormProps) {
 
 /** I2 account actions: suspend for misuse and close on request (type the business name to confirm). */
 function AccountActions({ biz, save, onDone }: FormProps) {
-  const { admin } = useAdmin();
+  const { admin, signedOut } = useAdmin();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeName, setCloseName] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [name, setName] = useState('');
   const g = d.danger;
   const matches = normName(name) === normName(biz.name);
@@ -734,6 +741,31 @@ function AccountActions({ biz, save, onDone }: FormProps) {
           {g.suspendOpen}
         </button>
       )}
+      <div className="entry-title">{g.export}</div>
+      <p className="muted small">{g.exportHint}</p>
+      {exporting ? (
+        <ReasonForm
+          label={d.reason}
+          submit={g.exportSubmit}
+          onCancel={() => setExporting(false)}
+          onSubmit={async (reason) => {
+            const r = await exportBusinessData(biz.id, reason);
+            if (r.kind === 'signed_out') {
+              signedOut();
+              return null;
+            }
+            if (r.kind !== 'ok') return r.kind === 'refused' ? r.message : d.saveError;
+            setExporting(false);
+            onDone(g.exportDone(r.data.sentTo, r.data.files.length));
+            return null;
+          }}
+        />
+      ) : (
+        <button type="button" className="btn2 btn-sm align-start" onClick={() => setExporting(true)}>
+          {g.exportOpen}
+        </button>
+      )}
+
       <div className="entry-title">{g.close}</div>
       <p className="muted small">{g.closeHint}</p>
       {biz.closing ? null : admin.role !== 'super_admin' ? (
@@ -769,7 +801,6 @@ function AccountActions({ biz, save, onDone }: FormProps) {
           {g.closeOpen}
         </button>
       )}
-      <p className="muted small">{g.later}</p>
     </section>
   );
 }
@@ -806,6 +837,45 @@ function ClosedBanner({ biz, save, onDone }: FormProps) {
         </button>
       )}
     </section>
+  );
+}
+
+/** A free-text note only admins see (saved with the business, not in the audit log). */
+function NoteForm({ onSubmit }: { onSubmit: (body: string) => Promise<string | null> }) {
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <form
+      method="post"
+      className="reason-form"
+      noValidate
+      onSubmit={async (ev) => {
+        ev.preventDefault();
+        if (body.trim().length < 2) return setError(d.notes.tooShort);
+        setBusy(true);
+        setError(null);
+        const err = await onSubmit(body);
+        setBusy(false);
+        if (err) setError(err);
+        else setBody('');
+      }}
+    >
+      <label className="fld">
+        <span className="lbl">{d.notes.label}</span>
+        <textarea className="inp" rows={3} maxLength={2000} value={body} onChange={(ev) => setBody(ev.target.value)} />
+      </label>
+      {error && (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="actions">
+        <button className="btn" type="submit" disabled={busy}>
+          {d.notes.submit}
+        </button>
+      </div>
+    </form>
   );
 }
 

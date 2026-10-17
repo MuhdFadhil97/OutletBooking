@@ -51,6 +51,7 @@ export default function AccountScreen() {
         <ListRow title={s.language} subtitle={s.english} />
         <ListRow title={t.legal.privacyRow} onPress={() => router.push('/privacy')} />
         <ListRow title={t.legal.termsRow} onPress={() => router.push('/terms')} />
+        <ListRow title={t.legal.refundRow} onPress={() => router.push('/refund')} />
         <ListRow
           title={s.help}
           subtitle={s.helpHint}

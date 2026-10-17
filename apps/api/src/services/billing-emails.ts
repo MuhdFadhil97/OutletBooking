@@ -237,3 +237,68 @@ export function deletionNoticeEmail(i: DeletionNoticeEmailInput): RenderedEmail 
     websiteUrl: i.websiteUrl,
   });
 }
+
+export interface StaffInviteEmailInput {
+  businessName: string;
+  /** The owner who invited them. */
+  inviterName: string;
+  /** What they will be able to do, as a sentence start: "see your bookings, check customers in and record payments". */
+  abilities: string;
+  /** The resource they are linked to ("Court 1"), if any. */
+  linkedTo: string | null;
+  acceptUrl: string;
+  /** "7 days" */
+  expiresIn: string;
+  websiteUrl: string;
+}
+
+/** M3 · Staff invite (docs/wireframes/Email-StaffInvite.dc.html). */
+export function staffInviteEmail(i: StaffInviteEmailInput): RenderedEmail {
+  return renderEmail({
+    subject: `${i.businessName} invited you to OutletBooking`,
+    preview: 'Accept to see your schedule on your phone',
+    heading: `You\u2019re invited to join ${i.businessName}`,
+    paragraphs: [
+      [{ bold: i.inviterName }, ` added you as `, { bold: 'Staff' }, `. You\u2019ll ${i.abilities}.`],
+      [`Business: `, { bold: i.businessName }, i.linkedTo ? ` \u00b7 Linked to: ${i.linkedTo}` : ''].flat(),
+    ],
+    button: { label: 'Accept invite', url: i.acceptUrl },
+    notes: [`The invite expires in ${i.expiresIn}. After accepting, download the OutletBooking app and log in with this email.`],
+    footer: `You got this email because the owner of ${i.businessName} entered your address. Not expecting it? Ignore it.`,
+    websiteUrl: i.websiteUrl,
+  });
+}
+
+/** "see your bookings, check customers in and record payments": what the staff member's permissions allow. */
+export function staffAbilities(p: { canViewAll: boolean; canTakePayments: boolean; canEditSetup: boolean }): string {
+  const list = [p.canViewAll ? 'see all bookings' : 'see your bookings', 'check customers in'];
+  if (p.canTakePayments) list.push('record payments');
+  if (p.canEditSetup) list.push('edit services, prices and hours');
+  return `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
+}
+
+export interface DataExportEmailInput {
+  businessName: string;
+  ownerName: string;
+  files: { name: string; rows: number }[];
+  appUrl: string;
+  websiteUrl: string;
+}
+
+/** The copy of a business's data an owner asked FTech for (PDPA access / before closing). The files are attached. */
+export function dataExportEmail(i: DataExportEmailInput): RenderedEmail {
+  return renderEmail({
+    subject: `Your OutletBooking data export \u2014 ${i.businessName}`,
+    preview: 'A copy of your data, attached as spreadsheet files',
+    heading: 'Your data export',
+    paragraphs: [
+      `Hi ${i.ownerName}, as requested, here is a copy of ${i.businessName}\u2019s data from OutletBooking, attached as spreadsheet (CSV) files that open in Excel or Google Sheets.`,
+      i.files.map((f) => `${f.name} \u00b7 ${f.rows} row${f.rows === 1 ? '' : 's'}`).join('  |  '),
+      'It contains your customers\u2019 names and phone numbers. Please keep it safe and do not forward it.',
+    ],
+    button: { label: 'Open OutletBooking', url: i.appUrl },
+    notes: ['Didn\u2019t ask for this? Reply to this email and tell us.'],
+    footer: 'You got this because FTech was asked to export the data of your OutletBooking business.',
+    websiteUrl: i.websiteUrl,
+  });
+}
