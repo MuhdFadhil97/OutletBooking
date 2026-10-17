@@ -30,9 +30,9 @@ afterAll(() => ctx.close());
 describe('D8 · setup checklist', () => {
   it('a brand-new business has only "account" done, in wireframe order', async () => {
     const c = await checklist();
-    expect(c.steps.map((s) => s.key)).toEqual(['account', 'resources', 'payments', 'shareLink', 'testBooking']);
+    expect(c.steps.map((s) => s.key)).toEqual(['account', 'resources', 'shareLink', 'testBooking']);
     expect(doneKeys(c)).toEqual(['account']);
-    expect(c).toMatchObject({ doneCount: 1, total: 5, resourceCount: 0, hidden: false });
+    expect(c).toMatchObject({ doneCount: 1, total: 4, resourceCount: 0, hidden: false });
   });
 
   it('"resources" needs an active resource WITH working hours', async () => {

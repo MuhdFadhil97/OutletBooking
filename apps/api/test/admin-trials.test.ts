@@ -85,7 +85,7 @@ describe('GET /admin/trials', () => {
   it('"This week" by default, soonest first; paying and long-ended businesses are left out', async () => {
     const r = await get();
     expect(names(r)).toEqual(['Smash Arena', 'Futsal Hub']);
-    expect(r.trials[0]).toMatchObject({ daysLeft: 1, ended: false, extended: false, bookingsInTrial: 0, setupTotal: 5 });
+    expect(r.trials[0]).toMatchObject({ daysLeft: 1, ended: false, extended: false, bookingsInTrial: 0, setupTotal: 4 });
     expect(names(await get('?filter=soon'))).toEqual(['Smash Arena']);
     expect(names(await get('?filter=ended'))).toEqual(['Kedai Gunting']);
     expect((await get('?filter=ended')).trials[0]).toMatchObject({ ended: true, daysLeft: -3 });

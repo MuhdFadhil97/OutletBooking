@@ -172,8 +172,6 @@ export const en = {
       resources: (label: string) => `Add ${label.toLowerCase()}s & hours`,
       resourcesSub: (n: number, label: string) =>
         n === 0 ? 'So customers can see free times' : `${n} ${label.toLowerCase()}${n === 1 ? '' : 's'} with working hours`,
-      payments: 'Connect ToyyibPay',
-      paymentsSub: 'So customer payments reach your bank',
       shareLink: 'Share your booking link',
       shareLinkSub: 'WhatsApp, Instagram, QR at the counter',
       testBooking: 'Make a test booking',
@@ -232,7 +230,9 @@ export const en = {
     disconnectBody: 'Customers will not be able to pay online until you connect again. Payments already made are kept.',
     rowConnected: 'ToyyibPay connected',
     rowTestPending: 'Connected · run the RM 1 test',
-    rowNotConnected: 'Connect ToyyibPay to take deposits online',
+    rowNotConnected: 'Optional · connect to take deposits online',
+    rowNotNeeded: 'Optional · not needed while customers pay at the venue',
+    optional: 'ToyyibPay is optional. Customers can always pay at the venue. Connect it only if you want to take deposits or full payment online.',
     sandbox: 'Test mode (sandbox) — use your dev.toyyibpay.com account',
   },
   reminders: {

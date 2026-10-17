@@ -46,7 +46,7 @@ export type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>;
 
 // ------------------------------------------------------------ D8 setup checklist
 
-export const SETUP_STEPS = ['account', 'resources', 'payments', 'shareLink', 'testBooking'] as const;
+export const SETUP_STEPS = ['account', 'resources', 'shareLink', 'testBooking'] as const;
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 /** D8 · First-time Today checklist. Worked out by the API from real data. */

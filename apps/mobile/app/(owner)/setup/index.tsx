@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Share, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
+  needsOnlinePayment,
   TEMPLATE_INFO,
   weeklyHoursLine,
   type BusinessTemplate,
@@ -223,7 +224,9 @@ export default function SetupScreen() {
   const payments = !acc
     ? ''
     : acc.status !== 'connected'
-      ? t.payments.rowNotConnected
+      ? needsOnlinePayment(sum.paymentRule)
+        ? t.payments.rowNotConnected
+        : t.payments.rowNotNeeded
       : acc.testedAt
         ? t.payments.rowConnected
         : t.payments.rowTestPending;

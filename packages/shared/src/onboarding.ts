@@ -20,6 +20,13 @@ export function paymentRuleOf(s: PaymentFields): PaymentRule {
 }
 
 /**
+ * Does this payment rule need the business's own ToyyibPay account? Only deposits and full prepayment are paid online;
+ * "pay at the venue" and free services need nothing connected. Mixed rules and no services yet ask for it (we cannot tell).
+ */
+export const needsOnlinePayment = (rule: PaymentRule | 'mixed' | null): boolean =>
+  rule === null || rule === 'full' || rule === 'deposit' || rule === 'mixed';
+
+/**
  * What the business asks for overall: one rule when every service agrees, `mixed` otherwise,
  * `null` without services. Free services don't count against "pay at venue".
  */

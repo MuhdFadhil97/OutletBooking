@@ -18,7 +18,7 @@ function useAccountMutation<T>(fn: (v: T) => Promise<PaymentAccountInfo>) {
     mutationFn: fn,
     onSuccess: (info) => {
       qc.setQueryData(paymentKeys.account, info);
-      // D8 checklist step "Connect ToyyibPay" and the Setup summary.
+      // the Setup row summary.
       void qc.invalidateQueries({ queryKey: ['setup-checklist'] });
       void qc.invalidateQueries({ queryKey: ['setup-summary'] });
     },

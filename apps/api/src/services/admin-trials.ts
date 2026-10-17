@@ -47,12 +47,11 @@ const ownerUserId = sql<number | null>`(select ${businessMembers.userId} from ${
 
 /**
  * D8 steps done, the same rules as services/checklist.ts but for many businesses in one query:
- * account (always) · an active resource with working hours · ToyyibPay connected · link shared · any booking.
+ * account (always) · an active resource with working hours · link shared · any booking.
  */
 const setupDone = sql<number>`(1
   + (exists(select 1 from ${resources} r where r.business_id = ${b.id} and r.is_active and r.deleted_at is null
       and exists(select 1 from ${workingHours} w where w.business_id = ${b.id} and w.resource_id = r.id)))::int
-  + (exists(select 1 from ${paymentAccounts} pa where pa.business_id = ${b.id} and pa.status = 'connected'))::int
   + (${b.settings} ? ${LINK_SHARED_KEY})::int
   + (exists(select 1 from ${bookings} bk where bk.business_id = ${b.id}))::int)`;
 

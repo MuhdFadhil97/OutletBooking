@@ -1032,7 +1032,7 @@ export const s = {
         never: 'Every business on trial has started setting up.',
       },
       footnote:
-        'Setup done = the 5 steps on the owner’s first-time Today screen (D8). Owners also get automatic reminders on day 5 and day 7. WhatsApp opens a chat with a ready message; nothing is sent automatically from here.',
+        'Setup done = the 4 steps on the owner’s first-time Today screen (D8). Owners also get automatic reminders on day 5 and day 7. WhatsApp opens a chat with a ready message; nothing is sent automatically from here.',
     },
     /** I9 · Audit log (read only). */
     audit: {

@@ -1,5 +1,5 @@
 import { and, eq, exists, isNull, sql } from 'drizzle-orm';
-import { bookings, businesses, paymentAccounts, resources, workingHours, type Db } from '@outletbooking/db';
+import { bookings, businesses, resources, workingHours, type Db } from '@outletbooking/db';
 import type { ChecklistUpdate, SetupChecklist, SetupStep } from '@outletbooking/shared';
 import { notFound } from '../errors';
 
@@ -9,8 +9,8 @@ const HIDDEN_KEY = 'checklistHiddenAt';
 
 /**
  * D8 · First-time Today checklist, worked out from real data:
- * account (always) · a bookable resource with hours · ToyyibPay connected ·
- * booking link shared · at least one booking.
+ * account (always) · a bookable resource with hours · booking link shared · at least one booking.
+ * Connecting ToyyibPay (H1) is optional — only for businesses that take deposits online — so it is not a step.
  */
 export async function getSetupChecklist(db: Db, businessId: number): Promise<SetupChecklist> {
   const [biz] = await db
@@ -44,18 +44,10 @@ export async function getSetupChecklist(db: Db, businessId: number): Promise<Set
     .where(eq(bookings.businessId, businessId))
     .limit(1);
 
-  const [connected] = await db
-    .select({ id: paymentAccounts.id })
-    .from(paymentAccounts)
-    .where(and(eq(paymentAccounts.businessId, businessId), eq(paymentAccounts.status, 'connected')))
-    .limit(1);
-
   const resourceCount = counts?.resourceCount ?? 0;
   const done: Record<SetupStep, boolean> = {
     account: true,
     resources: resourceCount > 0,
-    // H1: the business connected its own ToyyibPay account.
-    payments: !!connected,
     shareLink: typeof biz.settings[LINK_SHARED_KEY] === 'string',
     testBooking: !!anyBooking,
   };

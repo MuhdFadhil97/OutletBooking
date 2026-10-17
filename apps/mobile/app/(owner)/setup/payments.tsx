@@ -39,6 +39,11 @@ export default function PaymentsScreen() {
   const info = account.data;
   return (
     <StackScreen title={s.title} subtitle={s.subtitle}>
+      {info.status !== 'connected' ? (
+        <View className="rounded-input bg-soft px-3.5 py-3">
+          <Text className="text-[13px] font-semibold text-primary">{s.optional}</Text>
+        </View>
+      ) : null}
       {info.status === 'connected' ? <Connected info={info} /> : <ConnectSteps businessName={me?.business.name ?? ''} />}
 
       <Text className="text-[13px] font-bold text-label">{s.rule}</Text>

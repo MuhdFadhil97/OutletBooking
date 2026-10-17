@@ -9,7 +9,7 @@ import { colors } from '@/theme';
 
 const s = t.today.checklist;
 
-/** D8 · "Get ready for your first booking": 5 steps, each opens the screen that completes it. */
+/** D8 · "Get ready for your first booking": 4 steps, each opens the screen that completes it. */
 export function SetupChecklistCard({
   checklist,
   resourceLabel,
@@ -18,14 +18,13 @@ export function SetupChecklistCard({
 }: {
   checklist: SetupChecklist;
   resourceLabel: string;
-  /** Not called for done steps or steps that are not available yet (payments until Phase 5). */
+  /** Not called for done steps. */
   onPressStep: (step: SetupStep) => void;
   onHide: () => void;
 }) {
   const text: Record<SetupStep, { title: string; sub?: string }> = {
     account: { title: s.account },
     resources: { title: s.resources(resourceLabel), sub: s.resourcesSub(checklist.resourceCount, resourceLabel) },
-    payments: { title: s.payments, sub: s.paymentsSub },
     shareLink: { title: s.shareLink, sub: s.shareLinkSub },
     testBooking: { title: s.testBooking, sub: s.testBookingSub },
   };
