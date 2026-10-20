@@ -56,6 +56,13 @@
     "scheme": "outletbooking",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d7b5d565-705d-4e65-bed2-420db512417d"
+      }
+    },
+    "owner": "muhdfadhil97"
   }
 }

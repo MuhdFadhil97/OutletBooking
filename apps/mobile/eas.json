@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.staging.outletbooking.my",
+        "EXPO_PUBLIC_BOOKING_URL": "https://app.staging.outletbooking.my",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://staging.outletbooking.my"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.staging.outletbooking.my",
+        "EXPO_PUBLIC_BOOKING_URL": "https://app.staging.outletbooking.my",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://staging.outletbooking.my"
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
