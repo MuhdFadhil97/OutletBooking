@@ -54,6 +54,9 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
     advanced: {
       // Integer identity PKs — let Postgres generate the id.
       database: { generateId: 'serial' },
+      // Railway's edge sets X-Real-IP to the client address; its X-Forwarded-For can hold a chain, which
+      // Better Auth refuses to trust, so rate limiting fell back to one shared bucket for every user.
+      ipAddress: { ipAddressHeaders: ['x-real-ip', 'x-forwarded-for'] },
     },
     rateLimit: { enabled: env.NODE_ENV !== 'test' },
     plugins: [
