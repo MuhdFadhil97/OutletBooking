@@ -38,7 +38,7 @@ export function DateSelect({
         }}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value || 'not set'}`}
-        className="h-[44px] flex-1 flex-row items-center justify-between rounded-input border border-input-border bg-card px-3 active:bg-pressed"
+        className="h-[44px] flex-row items-center justify-between rounded-input border border-input-border bg-card px-3 active:bg-pressed"
       >
         <Text className="text-[15px] font-semibold">{value ? format(parseISO(value), 'EEE, d MMM yyyy') : '—'}</Text>
         <Icon name="calendar" size={18} color={colors.muted} />
