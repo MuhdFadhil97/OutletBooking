@@ -104,6 +104,10 @@ export const en = {
     priceInvalid: 'Enter a valid amount',
     haveAccount: 'Already have an account?',
     login: 'Log in',
+    alreadyTitle: 'You are already signed in',
+    alreadyBody: (email: string) => `You are signed in as ${email}. To start a new free trial, log out first and then create the new account.`,
+    alreadyGo: 'Go to my dashboard',
+    alreadyLogout: 'Log out and create a new account',
   },
   templates: {
     real_estate: { title: 'Real estate viewing', sub: 'Book by agent' },
