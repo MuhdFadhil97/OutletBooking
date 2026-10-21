@@ -1,6 +1,7 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { adminAuditLog, plans, platformSettings, subscriptions, businesses, type Db, type Tx } from '@outletbooking/db';
 import {
+  ALL_PLAN_FEATURES,
   DEFAULT_PLAN_SETTINGS,
   DEFAULT_PLANS,
   PAID_PLANS,
@@ -67,6 +68,23 @@ export async function getGraceDays(q: Q): Promise<number> {
   return row?.graceDays ?? DEFAULT_PLAN_SETTINGS.graceDays;
 }
 
+/**
+ * What a business's plan includes. The free trial has every feature (FR-16.1); Starter / Business read the
+ * I12 flags (one primary-key read, falling back to the built-in defaults).
+ */
+export async function getPlanFeatures(q: Q, plan: string): Promise<PlanFeatures> {
+  const fallback = DEFAULT_PLANS.find((p) => p.code === plan);
+  if (!fallback) return ALL_PLAN_FEATURES;
+  const [row] = await q.select({ features: plans.features }).from(plans).where(eq(plans.code, fallback.code)).limit(1);
+  return row ? toFeatures(row.features, fallback.features) : fallback.features;
+}
+
+/** `getPlanFeatures` for a business, from its subscription (no subscription row counts as the trial). */
+export async function getBusinessPlanFeatures(q: Q, businessId: number): Promise<PlanFeatures> {
+  const [sub] = await q.select({ plan: subscriptions.plan }).from(subscriptions).where(eq(subscriptions.businessId, businessId)).limit(1);
+  return getPlanFeatures(q, sub?.plan ?? 'trial');
+}
+
 /** Resource limit of a plan, for subscriptions.resource_limit when a plan is assigned. */
 export async function planResourceLimit(q: Q, code: string): Promise<number> {
   const { plans: catalog } = await getPlanCatalog(q);
@@ -102,7 +120,7 @@ const rm = (sen: number) => `RM ${(sen / 100).toLocaleString('en-MY', { minimumF
 const FEATURE_LABEL: Record<(typeof PLAN_FEATURES)[number], string> = {
   online_payment: 'online payment',
   staff_app: 'staff app',
-  reports: 'reports',
+  reports: 'reports & customer history',
 };
 
 /** "price RM 49 → RM 59; resources 3 → 5" (empty when nothing changed). Shown in the I9 audit log. */

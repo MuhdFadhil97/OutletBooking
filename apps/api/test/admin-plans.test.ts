@@ -154,7 +154,7 @@ describe('save', () => {
 
     expect((await audit('update_plans')).map((a) => [a.reason, a.businessId, a.details])).toEqual([
       ['Launch pricing', null, { plan: 'starter', changes: 'price RM 49 → RM 59; resources 3 → 5' }],
-      ['Launch pricing', null, { plan: 'business', changes: 'reports off' }],
+      ['Launch pricing', null, { plan: 'business', changes: 'reports & customer history off' }],
     ]);
     expect((await audit('update_platform_settings')).map((a) => a.details)).toEqual([{ changes: 'trial 7 → 14 days' }]);
   });

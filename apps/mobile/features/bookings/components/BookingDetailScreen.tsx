@@ -70,6 +70,8 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
   const labels = new Map((fields.data ?? []).map((f) => [f.fieldKey, f.label]));
   const answers = Object.entries(b.customFields).filter(([, v]) => v !== '');
   const phone = b.customer.phone;
+  // D11 customer profile: owners on a plan with customer history only (Starter just sees the name and number).
+  const canOpenProfile = me?.role === 'owner' && !!phone && !!me.subscription.features.reports;
   const extendBy = service ? extensionFor(service, b) : null;
   const lateCancel = new Date(b.startAt).getTime() - Date.now() < business.data.cancelCutoffMin * 60_000;
 
@@ -109,11 +111,11 @@ export function BookingDetailScreen({ tab }: { tab: BookingsTab }) {
         {/* D11: owners open the customer profile (erased customers have no phone and no profile). */}
         <Pressable
           onPress={() => router.push({ pathname: '/bookings/customers/[id]', params: { id: String(b.customer.id) } })}
-          disabled={me?.role !== 'owner' || !phone}
-          accessibilityRole={me?.role === 'owner' && phone ? 'link' : undefined}
+          disabled={!canOpenProfile}
+          accessibilityRole={canOpenProfile ? 'link' : undefined}
           className="min-w-0 flex-1"
         >
-          <Text className={`text-[15px] font-extrabold ${me?.role === 'owner' && phone ? 'text-primary' : ''}`} numberOfLines={1}>
+          <Text className={`text-[15px] font-extrabold ${canOpenProfile ? 'text-primary' : ''}`} numberOfLines={1}>
             {b.customer.name}
           </Text>
           {phone ? <Text className="text-[13px] text-muted">{formatPhone(phone)}</Text> : null}

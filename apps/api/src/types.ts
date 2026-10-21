@@ -23,6 +23,10 @@ export interface Tenant {
   planActive: boolean;
   /** Set while FTech has the business suspended (I2); only routes using resolveTenantAllowSuspended see it. */
   suspendReason: string | null;
+  /** 'trial' (all features), 'starter' or 'business'. */
+  plan: string;
+  /** A staff login of a business whose plan has no staff app: hidden, not deleted. Only /me still answers. */
+  staffLocked: boolean;
 }
 
 export interface AppVariables {

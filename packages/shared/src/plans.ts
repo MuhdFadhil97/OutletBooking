@@ -68,10 +68,17 @@ export const planMonthlySen = (plan: PaidPlan, resourceCount: number) =>
 
 // ------------------------------------------------------------ I12 plan catalog (prices editable by super admins)
 
-/** Features shown per plan on the website and in E3. Stored as flags; not enforced anywhere yet. */
+/**
+ * Features shown per plan on the website and in E3. Stored as flags (I12). Enforced by the API:
+ * `staff_app` = staff list, invites, roles & permissions and staff login; `reports` = Reports and
+ * Customer history. The free trial has all of them.
+ */
 export const PLAN_FEATURES = ['online_payment', 'staff_app', 'reports'] as const;
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 export type PlanFeatures = Record<PlanFeature, boolean>;
+
+/** The free trial (FR-16.1) and anything without a plan row: every feature. */
+export const ALL_PLAN_FEATURES: PlanFeatures = { online_payment: true, staff_app: true, reports: true };
 
 /** One plan as the website, the app and I12 see it. Prices are per month, integer sen. */
 export interface PlanCatalogEntry {

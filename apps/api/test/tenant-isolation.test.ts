@@ -86,6 +86,8 @@ describe('requireRole', () => {
         canEditSetup: false,
         planActive: true,
         suspendReason: null,
+        plan: 'trial',
+        staffLocked: false,
       });
       await next();
     })

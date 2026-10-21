@@ -24,6 +24,7 @@ import { AppError, forbidden, notFound, pgErrorInfo } from '../errors';
 import { staffAbilities, staffInviteEmail } from './billing-emails';
 import type { Mailer } from './mailer';
 import { assertResourcesInBusiness } from './ownership';
+import { getBusinessPlanFeatures } from './plan-catalog';
 
 const inviteUrl = (appPublicUrl: string, token: string) => `${appPublicUrl.replace(/\/+$/, '')}/invite/${token}`;
 
@@ -311,6 +312,12 @@ export async function acceptInvitation(
       if (!inv) throw notFound('Invitation');
       if (inv.acceptedAt) throw new AppError(410, 'invitation_used', 'This invitation has already been used');
       if (inv.expiresAt <= now) throw new AppError(410, 'invitation_expired', 'This invitation has expired. Ask the owner for a new one');
+
+      if (!(await getBusinessPlanFeatures(tx, inv.businessId)).staff_app) {
+        throw new AppError(403, 'plan_feature', 'This business’s plan does not include the staff app. Ask the owner to upgrade.', {
+          feature: 'staff_app',
+        });
+      }
 
       const [existingUser] = await tx.select({ id: users.id }).from(users).where(eq(users.email, inv.email)).limit(1);
       let userId: number;

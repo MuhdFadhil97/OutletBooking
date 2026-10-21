@@ -17,6 +17,7 @@ import { localDayRange } from './availability';
 import { trialEndingEmail } from './billing-emails';
 import type { Mailer } from './mailer';
 import { notify, pushToUsers, recipientsFor } from './notifications';
+import { getBusinessPlanFeatures } from './plan-catalog';
 import type { PushSender } from './push';
 import type { Env } from '../env';
 
@@ -57,7 +58,9 @@ export async function staffDaySummary(db: Db, sender: PushSender, now = new Date
       })
       .from(businessMembers)
       .where(and(eq(businessMembers.businessId, biz.id), eq(businessMembers.isActive, true)));
+    const staffApp = (await getBusinessPlanFeatures(db, biz.id)).staff_app;
     for (const m of members) {
+      if (m.role !== 'owner' && !staffApp) continue; // staff are hidden on a plan without the staff app
       if (!resolveNotificationPrefs(m.prefs).daySummary) continue; // G3 switch
       const mine = m.role === 'owner' || m.canViewAll ? day : day.filter((b) => b.resourceUserId === m.userId);
       if (!mine.length) continue;

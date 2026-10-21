@@ -21,6 +21,7 @@ import { ErrorState, FormError, LoadingState, errorMessage } from '@/components/
 import { Sheet } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
+import { useMe } from '@/features/me/hooks';
 import * as api from '@/features/setup/api';
 import { WorkingHoursEditor } from '@/features/setup/components/WorkingHoursEditor';
 import { formatTimeOffRange } from '@/features/setup/format';
@@ -99,6 +100,7 @@ function ResourceForm({
   count: number;
 }) {
   const qc = useQueryClient();
+  const { me } = useMe();
   const archive = useArchiveResource();
   const timeOff = useTimeOff();
   const [hours, setHours] = useState<WorkingHourInput[]>(savedHours);
@@ -202,7 +204,7 @@ function ResourceForm({
           name="isActive"
           render={({ field }) => <SwitchRow label={r.active} value={field.value ?? true} onChange={field.onChange} />}
         />
-        {resource ? (
+        {resource && me?.subscription.features.staff_app ? (
           <View className="gap-0.5">
             <Text className="text-[13px] font-bold text-label">{r.linkedStaff}</Text>
             <Text className="text-[14px] text-muted">

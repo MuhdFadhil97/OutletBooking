@@ -15,6 +15,7 @@ import { openBooking, openBookingForm } from '@/features/bookings/nav';
 import { CustomerAvatar, CustomerTagView } from '@/features/customers/components/CustomerBits';
 import { CustomerSheet } from '@/features/customers/components/CustomerSheet';
 import { useCustomer, useEraseCustomer } from '@/features/customers/hooks';
+import { FeatureGate } from '@/features/plan/components/FeatureLocked';
 import { useBusiness } from '@/features/setup/hooks';
 import { confirm } from '@/lib/confirm';
 import { formatRM } from '@/lib/format';
@@ -23,8 +24,16 @@ import { colors } from '@/theme';
 
 const s = t.customers;
 
-/** D11 · Customer profile: call / WhatsApp / book, stats, notes, upcoming + history, PDPA erase. */
+/** D11 · Customer profile: call / WhatsApp / book, stats, notes, upcoming + history, PDPA erase. Business plan. */
 export default function CustomerScreen() {
+  return (
+    <FeatureGate feature="reports" what={t.planLocked.customers}>
+      <CustomerBody />
+    </FeatureGate>
+  );
+}
+
+function CustomerBody() {
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = Number(idParam);
   const customer = useCustomer(id);

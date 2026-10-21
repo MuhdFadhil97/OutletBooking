@@ -1,3 +1,4 @@
+import type { PlanFeatures } from './plans';
 import type { BusinessTemplate } from './templates';
 
 export type MemberRole = 'owner' | 'staff';
@@ -25,7 +26,11 @@ export interface MeResponse {
     isTrialActive: boolean;
     /** Trial running or plan paid: false = booking page paused, app view only (FR-16.3). */
     hasAccess: boolean;
+    /** What the plan includes (the free trial has everything). The API enforces them; the app hides or locks screens. */
+    features: PlanFeatures;
   };
+  /** Staff only: the business's plan has no staff app, so this login is hidden until it does. */
+  staffLocked: boolean;
 }
 
 export interface SlugAvailabilityResponse {

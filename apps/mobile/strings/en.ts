@@ -1325,6 +1325,19 @@ export const en = {
     whatsappMessage: (business: string) => `Hi FTech, my OutletBooking free trial for ${business} has ended. Can you help me choose a plan?`,
   },
   /** I2 · business suspended by FTech (owner and staff). */
+  planLocked: {
+    title: (what: string) => `${what} is on the Business plan`,
+    body: 'Your current plan does not include this. Upgrade to Business to use it.',
+    upgrade: 'See Business plan',
+    back: 'Back',
+    reports: 'Reports',
+    customers: 'Customer history',
+  },
+  staffLocked: {
+    title: 'Staff app not included',
+    body: (business: string) =>
+      `${business}'s current plan does not include the staff app. Ask the owner to upgrade to the Business plan. Your access comes back as soon as they do.`,
+  },
   suspended: {
     title: 'Account suspended',
     body: (business: string) =>

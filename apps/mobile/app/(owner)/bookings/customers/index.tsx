@@ -15,14 +15,23 @@ import { formatPhone } from '@/features/bookings/format';
 import { CustomerAvatar, CustomerTagView } from '@/features/customers/components/CustomerBits';
 import { CustomerSheet } from '@/features/customers/components/CustomerSheet';
 import { useCustomers } from '@/features/customers/hooks';
+import { FeatureGate } from '@/features/plan/components/FeatureLocked';
 import { t } from '@/strings/en';
 import { colors } from '@/theme';
 
 const s = t.customers;
 const PAGE = 50;
 
-/** D10 · Customers: search name / mobile, Regulars / New / No-shows, add a customer. */
+/** D10 · Customers: search name / mobile, Regulars / New / No-shows, add a customer. Business plan. */
 export default function CustomersScreen() {
+  return (
+    <FeatureGate feature="reports" what={t.planLocked.customers}>
+      <CustomersBody />
+    </FeatureGate>
+  );
+}
+
+function CustomersBody() {
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<CustomerFilter>('all');

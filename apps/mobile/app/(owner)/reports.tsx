@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useMe } from '@/features/me/hooks';
+import { FeatureGate } from '@/features/plan/components/FeatureLocked';
 import { useReport } from '@/features/reports/hooks';
 import { formatRM } from '@/lib/format';
 import { t } from '@/strings/en';
@@ -31,8 +32,16 @@ function rangeTitle(r: Report): string {
     : `${format(from, 'd MMM')} – ${format(to, 'd MMM yyyy')}`;
 }
 
-/** O8 · Reports: revenue, bookings, no-shows, utilisation; bookings per day, top services (FR-13). */
+/** O8 · Reports: revenue, bookings, no-shows, utilisation; bookings per day, top services (FR-13). Business plan. */
 export default function ReportsScreen() {
+  return (
+    <FeatureGate feature="reports" what={t.planLocked.reports}>
+      <ReportsBody />
+    </FeatureGate>
+  );
+}
+
+function ReportsBody() {
   const [period, setPeriod] = useState<ReportPeriod>('week');
   const [offset, setOffset] = useState(0);
   const report = useReport(period, offset);

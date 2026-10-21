@@ -8,6 +8,7 @@ import {
   type NotificationRead,
   type NotificationType,
 } from '@outletbooking/shared';
+import { getBusinessPlanFeatures } from './plan-catalog';
 import type { PushSender } from './push';
 
 export interface NewNotification {
@@ -20,9 +21,11 @@ export interface NewNotification {
 
 /**
  * Active members who should hear about something: every owner, plus the staff login linked to
- * the booked resource (if any).
+ * the booked resource (if any, and only while the plan includes the staff app).
  */
-export async function recipientsFor(db: Db, businessId: number, linkedUserId: number | null = null): Promise<number[]> {
+export async function recipientsFor(db: Db, businessId: number, linkedUserIdIn: number | null = null): Promise<number[]> {
+  // Staff of a plan without the staff app are hidden (Starter): they hear nothing.
+  const linkedUserId = linkedUserIdIn !== null && (await getBusinessPlanFeatures(db, businessId)).staff_app ? linkedUserIdIn : null;
   const rows = await db
     .select({ userId: businessMembers.userId })
     .from(businessMembers)

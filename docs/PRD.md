@@ -374,8 +374,8 @@ See `docs/SCHEMA.md` (ERD and table guide) and `docs/schema.sql` (full DDL). Int
 | Plan | Price | Limits |
 |---|---|---|
 | Free trial | RM0 for 7 days | All features; no card required |
-| Starter | RM49/month | Up to 3 resources, unlimited bookings, deposits |
-| Business | RM99/month | Up to 10 resources, reports, staff app |
+| Starter | RM49/month | Up to 3 resources, unlimited bookings, deposits. No staff app, roles & permissions, reports or customer history |
+| Business | RM99/month | Up to 10 resources, reports & customer history, staff app with roles & permissions |
 | Extra resource | RM10/month each | — |
 
 Grant quotations are not offered at launch (revisit after registering as a grant solution provider).

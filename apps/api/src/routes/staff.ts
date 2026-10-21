@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { idParam, memberUpdateSchema, staffInviteSchema } from '@outletbooking/shared';
 import { requireSession } from '../middleware/session';
-import { requireRole, requireActivePlan, resolveTenant } from '../middleware/tenant';
+import { requireRole, requireActivePlan, requirePlanFeature, resolveTenant } from '../middleware/tenant';
 import { inviteStaff, listStaff, revokeInvitation, updateMember } from '../services/staff';
 import type { AppEnv } from '../types';
 import { validate } from '../validate';
 
-/** Owner manages the team: members, pending invitations, access. */
+/** Owner manages the team: members, pending invitations, access. Needs a plan with the staff app (Business). */
 export const staffRoutes = new Hono<AppEnv>()
-  .use(requireSession, resolveTenant, requireActivePlan, requireRole('owner'))
+  .use(requireSession, resolveTenant, requireActivePlan, requireRole('owner'), requirePlanFeature('staff_app'))
   .get('/', async (c) => c.json(await listStaff(c.var.db, c.var.tenant.businessId, c.var.env.APP_PUBLIC_URL)))
   .post('/invitations', validate('json', staffInviteSchema), async (c) =>
     c.json(

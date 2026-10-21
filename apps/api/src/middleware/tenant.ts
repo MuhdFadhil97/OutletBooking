@@ -1,9 +1,9 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
 import { businesses, businessMembers, subscriptions } from '@outletbooking/db';
-import { hasPlanAccess, type MemberRole } from '@outletbooking/shared';
+import { hasPlanAccess, type MemberRole, type PlanFeature } from '@outletbooking/shared';
 import { AppError, forbidden } from '../errors';
-import { getGraceDays } from '../services/plan-catalog';
+import { getGraceDays, getPlanFeatures } from '../services/plan-catalog';
 import type { AppEnv } from '../types';
 
 /** I2: refused while FTech has the business suspended for misuse. The app shows the reason from GET /me. */
@@ -21,11 +21,31 @@ export const resolveTenant = tenantMiddleware(false);
 /** Same, but lets a suspended business through (GET /me shows why; log out / push token keep working). */
 export const resolveTenantAllowSuspended = tenantMiddleware(true);
 
-/** Refuse a suspended business on a route mounted with resolveTenantAllowSuspended. */
+/** Staff of a business on a plan without the staff app (e.g. Starter). The app shows an explanation from GET /me. */
+export const staffLockedError = () =>
+  new AppError(403, 'staff_app_locked', 'The staff app is not included in this business’s plan. Ask the owner to upgrade.');
+
+/**
+ * Refuse a suspended business, or a staff login locked by the plan, on a route mounted with
+ * resolveTenantAllowSuspended.
+ */
 export const rejectSuspended = createMiddleware<AppEnv>(async (c, next) => {
   if (c.var.tenant.suspendReason !== null) throw suspendedError(c.var.tenant.suspendReason);
+  if (c.var.tenant.staffLocked) throw staffLockedError();
   await next();
 });
+
+/**
+ * The plan must include this feature (I12 flags; the free trial has all). Run after resolveTenant.
+ * `reports` also covers Customer history, `staff_app` the staff list, invites and roles & permissions.
+ */
+export const requirePlanFeature = (feature: PlanFeature) =>
+  createMiddleware<AppEnv>(async (c, next) => {
+    if (!(await getPlanFeatures(c.var.db, c.var.tenant.plan))[feature]) {
+      throw new AppError(403, 'plan_feature', 'This is not included in your plan. Upgrade to Business to use it.', { feature });
+    }
+    await next();
+  });
 
 function tenantMiddleware(allowSuspended: boolean) {
   return createMiddleware<AppEnv>(async (c, next) => {
@@ -39,6 +59,7 @@ function tenantMiddleware(allowSuspended: boolean) {
         canEditSetup: businessMembers.canEditSetup,
         suspendReason: businesses.suspendReason,
         sub: {
+          plan: subscriptions.plan,
           status: subscriptions.status,
           trialEndsAt: subscriptions.trialEndsAt,
           currentPeriodEnd: subscriptions.currentPeriodEnd,
@@ -57,6 +78,10 @@ function tenantMiddleware(allowSuspended: boolean) {
     if (member.suspendReason !== null && !allowSuspended) throw suspendedError(member.suspendReason);
 
     const isOwner = member.role === 'owner';
+    const plan = member.sub?.plan ?? 'trial';
+    // A staff login only works while the plan includes the staff app; the rows stay for when it does again.
+    const staffLocked = !isOwner && !(await getPlanFeatures(c.var.db, plan)).staff_app;
+    if (staffLocked && !allowSuspended) throw staffLockedError();
     c.set('tenant', {
       businessId: member.businessId,
       memberId: member.memberId,
@@ -66,6 +91,8 @@ function tenantMiddleware(allowSuspended: boolean) {
       canEditSetup: isOwner || member.canEditSetup,
       planActive: hasPlanAccess(member.sub, new Date(), await getGraceDays(c.var.db)),
       suspendReason: member.suspendReason,
+      plan,
+      staffLocked,
     });
     await next();
   });

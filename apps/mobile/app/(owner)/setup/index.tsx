@@ -115,7 +115,7 @@ function extraRow(key: SetupExtraRow, sum: SetupSummary): Row {
   }
 }
 
-function buildSections(sum: SetupSummary, trial: string, payments: string): { title: string; rows: Row[] }[] {
+function buildSections(sum: SetupSummary, trial: string, payments: string, staffApp: boolean): { title: string; rows: Row[] }[] {
   const template = sum.template as BusinessTemplate;
   const info = TEMPLATE_INFO[template];
   const label = sum.resourceLabel;
@@ -136,6 +136,10 @@ function buildSections(sum: SetupSummary, trial: string, payments: string): { ti
           ? s.paymentSummary.at_venue(place)
           : s.paymentSummary[sum.paymentRule];
 
+  const staffRow: Row[] = staffApp
+    ? [{ key: 'staff', title: s.staffRoles, subtitle: s.staffCount(sum.staffCount), href: '/setup/staff' }]
+    : [];
+
   return [
     {
       title: s.whatCustomersBook,
@@ -143,7 +147,7 @@ function buildSections(sum: SetupSummary, trial: string, payments: string): { ti
         {
           key: 'resources',
           title: s.resourcesTitle(label),
-          subtitle: [s.resourcesCount(sum.resources.count, label), sum.resources.linkedToStaff ? s.linkedStaff(sum.resources.linkedToStaff) : null]
+          subtitle: [s.resourcesCount(sum.resources.count, label), staffApp && sum.resources.linkedToStaff ? s.linkedStaff(sum.resources.linkedToStaff) : null]
             .filter(Boolean)
             .join(' · '),
           href: '/setup/resources',
@@ -172,7 +176,8 @@ function buildSections(sum: SetupSummary, trial: string, payments: string): { ti
       title: s.businessSection,
       rows: [
         { key: 'profile', title: s.profile, subtitle: s.profileSub, href: '/setup/profile' },
-        { key: 'staff', title: s.staffRoles, subtitle: s.staffCount(sum.staffCount), href: '/setup/staff' },
+        // Staff & roles are part of the Business plan; existing staff stay hidden on Starter.
+        ...staffRow,
         { key: 'reminders', title: s.reminders, subtitle: s.remindersSub, href: '/today/reminders' },
         { key: 'plan', title: s.plan, subtitle: trial, href: '/setup/plan' },
       ],
@@ -230,7 +235,7 @@ export default function SetupScreen() {
       : acc.testedAt
         ? t.payments.rowConnected
         : t.payments.rowTestPending;
-  const sections = buildSections(sum, trial, payments);
+  const sections = buildSections(sum, trial, payments, me?.subscription.features.staff_app ?? true);
   const typeName = t.templates[sum.template as keyof typeof t.templates]?.title ?? sum.template;
 
   const share = async () => {
