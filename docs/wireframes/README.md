@@ -75,7 +75,7 @@ Six boards show how the screens connect — each card has the screen ID used in 
 | H3 | Owner-BookingForm.dc.html | Booking form: fixed name/mobile + custom questions | Vehicle inspection | 2 |
 | H4 | Owner-BookingField.dc.html | Edit question: type, hint, required, searchable, show to staff, which services, preview | Vehicle inspection | 2 |
 | H5 | Owner-TimeOff.dc.html | Add time off: who, reason, dates, all day, yearly, clash warning | Sports | 2 |
-| H6 | Owner-Account.dc.html | My account (from Setup avatar): details, password, notifications, help, log out, delete | All | 1–2 |
+| H6 | Owner-Account.dc.html | My account (from Setup avatar): details (owner taps Email / Mobile to change them: password re-typed, new email confirmed by link), password, notifications, help, log out, delete | All | 1–2 |
 | H7 | Owner-BookingUnpaid.dc.html | Unpaid booking: hold countdown, resend pay link, record payment sheet | Sports | 5 |
 | H8 | Owner-BookingCheckedIn.dc.html | Checked in: status timeline, mark completed, extend 1 hour | Sports | 3 |
 | C6b | Customer-ViewingDetails.dc.html | Viewing step 3: details, budget, message, WhatsApp consent | Real estate | 4 |

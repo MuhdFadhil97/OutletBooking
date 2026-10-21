@@ -6,6 +6,7 @@ import { expo } from '@better-auth/expo';
 import { accounts, platformAdmins, sessions, twoFactors, users, verifications, type Db } from '@outletbooking/db';
 import { ADMIN_LOCK_MINUTES, ADMIN_MAX_SIGN_IN_FAILURES, WEB_SIGN_IN_LINK_MINUTES } from '@outletbooking/shared';
 import type { Env } from './env';
+import { afterEmailChanged, emailChangeOfLink } from './services/account-contact';
 import { signInLinkEmail } from './services/billing-emails';
 import { businessNameOf, CONFIRM_LINK_HOURS, confirmEmail } from './services/confirm-email';
 import { createMailer, type Mailer } from './services/mailer';
@@ -42,6 +43,11 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       sendVerificationEmail: async ({ user, url }) => {
         const email = confirmEmail(user.name, await businessNameOf(db, Number(user.id)), url, env.WEBSITE_URL);
         await mailer.send({ to: user.email, ...email, meta: { template: 'verify_email', userId: Number(user.id) } });
+      },
+      // H6: the same hook runs when a "change email" link (see services/account-contact.ts) is confirmed.
+      afterEmailVerification: async (user, request) => {
+        const change = emailChangeOfLink(request);
+        if (change) await afterEmailChanged(db, mailer, env, { id: Number(user.id), name: user.name }, change);
       },
     },
     user: {

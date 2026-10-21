@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { deleteAccountSchema, myScheduleQuery, notificationPrefsSchema, pushTokenSchema } from '@outletbooking/shared';
+import { changeEmailSchema, changePhoneSchema, deleteAccountSchema, myScheduleQuery, notificationPrefsSchema, pushTokenSchema } from '@outletbooking/shared';
 import { rateLimit } from '../middleware/rate-limit';
 import { requireSession } from '../middleware/session';
 import { rejectSuspended, requireRole, resolveTenantAllowSuspended } from '../middleware/tenant';
+import { changePhone, requestEmailChange } from '../services/account-contact';
 import { deleteOwnerAccount } from '../services/account-deletion';
 import { bookingScope } from '../services/bookings';
 import { getMe, getNotificationPrefs, updateNotificationPrefs } from '../services/me';
@@ -41,6 +42,29 @@ export const meRoutes = new Hono<AppEnv>()
     await deletePushToken(c.var.db, c.var.userId, c.req.valid('json').token);
     return c.body(null, 204);
   })
+  // H6 · Change my login email (confirm link goes to the new address) and my mobile. Owner only; password re-typed.
+  .post(
+    '/email-change',
+    rejectSuspended,
+    requireRole('owner'),
+    rateLimit({ windowMs: 15 * 60_000, max: 5, prefix: 'email-change' }),
+    validate('json', changeEmailSchema),
+    async (c) => {
+      await requestEmailChange(c.var.db, c.var.mailer, c.var.env, c.var.userId, c.req.valid('json'));
+      return c.body(null, 204);
+    },
+  )
+  .patch(
+    '/phone',
+    rejectSuspended,
+    requireRole('owner'),
+    rateLimit({ windowMs: 15 * 60_000, max: 5, prefix: 'phone-change' }),
+    validate('json', changePhoneSchema),
+    async (c) => {
+      await changePhone(c.var.db, c.var.userId, c.req.valid('json'));
+      return c.body(null, 204);
+    },
+  )
   // H6 · Delete my account and business data. Owner only; password + business name re-typed.
   .delete(
     '/',

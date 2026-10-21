@@ -947,6 +947,8 @@ export const s = {
           announcement: 'Announcement',
           refund_note: 'Refund note',
           plan_renewal: 'Plan renewal',
+          change_email: 'Confirm new email',
+          email_changed: 'Email changed notice',
         },
         status: { bounced: 'Bounced', complained: 'Marked as spam', failed: 'Could not be sent' },
         advice: {

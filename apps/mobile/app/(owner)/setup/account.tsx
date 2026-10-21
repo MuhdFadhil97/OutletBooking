@@ -41,8 +41,16 @@ export default function AccountScreen() {
       </Card>
 
       <Card className="overflow-hidden">
-        <ListRow title={s.email} subtitle={me.user.email} />
-        <ListRow title={s.mobile} subtitle={me.user.phone ? formatPhone(me.user.phone) : s.noMobile} />
+        <ListRow
+          title={s.email}
+          subtitle={me.user.email}
+          onPress={me.role === 'owner' ? () => router.push('/setup/change-email') : undefined}
+        />
+        <ListRow
+          title={s.mobile}
+          subtitle={me.user.phone ? formatPhone(me.user.phone) : s.noMobile}
+          onPress={me.role === 'owner' ? () => router.push('/setup/change-phone') : undefined}
+        />
         <ListRow title={s.changePassword} onPress={() => router.push('/setup/password')} last />
       </Card>
 

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { DeleteAccountInput } from '@outletbooking/shared';
+import type { ChangeEmailInput, ChangePhoneInput, DeleteAccountInput } from '@outletbooking/shared';
 import { logout } from '@/features/auth/api';
-import { deleteAccount } from './api';
+import { changePhone, deleteAccount, requestEmailChange } from './api';
 
 /** Deletes the account, then clears the local session and every cached query. */
 export function useDeleteAccount() {
@@ -13,5 +13,19 @@ export function useDeleteAccount() {
       await logout().catch(() => undefined);
     },
     onSuccess: () => qc.clear(),
+  });
+}
+
+/** The login email only changes once the new address confirms, so nothing to refresh here. */
+export function useRequestEmailChange() {
+  return useMutation({ mutationFn: (input: ChangeEmailInput) => requestEmailChange(input) });
+}
+
+export function useChangePhone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ChangePhoneInput) => changePhone(input),
+    // The business profile (E5) may have followed the new number.
+    onSuccess: () => qc.invalidateQueries(),
   });
 }

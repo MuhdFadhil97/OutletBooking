@@ -28,6 +28,8 @@ export const EMAIL_TEMPLATES = [
   'announcement',
   'refund_note',
   'plan_renewal',
+  'change_email',
+  'email_changed',
 ] as const;
 export type EmailTemplate = (typeof EMAIL_TEMPLATES)[number];
 

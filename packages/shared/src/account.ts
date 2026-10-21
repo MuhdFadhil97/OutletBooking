@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emailSchema, passwordSchema } from './schemas';
+import { emailSchema, passwordSchema, phoneE164 } from './schemas';
 
 // ------------------------------------------------------------ password (E1, E2, H6)
 
@@ -43,6 +43,22 @@ export const changePasswordFormSchema = z
     path: ['newPassword'],
   });
 export type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>;
+
+// ------------------------------------------------------------ H6 change email / mobile
+
+/** H6 · Change login email. The password is re-typed; the new address must confirm before it takes over. */
+export const changeEmailSchema = z.object({
+  email: emailSchema,
+  currentPassword: z.string().min(1, 'Enter your current password'),
+});
+export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+
+/** H6 · Change my mobile number (E.164). No SMS code: the password is re-typed. */
+export const changePhoneSchema = z.object({
+  phone: phoneE164,
+  currentPassword: z.string().min(1, 'Enter your current password'),
+});
+export type ChangePhoneInput = z.infer<typeof changePhoneSchema>;
 
 // ------------------------------------------------------------ D8 setup checklist
 

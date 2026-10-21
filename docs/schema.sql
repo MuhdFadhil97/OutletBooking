@@ -774,7 +774,7 @@ CREATE TABLE email_events (
   user_id              integer     REFERENCES users(id) ON DELETE SET NULL,
   template             text        NOT NULL CHECK (template IN (
                          'verify_email','reset_password','staff_invite','receipt','trial_ending',
-                         'sign_in_link','deletion_notice','announcement','refund_note','plan_renewal')),
+                         'sign_in_link','deletion_notice','announcement','refund_note','plan_renewal','change_email','email_changed')),
   to_masked            text        NOT NULL,       -- e.g. m***@gmail.com; full address is not stored here
   provider_message_id  text        UNIQUE,         -- Resend email id
   status               text        NOT NULL DEFAULT 'sent'

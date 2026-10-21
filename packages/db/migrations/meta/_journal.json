@@ -218,6 +218,13 @@
       "when": 1792227349583,
       "tag": "0030_phase7_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792558042293,
+      "tag": "0031_phase7_email_events_change_email",
+      "breakpoints": true
     }
   ]
 }
