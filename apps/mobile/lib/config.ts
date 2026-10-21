@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 const url = process.env.EXPO_PUBLIC_API_URL;
 
 if (!url) {
@@ -9,9 +11,10 @@ const configured = (url ?? 'http://localhost:3000').replace(/\/+$/, '');
 /**
  * In dev on web, call the API on the same host as the page (e.g. localhost:8081 → localhost:3000).
  * The session cookie is SameSite=Lax, so a LAN-IP API from a localhost page would never get it back.
+ * Web only: on Android/iOS Expo also defines `window.location` (the Metro host), which must not replace the API host.
  */
 function devWebApiUrl(base: string): string {
-  if (!__DEV__ || typeof window === 'undefined' || !window.location?.hostname) return base;
+  if (!__DEV__ || Platform.OS !== 'web' || typeof window === 'undefined' || !window.location?.hostname) return base;
   const api = new URL(base);
   if (api.hostname === window.location.hostname) return base;
   api.hostname = window.location.hostname;
