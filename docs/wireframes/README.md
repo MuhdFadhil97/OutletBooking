@@ -122,6 +122,6 @@ Six boards show how the screens connect — each card has the screen ID used in 
 | S1 | Staff-Today.dc.html | Agent's viewings today (travel buffers, Waze/Maps) | Real estate | 6 |
 | S2 | Staff-Job.dc.html | Inspection in progress (result, notes, photos, payment & collect balance) | Vehicle inspection | 6 |
 
-**Business-type pages (I21–I23) are one Next.js page driven by the same template config**, like sign-up step 3. **Emails (M1–M7)** are one layout (logo, heading, text, one button, footer) — build them with one email template in the API.
+**Business-type pages (I21–I23) are one Next.js page driven by the same template config**, like sign-up step 3. The same page also serves workshops, barbers & salons and clinics (`/for/workshops`, `/for/barbers-salons`, `/for/clinics`) — no separate wireframes; they follow Web-Sports. **Emails (M1–M7)** are one layout (logo, heading, text, one button, footer) — build them with one email template in the API.
 
 Sample businesses (Smash Arena PJ, SemakAuto Puchong, Laman Realty), names and numbers are placeholders. Bracketed text like `[Property address]` marks content to be replaced by real data.

@@ -11,7 +11,7 @@ import { formatRm } from '@/lib/money';
 import { s, TYPE_PAGE_SLUGS, type TypePageSlug } from '@/strings/en';
 
 /**
- * I21–I23 · Business-type pages. One page for every type: copy from strings, and the
+ * I21–I23 · Business-type pages (sports, real estate, inspection, workshops, salons, clinics). One page for every type: copy from strings, and the
  * ready-made services and booking questions from the same template config as sign-up step 3.
  */
 
@@ -47,6 +47,7 @@ export default async function TypePage({ params }: Props) {
   const copy = s.typePage.pages[template];
   const info = TEMPLATE_INFO[template];
   const t = s.typePage;
+  const hasQuestions = info.bookingFields.length > 0;
   const afterTrial = await afterTrialLine();
 
   return (
@@ -93,7 +94,7 @@ export default async function TypePage({ params }: Props) {
           <p className="muted" style={{ margin: '8px 0 24px' }}>
             {t.readyIntro}
           </p>
-          <div className="grid grid-2">
+          <div className={hasQuestions ? 'grid grid-2' : 'grid'}>
             <div className="card facts">
               <h3>{t.servicesLabel}</h3>
               <ul>
@@ -107,17 +108,19 @@ export default async function TypePage({ params }: Props) {
                 ))}
               </ul>
             </div>
-            <div className="card facts">
-              <h3>{t.questionsLabel}</h3>
-              <ul>
-                {info.bookingFields.map((f) => (
-                  <li key={f.fieldKey}>
-                    <span>{f.label}</span>
-                    <span>{f.options?.join(' / ') ?? ''}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {hasQuestions && (
+              <div className="card facts">
+                <h3>{t.questionsLabel}</h3>
+                <ul>
+                  {info.bookingFields.map((f) => (
+                    <li key={f.fieldKey}>
+                      <span>{f.label}</span>
+                      <span>{f.options?.join(' / ') ?? ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </section>

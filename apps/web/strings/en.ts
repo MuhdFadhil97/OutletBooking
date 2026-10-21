@@ -61,6 +61,9 @@ export const TYPE_PAGE_SLUGS = {
   sports: 'sports',
   'real-estate': 'real_estate',
   'vehicle-inspection': 'vehicle_inspection',
+  workshops: 'workshop',
+  'barbers-salons': 'barber_salon',
+  clinics: 'clinic',
 } as const satisfies Record<string, BusinessTemplate>;
 export type TypePageSlug = keyof typeof TYPE_PAGE_SLUGS;
 
@@ -118,9 +121,13 @@ export const s = {
         text: 'Plate number on every booking, mobile inspection, WhatsApp report.',
         slug: 'vehicle-inspection',
       },
-      { title: 'Workshops', text: 'Bays, jobs with “from” prices, quotes before work.' },
-      { title: 'Barbers & salons', text: 'Customers pick a stylist, walk-in queue.' },
-      { title: 'Clinics, tuition & more', text: 'Rename what is booked — rooms, doctors, teachers.' },
+      { title: 'Workshops', text: 'Bays, jobs with “from” prices, quotes before work.', slug: 'workshops' },
+      { title: 'Barbers & salons', text: 'Customers pick a stylist, walk-in queue.', slug: 'barbers-salons' },
+      {
+        title: 'Clinics, tuition & more',
+        text: 'Rename what is booked — rooms, doctors, teachers.',
+        slug: 'clinics',
+      },
     ] as { title: string; text: string; slug?: TypePageSlug }[],
     stepsTitle: 'Live in three steps',
     steps: [
@@ -423,6 +430,111 @@ export const s = {
             q: 'How do customers pay the balance?',
             a: 'Cash, DuitNow QR or card at the end — staff record it in the app.',
           },
+        ],
+      },
+      workshop: {
+        title: 'Workshops',
+        headline: 'Fill your bays with booked jobs, not phone calls',
+        intro:
+          'Customers pick a service, give their plate number and car details, and choose a time. Each bay is its own column, so two jobs never land on the same bay.',
+        preview: {
+          business: 'AutoCare Shah Alam',
+          subtitle: 'Book a service',
+          rows: [
+            ['Plate number', 'VBC 5821'],
+            ['Full service · Bay 2', '2 hours'],
+            ['Sat, 17 Oct', '9:00 AM'],
+            ['Deposit', 'RM 30'],
+          ],
+          button: 'Pay deposit RM 30',
+        },
+        features: [
+          { title: 'Bay by bay', text: 'Each bay is booked on its own, so no two jobs clash.' },
+          { title: 'Plate number on every job', text: 'Plate, make & model and mileage — searchable later.' },
+          { title: 'Deposit upfront', text: 'Cut no-shows. The balance is paid when the car is ready.' },
+          { title: 'Your own price list', text: 'Oil change, full service, tyres, aircond — set times and prices.' },
+        ],
+        steps: [
+          ['Add your bays', 'And mechanics, if you want to assign jobs'],
+          ['Add your services', 'Time and price for each'],
+          ['Set your hours', 'Weekdays, Saturday half-day'],
+          ['Share your link', 'WhatsApp, Facebook, Google Maps'],
+        ],
+        faq: [
+          { q: 'Can I search by plate number?', a: 'Yes. Plate number is searchable in your bookings.' },
+          {
+            q: 'How do customers pay the balance?',
+            a: 'Cash, DuitNow QR or card at the workshop — staff record it in the app.',
+          },
+          { q: 'Do customers need an app?', a: 'No. They book in their phone browser.' },
+        ],
+      },
+      barber_salon: {
+        title: 'Barbers & salons',
+        headline: 'Let customers pick their stylist and their time',
+        intro:
+          'Customers choose a stylist, a service and a slot that suits them. Every stylist has their own hours, and a small deposit keeps no-shows down.',
+        preview: {
+          business: 'Cukur Studio Bangsar',
+          subtitle: 'Book a stylist',
+          rows: [
+            ['Stylist Hafiz', 'Haircut · 30 min'],
+            ['Fri, 16 Oct', '3:15 PM'],
+            ['Beard trim', '+ 15 min'],
+            ['Deposit', 'RM 20'],
+          ],
+          button: 'Pay deposit RM 20',
+        },
+        features: [
+          { title: 'Pick a stylist', text: 'Customers book their favourite, or anyone who is free.' },
+          { title: '15-minute slots', text: 'Short services fit in between, so chairs stay full.' },
+          { title: 'Own hours per stylist', text: 'Different days off and shifts for each person.' },
+          { title: 'Walk-ins too', text: 'Add a walk-in from the counter in two taps.' },
+        ],
+        steps: [
+          ['Add your stylists', 'Hours and days off for each'],
+          ['Add your services', 'Haircut, colour, beard trim…'],
+          ['Set a deposit', 'Or let customers pay at the shop'],
+          ['Share your link and QR poster', 'Instagram, WhatsApp, mirror at the counter'],
+        ],
+        faq: [
+          { q: 'Can stylists see their own day?', a: 'Yes. Each stylist gets the staff app with their own bookings.' },
+          { q: 'Do customers have to pay online?', a: 'No. You choose between pay at the shop, a deposit or full payment.' },
+          { q: 'Do customers need an app?', a: 'No. They book in their phone browser.' },
+        ],
+      },
+      clinic: {
+        title: 'Clinics, tuition & more',
+        headline: 'Appointments for any business that books by the hour',
+        intro:
+          'Customers pick a doctor, teacher or room and a time. Rename what is booked to suit you — practitioners, teachers, rooms or coaches.',
+        preview: {
+          business: 'Klinik Sihat Cheras',
+          subtitle: 'Book an appointment',
+          rows: [
+            ['Dr Aisyah', 'Consultation'],
+            ['Mon, 19 Oct', '10:15 AM'],
+            ['Duration', '15 min'],
+            ['Pay at the clinic', 'RM 50'],
+          ],
+          button: 'Confirm booking',
+        },
+        features: [
+          { title: 'Book by practitioner', text: 'Doctors, physios, teachers — each with their own hours.' },
+          { title: 'Short and long visits', text: 'A 15-minute consultation or a 45-minute session.' },
+          { title: 'Pay how you like', text: 'At the clinic, a deposit, or in full online.' },
+          { title: 'Rename what is booked', text: 'Doctor, teacher, room or coach — it is your wording.' },
+        ],
+        steps: [
+          ['Add your practitioners', 'Hours for each doctor or teacher'],
+          ['Add your services', 'Consultation, session, class…'],
+          ['Choose how customers pay', 'At the venue, deposit or in full'],
+          ['Share your link', 'Website, WhatsApp, Facebook'],
+        ],
+        faq: [
+          { q: 'Can I use it for tuition or classes?', a: 'Yes. Rename what is booked and add your own services.' },
+          { q: 'Do patients need an app?', a: 'No. They book in their phone browser.' },
+          { q: 'Can staff see only their own bookings?', a: 'Yes. Staff see their own schedule unless you allow more.' },
         ],
       },
     } satisfies Record<(typeof TYPE_PAGE_SLUGS)[TypePageSlug], TypePageCopy>,

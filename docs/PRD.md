@@ -296,7 +296,7 @@ The first three templates are built and tested in depth with pilot businesses:
 | FR-20.8 | Website sign-in by one-time email link (15 min, single use); the app's "Choose a plan" opens the website already signed in | Must |
 | FR-20.9 | Payment success / not completed pages; billing & receipts page with receipt details (SSM, TIN, address) and PDF receipts with sequential numbers | Must |
 | FR-20.10 | Privacy notice (PDPA, English and Bahasa Melayu), Terms, Refund policy pages — drafts in `docs/legal/`, reviewed by a lawyer before launch | Must |
-| FR-20.11 | Contact page (demo, question, account help) saved as a lead; business-type pages for sports, real estate and inspection; website 404 and booking-page-not-found (F6) | Should |
+| FR-20.11 | Contact page (demo, question, account help) saved as a lead; business-type pages for sports, real estate, inspection, workshops, barbers & salons and clinics; website 404 and booking-page-not-found (F6) | Should |
 | FR-20.12 | Transactional emails via **Resend**, from one template: confirm email, reset password, staff invite, plan receipt, trial ending, website sign-in link, deletion notice | Must |
 
 ### FR-21 Platform admin — operations & compliance
