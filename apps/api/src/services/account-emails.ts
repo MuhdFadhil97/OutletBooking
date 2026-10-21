@@ -13,7 +13,10 @@ export function changeEmailEmail(name: string, newEmail: string, url: string, we
       'Confirm it is yours. Until then, your current email keeps working.',
     ],
     button: { label: 'Confirm new email', url },
-    notes: [`This link works once and expires in ${CHANGE_EMAIL_LINK_HOURS} hours.`],
+    notes: [
+      `This link works once and expires in ${CHANGE_EMAIL_LINK_HOURS} hours.`,
+      'Once confirmed, you are logged out on your other devices and log in again with the new email.',
+    ],
     footer: 'You got this email because someone asked to change an OutletBooking login to this address. Not you? Ignore it — nothing changes.',
     websiteUrl,
   });

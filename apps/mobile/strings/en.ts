@@ -435,7 +435,7 @@ export const en = {
     same: 'That is already your email.',
     sentTitle: 'Check your new inbox',
     sentBody: (email: string) =>
-      `We sent a link to ${email}. Open it to switch your login. Until then, your current email keeps working.`,
+      `We sent a link to ${email}. Open it to switch your login. Until then, your current email keeps working. After that you log in again on your devices with the new email.`,
     done: 'Done',
   },
   changeMobile: {

@@ -1,7 +1,7 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { createEmailVerificationToken } from 'better-auth/api';
 import { verifyPassword } from 'better-auth/crypto';
-import { accounts, businesses, businessMembers, platformAdmins, users, type Db } from '@outletbooking/db';
+import { accounts, businesses, businessMembers, platformAdmins, sessions, users, type Db } from '@outletbooking/db';
 import type { ChangeEmailInput, ChangePhoneInput } from '@outletbooking/shared';
 import type { Env } from '../env';
 import { AppError, forbidden, notFound } from '../errors';
@@ -74,6 +74,33 @@ export function emailChangeOfLink(request: Request | undefined): { from: string;
   }
 }
 
+/** The session token in the request's cookie ("…session_token=<token>.<signature>"), if there is one. */
+function sessionTokenOf(request: Request | undefined): string | null {
+  const cookie = request?.headers.get('cookie') ?? '';
+  const value = /(?:^|;\s*)(?:[\w.-]*\.)?session_token=([^;]+)/.exec(cookie)?.[1];
+  return value ? decodeURIComponent(value).split('.')[0] ?? null : null;
+}
+
+/** A session younger than this was made by Better Auth for the confirm link itself (a browser with no cookie). */
+const FRESH_SESSION_SECONDS = 10;
+
+/**
+ * Logs the owner out everywhere else after an email change. The device that opened the link keeps its login:
+ * the session in its cookie, or the one Better Auth just created for it.
+ */
+async function revokeOtherSessions(db: Db, userId: number, request: Request | undefined) {
+  const keep = sessionTokenOf(request);
+  await db
+    .delete(sessions)
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        sql`${sessions.createdAt} < now() - make_interval(secs => ${FRESH_SESSION_SECONDS})`,
+        ...(keep ? [ne(sessions.token, keep)] : []),
+      ),
+    );
+}
+
 /**
  * After the new address confirmed: the business contact email follows if it was the old login email,
  * and the old address gets a notice.
@@ -84,11 +111,13 @@ export async function afterEmailChanged(
   env: Pick<Env, 'APP_PUBLIC_URL' | 'WEBSITE_URL'>,
   user: { id: number; name: string },
   change: { from: string; to: string },
+  request?: Request,
 ) {
   await db
     .update(businesses)
     .set({ email: change.to })
     .where(and(eq(businesses.email, change.from), inArray(businesses.id, ownedBusinessIds(db, user.id))));
+  await revokeOtherSessions(db, user.id, request);
   const forgot = new URL('/forgot-password', env.APP_PUBLIC_URL).toString();
   await mailer.send({
     to: change.from,

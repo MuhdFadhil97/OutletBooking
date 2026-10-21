@@ -47,7 +47,7 @@ export function createAuth(db: Db, env: Env, mailer: Mailer = createMailer(env))
       // H6: the same hook runs when a "change email" link (see services/account-contact.ts) is confirmed.
       afterEmailVerification: async (user, request) => {
         const change = emailChangeOfLink(request);
-        if (change) await afterEmailChanged(db, mailer, env, { id: Number(user.id), name: user.name }, change);
+        if (change) await afterEmailChanged(db, mailer, env, { id: Number(user.id), name: user.name }, change, request);
       },
     },
     user: {

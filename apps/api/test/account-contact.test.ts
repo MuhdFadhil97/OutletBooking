@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { businesses, businessMembers, platformAdmins, users } from '@outletbooking/db';
+import { businesses, businessMembers, platformAdmins, sessions, users } from '@outletbooking/db';
 import { settleBackground } from '../src/background';
 import { createTestContext, signupInput } from './helpers';
 
@@ -75,6 +75,39 @@ describe('POST /me/email-change', () => {
     await openLink(ctx.outbox[0]!);
     expect(await userOf('new@example.com')).toBeDefined();
     expect(await userOf('ali@example.com')).toBeUndefined();
+  });
+
+  describe('logs out other devices once the new email is confirmed', () => {
+    const meStatus = async (cookie: string) => (await ctx.get('/me', cookie)).status;
+    /** Logins made in beforeEach are seconds old; real ones are older than the "just created" window. */
+    const ageSessions = () => ctx.db.update(sessions).set({ createdAt: new Date(Date.now() - 60_000) });
+    const openLinkWith = (cookie: string | undefined, mail: { text: string }) => {
+      const url = new URL(mail.text.match(/https?:\/\/\S+verify-email\S+/)![0]);
+      return ctx.app.request(`${url.pathname}${url.search}`, { headers: cookie ? { cookie } : {} });
+    };
+
+    it('opened in a browser with no login: every old session ends, the new login works', async () => {
+      const phone = await ctx.login('ali@example.com', 'password123');
+      await ageSessions();
+      await requestEmail(owner, 'new@example.com');
+      expect((await openLinkWith(undefined, ctx.outbox[0]!)).status).toBeLessThan(400);
+
+      expect(await meStatus(owner)).toBe(401);
+      expect(await meStatus(phone)).toBe(401);
+      expect(await meStatus(ownerB)).toBe(200);
+      await expect(ctx.login('new@example.com', 'password123')).resolves.toBeTruthy();
+    });
+
+    it('opened by a logged-in device: that device stays logged in, the others end', async () => {
+      const phone = await ctx.login('ali@example.com', 'password123');
+      await ageSessions();
+      await requestEmail(owner, 'new@example.com');
+      await openLinkWith(phone, ctx.outbox[0]!);
+
+      expect(await meStatus(phone)).toBe(200);
+      expect(await meStatus(owner)).toBe(401);
+      expect(await meStatus(ownerB)).toBe(200);
+    });
   });
 
   it('rejects a wrong password and sends nothing', async () => {
