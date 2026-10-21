@@ -10,11 +10,11 @@
 ---
 
 ## Phase 0 — Setup (Days 1–3)
-- [ ] Install: Node.js LTS, pnpm, Git, Docker Desktop, pgAdmin, VS Code/Cursor, Claude Code, Expo Go on your Android phone
-- [ ] Create accounts: GitHub, Expo (EAS), Google Play Console (USD 25 one-time). Supabase, Railway and Apple Developer can wait.
+- [x] Install: Node.js LTS, pnpm, Git, Docker Desktop, pgAdmin, VS Code/Cursor, Claude Code, Expo Go on your Android phone
+- [ ] Create accounts: GitHub ✅, Expo (EAS) ✅, Google Play Console (USD 25 one-time) — still open. Supabase, Railway and Apple Developer can wait.
 - [x] Create GitHub repo, add `CLAUDE.md`, `START-PROMPT.md` and `docs/`
 - [x] Register domain — `outletbooking.my` bought at Hostinger (DNS not pointed anywhere yet)
-- [ ] ToyyibPay sandbox account (dev.toyyibpay.com)
+- [x] ToyyibPay sandbox account (dev.toyyibpay.com)
 - [ ] Contact pilot businesses: 1–2 real estate agencies, 1–2 vehicle inspection centres, 1–2 sports centres
 - [x] PRD, schema, wireframes and flow maps written (`docs/`) — review open questions in PRD section 15
 
