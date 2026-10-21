@@ -63,11 +63,6 @@ export default async function TypePage({ params }: Props) {
           <p className="lead">{copy.intro}</p>
           <div className="actions">
             <TrialButton />
-            {links.demoBookingPage && (
-              <a className="btn2" href={links.demoBookingPage} target="_blank" rel="noopener noreferrer">
-                {s.cta.seeSample}
-              </a>
-            )}
           </div>
           {links.signup && (
             <p className="note">

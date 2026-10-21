@@ -86,8 +86,6 @@ export const s = {
   },
   cta: {
     trial: 'Start 7-day free trial',
-    seeBookingPage: 'See a booking page',
-    seeSample: 'See a sample booking page',
     demo: 'Or book a 20-minute demo',
     learnMore: 'Learn more →',
   },

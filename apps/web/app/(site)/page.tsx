@@ -3,7 +3,7 @@ import { BookingPreview } from '@/components/BookingPreview';
 import { Faq } from '@/components/Faq';
 import { Pricing } from '@/components/Pricing';
 import { TrialButton } from '@/components/TrialButton';
-import { appLive, links } from '@/lib/config';
+import { appLive } from '@/lib/config';
 import { s } from '@/strings/en';
 
 /** I3 · Website landing page */
@@ -18,11 +18,6 @@ export default function HomePage() {
           <p className="lead">{h.intro}</p>
           <div className="actions">
             <TrialButton />
-            {links.demoBookingPage && (
-              <a className="btn2" href={links.demoBookingPage} target="_blank" rel="noopener noreferrer">
-                {s.cta.seeBookingPage}
-              </a>
-            )}
           </div>
           <p className="note muted">{appLive ? h.noCard : h.prelaunchNote}</p>
         </div>
