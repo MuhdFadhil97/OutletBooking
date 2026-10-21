@@ -6,7 +6,6 @@ import {
   DEFAULT_PLANS,
   PLAN_FEATURES,
   planEntryMonthlySen,
-  SUPPORT_WHATSAPP,
   type PaidPlan,
   type PlanCatalogEntry,
   type PlanInfo,
@@ -17,7 +16,6 @@ import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { ErrorState, LoadingState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
-import { whatsappUrl } from '@/features/bookings/format';
 import { useMe } from '@/features/me/hooks';
 import { getWebBillingLink } from '@/features/plan/api';
 import { usePlanInfo } from '@/features/plan/hooks';
@@ -116,18 +114,6 @@ export default function PlanScreen() {
         <Text className="flex-1 text-[14px]">{s.extra(label)}</Text>
         <Text className="text-[14px] font-bold">{s.extraPrice(formatRM(entry.extraResourceSen))}</Text>
       </Card>
-
-      <Pressable
-        onPress={() =>
-          void Linking.openURL(`${whatsappUrl(SUPPORT_WHATSAPP)}?text=${encodeURIComponent(s.grantMessage(me?.business.name ?? ''))}`)
-        }
-        accessibilityRole="button"
-        accessibilityHint={s.grantAsk}
-        className="gap-1 rounded-card border border-[#A9C6EE] bg-info-bg px-3.5 py-3 active:opacity-80"
-      >
-        <Text className="text-[13px] leading-[20px] text-info-fg">{s.grant}</Text>
-        <Text className="text-[13px] font-bold text-info-fg">{s.grantAsk}</Text>
-      </Pressable>
 
       <Text className="text-[13px] font-bold text-primary" onPress={() => router.push('/refund')} accessibilityRole="link">
         {t.legal.refundRow}
