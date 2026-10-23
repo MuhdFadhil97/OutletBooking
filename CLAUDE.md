@@ -69,7 +69,7 @@ docs/                  PRD.md, PLAN.md, SCHEMA.md, schema.sql, legal/ (privacy, 
 - pgAdmin connects to `localhost:5432` with the same credentials.
 - API runs on `http://localhost:3000`. When testing on a real phone, the app uses the laptop LAN IP (e.g. `http://192.168.x.x:3000`).
 - Env vars in `.env` files (never committed); provide `.env.example`:
-  - API: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `APP_ENCRYPTION_KEY` (32-byte key for business ToyyibPay secrets), `TOYYIBPAY_BASE_URL`, `PLATFORM_TOYYIBPAY_SECRET_KEY` + `PLATFORM_TOYYIBPAY_CATEGORY_CODE` (FTech account, plan payments only), `S3_*`, `APP_PUBLIC_URL`, `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `OutletBooking <no-reply@outletbooking.my>`)
+  - API: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `APP_ENCRYPTION_KEY` (32-byte key for business ToyyibPay secrets), `TOYYIBPAY_BASE_URL`, `PLATFORM_TOYYIBPAY_SECRET_KEY` + `PLATFORM_TOYYIBPAY_CATEGORY_CODE` (FTech account, plan payments only), `S3_*`, `APP_PUBLIC_URL`, `RESEND_API_KEY`, `MAIL_FROM` (e.g. `OutletBooking <no-reply@outletbooking.my>`)
   - Business ToyyibPay keys are **not** env vars — owners enter them in the app (screen H1) and they are stored encrypted in `payment_accounts`.
   - App: `EXPO_PUBLIC_API_URL` only. No secrets in the app.
 

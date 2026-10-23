@@ -49,7 +49,7 @@ Read these files before doing anything, and follow them strictly:
 | Manual payments | Owner/staff can record cash, DuitNow QR, card, bank transfer (`can_take_payments`); refunds are recorded, paid outside the app |
 | Template-driven screens | Sign-up step 3, Setup tab and customer booking steps are **one screen each driven by the business-type config**, not one screen per niche |
 | Website & admin | `apps/web` (**Next.js**, confirmed, Phase 7): marketing site, plan payment page, platform admin (two-step sign-in, audit log) |
-| Email | **Resend** from the API (`RESEND_API_KEY`, `EMAIL_FROM`); log to console when no key is set locally |
+| Email | **Resend** from the API (`RESEND_API_KEY`, `MAIL_FROM`); log to console when no key is set locally |
 | Grants | No grant quotation offer on the website or app for now |
 | PDPA | Consent at sign-up; customer erase = anonymise, keep booking history |
 | Trial | **7-day free trial**, no permanent free plan; business subscription paid on website, not in-app |
