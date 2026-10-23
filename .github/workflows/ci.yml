@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: outlet
+          POSTGRES_PASSWORD: outlet
+          POSTGRES_DB: outletbooking_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U outlet -d outletbooking_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Throwaway values for CI only; the tests refuse any database that is not localhost/*_test.
+      TEST_DATABASE_URL: postgres://outlet:outlet@localhost:5432/outletbooking_test
+      DATABASE_URL: postgres://outlet:outlet@localhost:5432/outletbooking_test
+      BETTER_AUTH_SECRET: ci-only-secret-ci-only-secret-ci-only-secret
+      BETTER_AUTH_URL: http://localhost:3000
+      APP_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
